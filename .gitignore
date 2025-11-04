@@ -1,0 +1,3 @@
+*.bin
+old/*
+.DS_store
