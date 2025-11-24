@@ -5,6 +5,7 @@ renderer.py - Display rendering logic
 from machine import Pin, I2C
 import ssd1306
 import config
+import framebuf
 
 class Renderer:
     """Handles all display rendering operations"""
@@ -88,3 +89,29 @@ class Renderer:
             y += 8
             if y >= config.DISPLAY_HEIGHT:
                 break
+
+    def draw_sprite(self, byte_array, width, height, x, y, transparent=True):
+        """Draw a sprite at the given position
+        
+        Args:
+            byte_array: bytearray containing the sprite bitmap
+            width: sprite width in pixels
+            height: sprite height in pixels
+            x: x position on display
+            y: y position on display
+        """
+        
+        # Create a framebuffer from the sprite data
+        sprite_fb = framebuf.FrameBuffer(
+            byte_array, 
+            width, 
+            height, 
+            framebuf.MONO_HLSB  # or MONO_VLSB
+        )
+        
+        if transparent:
+            # Draw with transparency - black pixels (0) are transparent
+            self.display.blit(sprite_fb, x, y, 0)
+        else:
+            # Draw without transparency (overwrites everything)
+            self.display.blit(sprite_fb, x, y)
