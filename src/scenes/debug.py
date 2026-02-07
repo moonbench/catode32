@@ -1,6 +1,5 @@
 from scene import Scene
 
-
 class DebugScene(Scene):
     """Debug scene that displays all context values"""
 
@@ -29,16 +28,8 @@ class DebugScene(Scene):
         """Build display lines from context"""
         self.lines = []
 
-        # Character animation state
-        self.lines.append("-- Character --")
-        for key, value in self.context.char.items():
-            if isinstance(value, float):
-                self.lines.append(f"{key}: {value:.1f}")
-            else:
-                self.lines.append(f"{key}: {value}")
-
         # Pet stats
-        self.lines.append("-- Stats --")
+        self.lines.append("Pet stats:")
         stats = [
             ('fullness', self.context.fullness),
             ('stimulation', self.context.stimulation),
@@ -57,8 +48,10 @@ class DebugScene(Scene):
         for name, value in stats:
             self.lines.append(f"{name}: {value}")
 
+        self.lines.append("")
+
         # Inventory
-        self.lines.append("-- Inventory --")
+        self.lines.append("Inventory:")
         for category, items in self.context.inventory.items():
             self.lines.append(f"{category}:")
             for item in items:
@@ -86,7 +79,7 @@ class DebugScene(Scene):
 
     def _draw_scroll_indicator(self):
         """Draw a simple scroll indicator on the right"""
-        indicator_x = 124
+        indicator_x = 126
         track_height = 64
 
         thumb_height = max(4, int(track_height * self.LINES_VISIBLE / len(self.lines)))
@@ -97,7 +90,7 @@ class DebugScene(Scene):
         else:
             thumb_y = 0
 
-        self.renderer.draw_rect(indicator_x, thumb_y, 4, thumb_height, filled=True)
+        self.renderer.draw_rect(indicator_x, thumb_y, 2, thumb_height, filled=True)
 
     def handle_input(self):
         """Handle scrolling input"""
