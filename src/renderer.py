@@ -47,24 +47,40 @@ class Renderer:
         # Optional: Draw a border to make it look more distinct
         self.display.rect(x, y, size, size, 1)
     
-    def draw_text(self, text, x, y):
-        """Draw text at given position"""
-        self.display.text(text, x, y)
+    def draw_text(self, text, x, y, color=1):
+        """Draw text at given position
+
+        Args:
+            color: 1 for white (default), 0 for black
+        """
+        self.display.text(text, x, y, color)
     
-    def draw_rect(self, x, y, width, height, filled=False):
-        """Draw a rectangle"""
+    def draw_rect(self, x, y, width, height, filled=False, color=1):
+        """Draw a rectangle
+
+        Args:
+            color: 1 for white (default), 0 for black
+        """
         if filled:
-            self.display.fill_rect(x, y, width, height, 1)
+            self.display.fill_rect(x, y, width, height, color)
         else:
-            self.display.rect(x, y, width, height, 1)
+            self.display.rect(x, y, width, height, color)
     
-    def draw_line(self, x1, y1, x2, y2):
-        """Draw a line between two points"""
-        self.display.line(x1, y1, x2, y2, 1)
+    def draw_line(self, x1, y1, x2, y2, color=1):
+        """Draw a line between two points
+
+        Args:
+            color: 1 for white (default), 0 for black
+        """
+        self.display.line(x1, y1, x2, y2, color)
     
-    def draw_pixel(self, x, y):
-        """Draw a single pixel"""
-        self.display.pixel(x, y, 1)
+    def draw_pixel(self, x, y, color=1):
+        """Draw a single pixel
+
+        Args:
+            color: 1 for white (default), 0 for black
+        """
+        self.display.pixel(x, y, color)
     
     def draw_ui_frame(self):
         """Draw a UI frame around the screen (optional border)"""

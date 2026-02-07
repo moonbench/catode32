@@ -21,3 +21,9 @@ class GameContext:
         self.cleanliness = 50
         self.curiosity = 50
         self.confidence = 50
+
+        # Inventory for menu testing
+        self.inventory = {
+            "toys": ["feather", "yarn ball", "laser"],
+            "snacks": ["treat", "kibble"],
+        }
