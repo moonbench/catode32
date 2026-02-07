@@ -106,25 +106,31 @@ class Renderer:
             if y >= config.DISPLAY_HEIGHT:
                 break
 
-    def draw_sprite(self, byte_array, width, height, x, y, transparent=True):
+    def draw_sprite(self, byte_array, width, height, x, y, transparent=True, invert=False):
         """Draw a sprite at the given position
-        
+
         Args:
             byte_array: bytearray containing the sprite bitmap
             width: sprite width in pixels
             height: sprite height in pixels
             x: x position on display
             y: y position on display
+            transparent: if True, black pixels (0) are transparent
+            invert: if True, flip all pixel colors (white becomes black, etc.)
         """
-        
+
+        # Invert colors if requested
+        if invert:
+            byte_array = bytearray(b ^ 0xFF for b in byte_array)
+
         # Create a framebuffer from the sprite data
         sprite_fb = framebuf.FrameBuffer(
-            byte_array, 
-            width, 
-            height, 
+            byte_array,
+            width,
+            height,
             framebuf.MONO_HLSB  # or MONO_VLSB
         )
-        
+
         if transparent:
             # Draw with transparency - black pixels (0) are transparent
             self.display.blit(sprite_fb, x, y, 0)

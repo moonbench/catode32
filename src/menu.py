@@ -67,7 +67,7 @@ class Menu:
             any other value: The action from the selected MenuItem
         """
         # Menu button closes instantly from any state
-        if self.input.was_just_pressed('menu2'):
+        if self.input.was_just_pressed('menu2') or self.input.was_just_pressed('menu1'):
             self.close()
             return 'closed'
 
@@ -84,8 +84,8 @@ class Menu:
             self.selected_index = min(len(self.items) - 1, self.selected_index + 1)
             self._adjust_scroll()
 
-        # Back button
-        if self.input.was_just_pressed('b'):
+        # Back buttons
+        if self.input.was_just_pressed('b') or self.input.was_just_pressed('left'):
             if self.menu_stack:
                 # Return to parent menu
                 parent = self.menu_stack.pop()
@@ -97,6 +97,12 @@ class Menu:
                 self.close()
                 return 'closed'
 
+        # "Go into sub menu" buttons
+        if self.input.was_just_pressed('right'):
+            selected = self.items[self.selected_index]
+            if selected.submenu:
+                return self._enter_submenu(selected)
+
         # Select button
         if self.input.was_just_pressed('a'):
             if not self.items:
@@ -105,15 +111,7 @@ class Menu:
             selected = self.items[self.selected_index]
 
             if selected.submenu:
-                # Enter submenu - save current state
-                self.menu_stack.append({
-                    'items': self.items,
-                    'index': self.selected_index,
-                    'scroll': self.scroll_offset
-                })
-                self.items = selected.submenu
-                self.selected_index = 0
-                self.scroll_offset = 0
+                return self._enter_submenu(selected)
             elif selected.confirm:
                 # Show confirmation dialog
                 self.pending_confirmation = selected
@@ -122,6 +120,17 @@ class Menu:
                 self.close()
                 return selected.action
 
+        return None
+
+    def _enter_submenu(self, selected):
+        self.menu_stack.append({
+            'items': self.items,
+            'index': self.selected_index,
+            'scroll': self.scroll_offset
+        })
+        self.items = selected.submenu
+        self.selected_index = 0
+        self.scroll_offset = 0
         return None
 
     def _handle_confirmation_input(self):
@@ -184,8 +193,11 @@ class Menu:
         if item.icon:
             # Center icon vertically in row
             icon_y = y + (self.ROW_HEIGHT - self.ICON_SIZE) // 2
+            # Invert icon colors when selected to match inverted text
+            # Disable transparency when inverted (black pixels would be transparent)
             self.renderer.draw_sprite(item.icon, self.ICON_SIZE, self.ICON_SIZE,
-                                      x_offset, icon_y)
+                                      x_offset, icon_y,
+                                      transparent=not is_selected, invert=is_selected)
             x_offset = 2 + self.ICON_SIZE + 3  # icon + gap
 
         # Draw label - center text vertically (8px font height)

@@ -1,6 +1,7 @@
 from scene import Scene
 from assets.character_renderer import CharacterRenderer
 from menu import Menu, MenuItem
+from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON
 
 class NormalScene(Scene):
     def __init__(self, context, renderer, input):
@@ -74,9 +75,9 @@ class NormalScene(Scene):
     def _build_menu_items(self):
         """Build context-aware menu items"""
         items = [
-            MenuItem("Give pets", action=("pets",)),
-            MenuItem("Psst psst", action=("psst",)),
-            MenuItem("Give kiss", action=("kiss",)),
+            MenuItem("Give pets", icon=HAND_ICON, action=("pets",)),
+            MenuItem("Psst psst", icon=HEART_BUBBLE_ICON, action=("psst",)),
+            MenuItem("Give kiss", icon=HEART_ICON, action=("kiss",)),
         ]
 
         # Build snacks submenu from inventory
@@ -85,7 +86,7 @@ class NormalScene(Scene):
             for snack in self.context.inventory.get("snacks", [])
         ]
         if snack_items:
-            items.append(MenuItem("Give snacks", submenu=snack_items))
+            items.append(MenuItem("Give snacks", icon=KIBBLE_ICON, submenu=snack_items))
 
         # Build toys submenu from inventory
         toy_items = [
@@ -93,7 +94,7 @@ class NormalScene(Scene):
             for toy in self.context.inventory.get("toys", [])
         ]
         if toy_items:
-            items.append(MenuItem("Play with toy", submenu=toy_items))
+            items.append(MenuItem("Use toys", icon=TOYS_ICON, submenu=toy_items))
 
         return items
 
