@@ -2,7 +2,7 @@ class GameContext:
     def __init__(self):
 
         self.char = {
-            "blink": 0.0,
+            "eyes": 0.0,
             "tail": 0.0,
             "head": 0.0,
             "body": 0.0,
