@@ -2,6 +2,7 @@ from scene import Scene
 from assets.character_renderer import CharacterRenderer
 from menu import Menu, MenuItem
 from assets.icons import TOY_ICONS, SUN_ICON
+from assets.nature import PLANT1, PLANTER1
 
 
 class OutsideScene(Scene):
@@ -10,7 +11,7 @@ class OutsideScene(Scene):
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)
         self.x = 64
-        self.y = 61
+        self.y = 60
         self.menu_active = False
 
     def load(self):
@@ -47,6 +48,9 @@ class OutsideScene(Scene):
 
         # Draw a simple sun in corner
         self.renderer.draw_sprite(SUN_ICON, 13, 13, 110, 5)
+
+        self.renderer.draw_sprite(PLANTER1["frames"][0], PLANTER1["width"], PLANTER1["height"], 10, 63-PLANTER1["height"])
+        self.renderer.draw_sprite(PLANT1["frames"][0], PLANT1["width"], PLANT1["height"], 9, 63-PLANTER1["height"]-PLANT1["height"])
 
         self.character_renderer.draw_character(self.context.char, int(self.x), int(self.y))
 
