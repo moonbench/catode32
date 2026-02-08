@@ -9,7 +9,7 @@ class CharacterRenderer():
         body = CHAR_IMG_BODY1
         body_x = x - body["anchor_x"]
         body_y = y - body["anchor_y"]
-        self.renderer.draw_sprite(body["frames"][0], body["width"], body["height"], body_x, body_y)
+        self.renderer.draw_sprite_obj(body, body_x, body_y)
 
         # Head
         head = CHAR_IMG_HEAD1
@@ -18,8 +18,8 @@ class CharacterRenderer():
 
         head_x = head_root_x - head["anchor_x"]
         head_y = head_root_y - head["anchor_y"]
-        self.renderer.draw_sprite(head["frames"][0], head["width"], head["height"], head_x, head_y)
-        
+        self.renderer.draw_sprite_obj(head, head_x, head_y)
+
         # Eyes
         eyes = CHAR_IMG_EYES1
         eye_frame = 0
@@ -27,7 +27,7 @@ class CharacterRenderer():
             eye_frame = 1 if (context["blink"] < 0.3 or context["blink"] > 0.6) else 2
         eye_x = head_x + head["eye_x"] - eyes["anchor_x"]
         eye_y = head_y + head["eye_y"] - eyes["anchor_y"]
-        self.renderer.draw_sprite(eyes["frames"][eye_frame], eyes["width"], eyes["height"], eye_x, eye_y)
+        self.renderer.draw_sprite_obj(eyes, eye_x, eye_y, frame=eye_frame)
 
         # Tail
         tail = CHAR_IMG_TAIL1
@@ -36,7 +36,7 @@ class CharacterRenderer():
         tail_root_y = body_y + body["tail_y"]
         tail_x = tail_root_x - tail["anchor_x"]
         tail_y = tail_root_y - tail["anchor_y"]
-        self.renderer.draw_sprite(tail["frames"][tail_frame], tail["width"], tail["height"], tail_x, tail_y)
+        self.renderer.draw_sprite_obj(tail, tail_x, tail_y, frame=tail_frame)
 
 
 

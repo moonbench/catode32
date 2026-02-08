@@ -137,3 +137,23 @@ class Renderer:
         else:
             # Draw without transparency (overwrites everything)
             self.display.blit(sprite_fb, x, y)
+
+    def draw_sprite_obj(self, sprite, x, y, frame=0, transparent=True, invert=False):
+        """Draw a sprite object at the given position
+
+        Args:
+            sprite: dict with 'width', 'height', and 'frames' keys
+            x: x position on display
+            y: y position on display
+            frame: which frame to draw (default 0)
+            transparent: if True, black pixels (0) are transparent
+            invert: if True, flip all pixel colors
+        """
+        self.draw_sprite(
+            sprite["frames"][frame],
+            sprite["width"],
+            sprite["height"],
+            x, y,
+            transparent,
+            invert
+        )
