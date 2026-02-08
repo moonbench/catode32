@@ -3,7 +3,7 @@
 import gc
 import time
 from menu import Menu, MenuItem
-from assets.icons import WRENCH_ICON, TREES_ICON, HOUSE_ICON
+from assets.icons import WRENCH_ICON, SUN_ICON, HOUSE_ICON
 
 
 class SceneManager:
@@ -125,7 +125,7 @@ class SceneManager:
         if 'normal' in self._scene_classes:
             items.append(MenuItem("Go inside", icon=HOUSE_ICON, action=('scene', 'normal')))
         if 'outside' in self._scene_classes:
-            items.append(MenuItem("Go outside", icon=TREES_ICON, action=('scene', 'outside')))
+            items.append(MenuItem("Go outside", icon=SUN_ICON, action=('scene', 'outside')))
 
         # Debug option
         if 'debug' in self._scene_classes:

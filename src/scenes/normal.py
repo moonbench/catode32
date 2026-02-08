@@ -1,7 +1,8 @@
 from scene import Scene
 from assets.character_renderer import CharacterRenderer
 from menu import Menu, MenuItem
-from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS
+from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS, SNACK_ICONS
+from assets.furniture import BOOKSHELF
 
 class NormalScene(Scene):
     def __init__(self, context, renderer, input):
@@ -36,6 +37,8 @@ class NormalScene(Scene):
 
         self.renderer.clear()
 
+        self.renderer.draw_sprite_obj(BOOKSHELF, 0, 63-BOOKSHELF["height"])
+
         if self.say_meow:
             self.renderer.draw_text("Meow", self.x - 50, self.y - 30)
 
@@ -61,11 +64,6 @@ class NormalScene(Scene):
             self.menu.open(self._build_menu_items())
             return None
 
-        # Normal input handling
-        move_x, move_y = self.input.get_direction()
-        self.x += move_x
-        self.y += move_y
-
         if self.input.was_just_pressed('a'):
             self.say_meow = not self.say_meow
 
@@ -81,7 +79,7 @@ class NormalScene(Scene):
 
         # Build snacks submenu from inventory
         snack_items = [
-            MenuItem(snack, action=("snack", snack))
+            MenuItem(snack, icon=SNACK_ICONS.get(snack), action=("snack", snack))
             for snack in self.context.inventory.get("snacks", [])
         ]
         if snack_items:

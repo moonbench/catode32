@@ -22,3 +22,9 @@ TOY_ICONS = {
     "Yarn ball": YARN_ICON,
     "Laser": LASER_ICON,
 }
+
+# Mapping of snack names to their icons
+SNACK_ICONS = {
+    "Kibble": KIBBLE_ICON,
+    "Treat": KIBBLE_ICON,
+}

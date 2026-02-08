@@ -73,11 +73,6 @@ class OutsideScene(Scene):
             self.menu.open(self._build_menu_items())
             return None
 
-        # Normal input handling
-        move_x, move_y = self.input.get_direction()
-        self.x += move_x
-        self.y += move_y
-
         return None
 
     def _build_menu_items(self):

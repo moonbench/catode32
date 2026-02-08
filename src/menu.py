@@ -85,17 +85,17 @@ class Menu:
             self._adjust_scroll()
 
         # Back buttons
-        if self.input.was_just_pressed('b') or self.input.was_just_pressed('left'):
+        if self.input.was_just_pressed('b'):
             if self.menu_stack:
-                # Return to parent menu
-                parent = self.menu_stack.pop()
-                self.items = parent['items']
-                self.selected_index = parent['index']
-                self.scroll_offset = parent['scroll']
+                return self._exit_submenu()
             else:
                 # At top level, close menu
                 self.close()
                 return 'closed'
+
+        if self.input.was_just_pressed('left'):
+            if self.menu_stack:
+                return self._exit_submenu()
 
         # "Go into sub menu" buttons
         if self.input.was_just_pressed('right'):
@@ -121,6 +121,13 @@ class Menu:
                 return selected.action
 
         return None
+
+    def _exit_submenu(self):
+        # Return to parent menu
+        parent = self.menu_stack.pop()
+        self.items = parent['items']
+        self.selected_index = parent['index']
+        self.scroll_offset = parent['scroll']
 
     def _enter_submenu(self, selected):
         self.menu_stack.append({
