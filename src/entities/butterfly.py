@@ -1,3 +1,5 @@
+import random
+
 from entities.entity import Entity
 from assets.nature import BUTTERFLY1
 
@@ -58,16 +60,17 @@ class ButterflyEntity(Entity):
             self.vy = -abs(self.vy)
 
     def _pick_new_direction(self):
-        """Pick a new direction. Simple deterministic pattern."""
-        # Toggle vertical direction
-        self.vy = -self.vy if self.vy != 0 else 0.3
+        """Pick a new random direction."""
+        # Randomly change vertical direction
+        if random.random() < 0.5:
+            self.vy = random.uniform(-0.5, 0.5)
 
-        # Slight horizontal variation based on position
-        mid_x = (self.bounds_left + self.bounds_right) / 2
-        if self.x > mid_x:
-            self.vx = -abs(self.vx) * 0.8
-        else:
-            self.vx = abs(self.vx) * 0.8
+        # Only sometimes change horizontal direction
+        if random.random() < 0.3:
+            self.vx = random.uniform(-0.5, 0.5)
+
+        # Randomize next direction change interval
+        self.direction_interval = random.uniform(1.0, 3.0)
 
     def draw(self, renderer):
         """Draw the butterfly."""

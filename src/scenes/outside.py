@@ -3,7 +3,7 @@ from entities.character import CharacterEntity
 from entities.butterfly import ButterflyEntity
 from menu import Menu, MenuItem
 from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS, SNACK_ICONS, SUN_ICON
-from assets.nature import PLANT1, PLANTER1, PLANT2, CLOUD1
+from assets.nature import PLANT1, PLANTER1, PLANT2, CLOUD1, CLOUD2
 
 
 class OutsideScene(Scene):
@@ -13,15 +13,18 @@ class OutsideScene(Scene):
         super().__init__(context, renderer, input)
         self.cloud_x = -10.0
         self.cloud_x2 = 30.0
-        self.cloud_x3 = -40.0
+        self.cloud_x3 = 60.0
         self.menu_active = False
         self.character = None
         self.butterfly = None
+        self.butterfly2 = None
 
     def load(self):
         super().load()
         self.character = CharacterEntity(64, 60)
-        self.butterfly = ButterflyEntity(90, 20)
+        self.butterfly = ButterflyEntity(110, 20)
+        self.butterfly2 = ButterflyEntity(50, 30)
+        self.butterfly2.anim_speed = 10
         self.menu = Menu(self.renderer, self.input)
 
     def unload(self):
@@ -36,9 +39,10 @@ class OutsideScene(Scene):
     def update(self, dt):
         self.character.update(dt)
         self.butterfly.update(dt)
+        self.butterfly2.update(dt)
 
         self.cloud_x += dt * 0.8
-        self.cloud_x2 += dt * 2.1
+        self.cloud_x2 += dt * 2.4
         self.cloud_x3 += dt * 1.2
 
         if self.cloud_x > 128:
@@ -64,14 +68,15 @@ class OutsideScene(Scene):
 
         # Draw a simple sun in corner
         self.renderer.draw_sprite(SUN_ICON, 13, 13, 110, 5)
-        self.renderer.draw_sprite_obj(CLOUD1, int(self.cloud_x), -8)
-        self.renderer.draw_sprite_obj(CLOUD1, int(self.cloud_x3), -13)
+        self.renderer.draw_sprite_obj(CLOUD1, int(self.cloud_x), -7)
+        self.renderer.draw_sprite_obj(CLOUD2, int(self.cloud_x3), 0)
         self.renderer.draw_sprite_obj(CLOUD1, int(self.cloud_x2), -17)
 
         self.renderer.draw_sprite_obj(PLANTER1, 10, 63 - PLANTER1["height"])
         self.renderer.draw_sprite_obj(PLANT1, 9, 63 - PLANTER1["height"] - PLANT1["height"])
 
         self.butterfly.draw(self.renderer)
+        self.butterfly2.draw(self.renderer)
         self.character.draw(self.renderer)
 
         self.renderer.draw_sprite_obj(PLANTER1, 94, 63 - PLANTER1["height"])

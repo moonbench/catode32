@@ -1,13 +1,6 @@
 from entities.entity import Entity
 from assets.poses import POSES
 
-
-def get_point(sprite, key, frame=0):
-    """Get a point value from a sprite, handling both static (int) and animated (list) values."""
-    value = sprite[key]
-    return value[frame] if isinstance(value, list) else value
-
-
 class CharacterEntity(Entity):
     """The main pet character entity."""
 
@@ -15,7 +8,6 @@ class CharacterEntity(Entity):
         super().__init__(x, y)
         self.pose = pose
 
-        # Animation counters (previously in context.char)
         self.anim_body = 0.0
         self.anim_head = 0.0
         self.anim_eyes = 0.0
@@ -25,6 +17,11 @@ class CharacterEntity(Entity):
         """Change the character's pose."""
         if pose_name in POSES:
             self.pose = pose_name
+
+    def _get_point(self, sprite, key, frame=0):
+        """Get a point value from a sprite, handling both static (int) and animated (list) values."""
+        value = sprite[key]
+        return value[frame] if isinstance(value, list) else value
 
     def _get_total_frames(self, sprite):
         """Get total frame count including extra_frames for pause at end of cycle."""
@@ -40,15 +37,10 @@ class CharacterEntity(Entity):
         """Update animation counters."""
         pose = POSES[self.pose]
 
-        body_total = self._get_total_frames(pose["body"])
-        head_total = self._get_total_frames(pose["head"])
-        eyes_total = self._get_total_frames(pose["eyes"])
-        tail_total = self._get_total_frames(pose["tail"])
-
-        self.anim_body = (self.anim_body + dt * pose["body"].get("speed", 1)) % body_total
-        self.anim_head = (self.anim_head + dt * pose["head"].get("speed", 1)) % head_total
-        self.anim_eyes = (self.anim_eyes + dt * pose["eyes"].get("speed", 1)) % eyes_total
-        self.anim_tail = (self.anim_tail + dt * pose["tail"].get("speed", 1)) % tail_total
+        self.anim_body = (self.anim_body + dt * pose["body"].get("speed", 1)) % self._get_total_frames(pose["body"])
+        self.anim_head = (self.anim_head + dt * pose["head"].get("speed", 1)) % self._get_total_frames(pose["head"])
+        self.anim_eyes = (self.anim_eyes + dt * pose["eyes"].get("speed", 1)) % self._get_total_frames(pose["eyes"])
+        self.anim_tail = (self.anim_tail + dt * pose["tail"].get("speed", 1)) % self._get_total_frames(pose["tail"])
 
     def draw(self, renderer):
         """Draw the character at its position."""
@@ -68,8 +60,8 @@ class CharacterEntity(Entity):
         # Head
         head = pose["head"]
         head_frame = self._get_frame_index(head, self.anim_head)
-        head_root_x = body_x + get_point(body, "head_x", body_frame)
-        head_root_y = body_y + get_point(body, "head_y", body_frame)
+        head_root_x = body_x + self._get_point(body, "head_x", body_frame)
+        head_root_y = body_y + self._get_point(body, "head_y", body_frame)
         head_x = head_root_x - head["anchor_x"]
         head_y = head_root_y - head["anchor_y"]
         renderer.draw_sprite_obj(head, head_x, head_y, frame=head_frame)
@@ -77,15 +69,15 @@ class CharacterEntity(Entity):
         # Eyes
         eyes = pose["eyes"]
         eye_frame = self._get_frame_index(eyes, self.anim_eyes)
-        eye_x = head_x + get_point(head, "eye_x", head_frame) - eyes["anchor_x"]
-        eye_y = head_y + get_point(head, "eye_y", head_frame) - eyes["anchor_y"]
+        eye_x = head_x + self._get_point(head, "eye_x", head_frame) - eyes["anchor_x"]
+        eye_y = head_y + self._get_point(head, "eye_y", head_frame) - eyes["anchor_y"]
         renderer.draw_sprite_obj(eyes, eye_x, eye_y, frame=eye_frame)
 
         # Tail
         tail = pose["tail"]
         tail_frame = self._get_frame_index(tail, self.anim_tail)
-        tail_root_x = body_x + get_point(body, "tail_x", body_frame)
-        tail_root_y = body_y + get_point(body, "tail_y", body_frame)
+        tail_root_x = body_x + self._get_point(body, "tail_x", body_frame)
+        tail_root_y = body_y + self._get_point(body, "tail_y", body_frame)
         tail_x = tail_root_x - tail["anchor_x"]
         tail_y = tail_root_y - tail["anchor_y"]
         renderer.draw_sprite_obj(tail, tail_x, tail_y, frame=tail_frame)
