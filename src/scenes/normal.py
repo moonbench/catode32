@@ -4,7 +4,7 @@ from menu import Menu, MenuItem
 from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS, SNACK_ICONS
 from assets.furniture import BOOKSHELF
 from assets.nature import PLANTER1, PLANT3
-from assets.items import FISH1
+from assets.items import FISH1, BOX_SMALL_1, PLANTER_SMALL_1
 
 class NormalScene(Scene):
     def __init__(self, context, renderer, input):
@@ -41,6 +41,8 @@ class NormalScene(Scene):
         self.renderer.clear()
 
         self.renderer.draw_sprite_obj(BOOKSHELF, 0, 63-BOOKSHELF["height"])
+        self.renderer.draw_sprite_obj(BOX_SMALL_1, 2, 63-BOOKSHELF["height"]-BOX_SMALL_1["height"])
+        self.renderer.draw_sprite_obj(PLANTER_SMALL_1, 14, 63-BOOKSHELF["height"]-PLANTER_SMALL_1["height"])
 
         if self.say_meow:
             self.renderer.draw_text("Meow", int(self.character.x) - 50, int(self.character.y) - 30)

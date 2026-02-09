@@ -82,7 +82,92 @@ class Renderer:
             color: 1 for white (default), 0 for black
         """
         self.display.pixel(x, y, color)
-    
+
+    def draw_polygon(self, points, color=1):
+        """Draw a polygon outline
+
+        Args:
+            points: list of (x, y) tuples defining vertices
+            color: 1 for white (default), 0 for black
+        """
+        if len(points) < 2:
+            return
+        for i in range(len(points)):
+            x1, y1 = points[i]
+            x2, y2 = points[(i + 1) % len(points)]
+            self.display.line(int(x1), int(y1), int(x2), int(y2), color)
+
+    def fill_polygon(self, points, color=1, pattern=None):
+        """Fill a polygon using scanline algorithm
+
+        Args:
+            points: list of (x, y) tuples defining vertices
+            color: 1 for white (default), 0 for black
+            pattern: optional pattern name or function
+                Built-in patterns: 'solid', 'checkerboard', 'horizontal',
+                    'vertical', 'diagonal', 'dots'
+                Or pass a function: pattern(x, y) -> bool
+        """
+        if len(points) < 3:
+            return
+
+        # Built-in patterns
+        patterns = {
+            'solid': lambda x, y: True,
+            'checkerboard': lambda x, y: (x + y) % 2 == 0,
+            'horizontal': lambda x, y: y % 2 == 0,
+            'vertical': lambda x, y: x % 2 == 0,
+            'diagonal': lambda x, y: (x + y) % 3 == 0,
+            'dots': lambda x, y: x % 2 == 0 and y % 2 == 0,
+        }
+
+        # Resolve pattern
+        if pattern is None or pattern == 'solid':
+            pattern_fn = None  # Solid fill, skip pattern check for speed
+        elif callable(pattern):
+            pattern_fn = pattern
+        elif pattern in patterns:
+            pattern_fn = patterns[pattern]
+        else:
+            pattern_fn = None
+
+        # Find bounding box
+        min_y = int(min(p[1] for p in points))
+        max_y = int(max(p[1] for p in points))
+
+        # Build edge list: each edge is (x1, y1, x2, y2) with y1 <= y2
+        edges = []
+        n = len(points)
+        for i in range(n):
+            x1, y1 = points[i]
+            x2, y2 = points[(i + 1) % n]
+            if y1 != y2:  # Skip horizontal edges
+                if y1 > y2:
+                    x1, y1, x2, y2 = x2, y2, x1, y1
+                edges.append((x1, y1, x2, y2))
+
+        # Scanline fill
+        for y in range(min_y, max_y + 1):
+            # Find intersections with all edges
+            intersections = []
+            for x1, y1, x2, y2 in edges:
+                if y1 <= y < y2:  # Edge crosses this scanline
+                    # Calculate x intersection using linear interpolation
+                    t = (y - y1) / (y2 - y1)
+                    x = x1 + t * (x2 - x1)
+                    intersections.append(x)
+
+            # Sort intersections
+            intersections.sort()
+
+            # Fill between pairs of intersections (even-odd rule)
+            for i in range(0, len(intersections) - 1, 2):
+                x_start = int(intersections[i] + 0.5)
+                x_end = int(intersections[i + 1] + 0.5)
+                for x in range(x_start, x_end + 1):
+                    if pattern_fn is None or pattern_fn(x, y):
+                        self.display.pixel(x, y, color)
+
     def draw_ui_frame(self):
         """Draw a UI frame around the screen (optional border)"""
         self.display.rect(0, 0, config.DISPLAY_WIDTH, config.DISPLAY_HEIGHT, 1)
@@ -196,6 +281,86 @@ class Renderer:
 
         return result, new_width, new_height
 
+    def skew_sprite(self, byte_array, width, height, skew_x=0.0, skew_y=0.0):
+        """Skew a MONO_HLSB sprite.
+
+        skew_x: horizontal skew factor (pixels shifted per row)
+        skew_y: vertical skew factor (pixels shifted per column)
+
+        Returns (skewed_bytearray, new_width, new_height)
+        """
+        # Calculate transformed corners to find bounding box
+        # Transform: dx = sx + skew_x * sy, dy = sy + skew_y * sx
+        corners = [
+            (0, 0),
+            (width - 1, 0),
+            (0, height - 1),
+            (width - 1, height - 1)
+        ]
+
+        transformed = []
+        for sx, sy in corners:
+            dx = sx + skew_x * sy
+            dy = sy + skew_y * sx
+            transformed.append((dx, dy))
+
+        min_x = min(p[0] for p in transformed)
+        max_x = max(p[0] for p in transformed)
+        min_y = min(p[1] for p in transformed)
+        max_y = max(p[1] for p in transformed)
+
+        new_width = int(max_x - min_x + 1.5)
+        new_height = int(max_y - min_y + 1.5)
+
+        # Ensure minimum size
+        new_width = max(1, new_width)
+        new_height = max(1, new_height)
+
+        # Offset to translate bounding box to origin
+        offset_x = -min_x
+        offset_y = -min_y
+
+        # Create result
+        src_bytes_per_row = (width + 7) // 8
+        dst_bytes_per_row = (new_width + 7) // 8
+        result = bytearray(dst_bytes_per_row * new_height)
+
+        # Inverse transform denominator
+        denom = 1 - skew_x * skew_y
+        if abs(denom) < 0.001:
+            # Degenerate case - skew factors cancel out, return empty
+            return result, new_width, new_height
+
+        # For each destination pixel, find source pixel (inverse mapping)
+        for dy in range(new_height):
+            for dx in range(new_width):
+                # Remove offset to get transformed coordinates
+                tx = dx - offset_x
+                ty = dy - offset_y
+
+                # Inverse transform
+                sx = (tx - skew_x * ty) / denom
+                sy = (ty - skew_y * tx) / denom
+
+                # Round to nearest integer
+                sx_int = int(sx + 0.5)
+                sy_int = int(sy + 0.5)
+
+                # Check bounds
+                if 0 <= sx_int < width and 0 <= sy_int < height:
+                    # Get source pixel (MONO_HLSB: MSB is leftmost)
+                    src_byte_idx = sy_int * src_bytes_per_row + sx_int // 8
+                    src_bit = 7 - (sx_int % 8)
+                    pixel = (byte_array[src_byte_idx] >> src_bit) & 1
+
+                    if pixel:
+                        # Set destination pixel
+                        dst_byte_idx = dy * dst_bytes_per_row + dx // 8
+                        dst_bit = 7 - (dx % 8)
+                        result[dst_byte_idx] |= (1 << dst_bit)
+
+        return result, new_width, new_height
+
     def draw_debug_info(self, info_dict, start_y=0):
         """
         Draw debug information on screen
@@ -209,7 +374,7 @@ class Renderer:
             if y >= config.DISPLAY_HEIGHT:
                 break
 
-    def draw_sprite(self, byte_array, width, height, x, y, transparent=True, invert=False, transparent_color=0, mirror_h=False, mirror_v=False, rotate=0):
+    def draw_sprite(self, byte_array, width, height, x, y, transparent=True, invert=False, transparent_color=0, mirror_h=False, mirror_v=False, rotate=0, skew_x=0, skew_y=0):
         """Draw a sprite at the given position
 
         Args:
@@ -224,6 +389,8 @@ class Renderer:
             mirror_h: if True, flip the sprite horizontally
             mirror_v: if True, flip the sprite vertically
             rotate: rotation angle in degrees (clockwise)
+            skew_x: horizontal skew factor (pixels shifted per row)
+            skew_y: vertical skew factor (pixels shifted per column)
         """
 
         # Mirror horizontally if requested
@@ -240,6 +407,15 @@ class Renderer:
             old_cx = x + width // 2
             old_cy = y + height // 2
             byte_array, width, height = self.rotate_sprite(byte_array, width, height, rotate)
+            x = old_cx - width // 2
+            y = old_cy - height // 2
+
+        # Skew if requested
+        if skew_x != 0 or skew_y != 0:
+            # Adjust position so sprite skews around its center
+            old_cx = x + width // 2
+            old_cy = y + height // 2
+            byte_array, width, height = self.skew_sprite(byte_array, width, height, skew_x, skew_y)
             x = old_cx - width // 2
             y = old_cy - height // 2
 
@@ -262,7 +438,7 @@ class Renderer:
             # Draw without transparency (overwrites everything)
             self.display.blit(sprite_fb, x, y)
 
-    def draw_sprite_obj(self, sprite, x, y, frame=0, transparent=True, invert=False, mirror_h=False, mirror_v=False, rotate=0):
+    def draw_sprite_obj(self, sprite, x, y, frame=0, transparent=True, invert=False, mirror_h=False, mirror_v=False, rotate=0, skew_x=0, skew_y=0):
         """Draw a sprite object at the given position
 
         Args:
@@ -276,6 +452,8 @@ class Renderer:
             mirror_h: if True, flip the sprite horizontally
             mirror_v: if True, flip the sprite vertically
             rotate: rotation angle in degrees (clockwise)
+            skew_x: horizontal skew factor (pixels shifted per row)
+            skew_y: vertical skew factor (pixels shifted per column)
         """
         # If sprite has fill_frames, draw the fill first (in black)
         # Invert so white fill becomes black, use white as transparent color
@@ -290,7 +468,9 @@ class Renderer:
                 transparent_color=1,
                 mirror_h=mirror_h,
                 mirror_v=mirror_v,
-                rotate=rotate
+                rotate=rotate,
+                skew_x=skew_x,
+                skew_y=skew_y
             )
 
         self.draw_sprite(
@@ -302,5 +482,7 @@ class Renderer:
             invert,
             mirror_h=mirror_h,
             mirror_v=mirror_v,
-            rotate=rotate
+            rotate=rotate,
+            skew_x=skew_x,
+            skew_y=skew_y
         )
