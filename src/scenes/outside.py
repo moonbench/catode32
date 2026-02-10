@@ -77,7 +77,8 @@ class OutsideScene(Scene):
 
         self.butterfly.draw(self.renderer)
         self.butterfly2.draw(self.renderer)
-        self.character.draw(self.renderer)
+
+        self.character.draw(self.renderer, mirror=True)
 
         self.renderer.draw_sprite_obj(PLANTER1, 94, 63 - PLANTER1["height"])
         self.renderer.draw_sprite_obj(PLANT2, 90, 63 - PLANTER1["height"] - PLANT2["height"])
