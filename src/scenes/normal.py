@@ -53,8 +53,6 @@ class NormalScene(Scene):
         self.renderer.draw_sprite_obj(PLANT3, 51, 63 - PLANTER1["height"] - PLANT3["height"])
 
         self.renderer.draw_sprite_obj(FISH1, 60, 20, rotate=self.fish_angle)
-
-        self.renderer.show()
     
     def handle_input(self):
         """Process input - can also return scene change instructions"""

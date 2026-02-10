@@ -486,3 +486,108 @@ class Renderer:
             skew_x=skew_x,
             skew_y=skew_y
         )
+
+    def draw_transition_fade(self, progress):
+        """Draw dither pattern overlay for fade transition.
+
+        Args:
+            progress: 0.0 = fully clear, 1.0 = fully black
+        """
+        if progress <= 0:
+            return
+        if progress >= 1:
+            self.display.fill(0)
+            return
+
+        # Use different dither patterns based on progress
+        # Pattern density increases with progress
+        for y in range(config.DISPLAY_HEIGHT):
+            for x in range(config.DISPLAY_WIDTH):
+                draw_pixel = False
+
+                if progress < 0.25:
+                    # Sparse: every 4th pixel in a grid pattern
+                    threshold = progress / 0.25
+                    draw_pixel = (x % 4 == 0 and y % 4 == 0) and ((x + y) % 8 < threshold * 8)
+                elif progress < 0.5:
+                    # Quarter fill: 2x2 grid, one pixel per cell
+                    threshold = (progress - 0.25) / 0.25
+                    base = (x % 2 == 0 and y % 2 == 0)
+                    extra = (x % 2 == 1 and y % 2 == 1) and ((x + y) % 4 < threshold * 4)
+                    draw_pixel = base or extra
+                elif progress < 0.75:
+                    # Checkerboard: half the pixels
+                    threshold = (progress - 0.5) / 0.25
+                    base = (x + y) % 2 == 0
+                    extra = (x % 2 == 0 and y % 2 == 1) and ((x + y) % 4 < threshold * 4)
+                    draw_pixel = base or extra
+                else:
+                    # Dense: three-quarters to full
+                    threshold = (progress - 0.75) / 0.25
+                    # Start with 3/4 filled, progress to full
+                    skip = (x + y) % 2 == 1 and (x % 2 == 0) and ((x + y) % 4 >= threshold * 4)
+                    draw_pixel = not skip
+
+                if draw_pixel:
+                    self.display.pixel(x, y, 0)
+
+    def draw_transition_wipe(self, progress, direction='right'):
+        """Draw wipe transition.
+
+        Args:
+            progress: 0.0 = no wipe, 1.0 = fully wiped
+            direction: 'left', 'right', 'up', 'down'
+        """
+        if progress <= 0:
+            return
+        if progress >= 1:
+            self.display.fill(0)
+            return
+
+        if direction == 'right':
+            width = int(progress * config.DISPLAY_WIDTH)
+            self.display.fill_rect(0, 0, width, config.DISPLAY_HEIGHT, 0)
+        elif direction == 'left':
+            width = int(progress * config.DISPLAY_WIDTH)
+            x = config.DISPLAY_WIDTH - width
+            self.display.fill_rect(x, 0, width, config.DISPLAY_HEIGHT, 0)
+        elif direction == 'down':
+            height = int(progress * config.DISPLAY_HEIGHT)
+            self.display.fill_rect(0, 0, config.DISPLAY_WIDTH, height, 0)
+        elif direction == 'up':
+            height = int(progress * config.DISPLAY_HEIGHT)
+            y = config.DISPLAY_HEIGHT - height
+            self.display.fill_rect(0, y, config.DISPLAY_WIDTH, height, 0)
+
+    def draw_transition_iris(self, progress):
+        """Draw iris (circle) transition.
+
+        Args:
+            progress: 0.0 = fully open (no black), 1.0 = fully closed (all black)
+        """
+        if progress <= 0:
+            return
+        if progress >= 1:
+            self.display.fill(0)
+            return
+
+        # Center of screen
+        cx = config.DISPLAY_WIDTH // 2
+        cy = config.DISPLAY_HEIGHT // 2
+
+        # Max radius is distance from center to corner
+        max_radius = int(math.sqrt(cx * cx + cy * cy)) + 1
+
+        # Current hole radius (shrinks as progress increases)
+        hole_radius = int(max_radius * (1 - progress))
+        hole_radius_sq = hole_radius * hole_radius
+
+        # Draw black pixels outside the circle
+        for y in range(config.DISPLAY_HEIGHT):
+            dy = y - cy
+            dy_sq = dy * dy
+            for x in range(config.DISPLAY_WIDTH):
+                dx = x - cx
+                dist_sq = dx * dx + dy_sq
+                if dist_sq > hole_radius_sq:
+                    self.display.pixel(x, y, 0)

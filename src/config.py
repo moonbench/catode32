@@ -32,3 +32,7 @@ WORLD_MIN_X = 0
 WORLD_MAX_X = DISPLAY_WIDTH - CHAR_SIZE
 WORLD_MIN_Y = 0
 WORLD_MAX_Y = DISPLAY_HEIGHT - CHAR_SIZE
+
+# Transition Settings
+TRANSITION_TYPE = 'fade'        # 'fade', 'wipe', 'iris'
+TRANSITION_DURATION = 0.5       # seconds per half-transition (total is 2x this)

@@ -83,8 +83,6 @@ class OutsideScene(Scene):
         self.renderer.draw_sprite_obj(PLANTER1, 94, 63 - PLANTER1["height"])
         self.renderer.draw_sprite_obj(PLANT2, 90, 63 - PLANTER1["height"] - PLANT2["height"])
 
-        self.renderer.show()
-
     def handle_input(self):
         """Process input - can also return scene change instructions"""
         # Handle menu input when active

@@ -2,6 +2,7 @@
 
 import gc
 import time
+import config
 from menu import Menu, MenuItem
 from assets.icons import WRENCH_ICON, SUN_ICON, HOUSE_ICON
 
@@ -25,24 +26,48 @@ class SceneManager:
         self.big_menu = Menu(renderer, input_handler)
         self.big_menu_active = False
         self._scene_classes = {}  # Registered scene classes for menu navigation
+
+        # Transition state
+        self.transition_active = False
+        self.transition_type = config.TRANSITION_TYPE
+        self.transition_duration = config.TRANSITION_DURATION
+        self.transition_progress = 0.0
+        self.transition_phase = 'out'  # 'out' (closing) or 'in' (opening)
+        self.pending_scene_class = None
         
     def register_scene(self, name, scene_class):
         """Register a scene class for menu navigation"""
         self._scene_classes[name] = scene_class
 
     def change_scene(self, scene_class):
-        self.next_scene_class = scene_class
-        
-        if self.next_scene_class is None:
+        """Start a transition to a new scene"""
+        if scene_class is None:
             return
-            
+
+        # Don't start a new transition if one is already active
+        if self.transition_active:
+            return
+
+        # If no current scene, switch immediately (initial load)
+        if self.current_scene is None:
+            self._perform_scene_switch(scene_class)
+            return
+
+        # Start transition-out phase
+        self.transition_active = True
+        self.transition_phase = 'out'
+        self.transition_progress = 0.0
+        self.pending_scene_class = scene_class
+
+    def _perform_scene_switch(self, scene_class):
+        """Actually switch to a new scene (called at transition midpoint)"""
         # Exit current scene
         if self.current_scene:
             self.current_scene.exit()
-            
+
         # Check if we have this scene cached
-        scene_name = self.next_scene_class.__name__
-        
+        scene_name = scene_class.__name__
+
         if scene_name in self.scene_cache:
             # Reuse cached scene
             print(f"Reusing cached scene: {scene_name}")
@@ -50,20 +75,19 @@ class SceneManager:
         else:
             # Create new scene instance
             print(f"Creating new scene: {scene_name}")
-            self.current_scene = self.next_scene_class(
+            self.current_scene = scene_class(
                 self.context, self.renderer, self.input
             )
             self.current_scene.load()
-            
+
             # Add to cache
             self.scene_cache[scene_name] = self.current_scene
-            
+
             # Check cache size and clean if needed
             self._manage_cache()
-        
+
         # Enter the new scene
         self.current_scene.enter()
-        self.next_scene_class = None
         
     def _manage_cache(self):
         """Remove old scenes if cache is too large"""
@@ -77,25 +101,77 @@ class SceneManager:
                     break
     
     def update(self, dt):
-        """Update current scene"""
-        
+        """Update current scene and transitions"""
+
+        # Handle transition animation
+        if self.transition_active:
+            self._update_transition(dt)
+            return  # Don't update scene during transition
+
         # Update current scene
         if self.current_scene:
             result = self.current_scene.update(dt)
             if result and result[0] == 'change_scene':
                 self.change_scene(result[1])
+
+    def _update_transition(self, dt):
+        """Advance transition animation"""
+        # Advance progress
+        self.transition_progress += dt / self.transition_duration
+
+        if self.transition_progress >= 1.0:
+            self.transition_progress = 1.0
+
+            if self.transition_phase == 'out':
+                # Transition-out complete, switch scenes and start transition-in
+                self._perform_scene_switch(self.pending_scene_class)
+                self.pending_scene_class = None
+                self.transition_phase = 'in'
+                self.transition_progress = 0.0
+            else:
+                # Transition-in complete, end transition
+                self.transition_active = False
+                self.transition_progress = 0.0
     
     def draw(self):
-        """Draw current scene"""
+        """Draw current scene and transition overlay"""
         if self.big_menu_active:
             self.big_menu.draw()
+            self.renderer.show()
             return
 
         if self.current_scene:
             self.current_scene.draw()
+
+        # Draw transition overlay if active
+        if self.transition_active:
+            self._draw_transition()
+
+        self.renderer.show()
+
+    def _draw_transition(self):
+        """Draw the transition effect overlay"""
+        # Calculate effective progress (inverted for 'in' phase)
+        if self.transition_phase == 'out':
+            progress = self.transition_progress
+        else:
+            progress = 1.0 - self.transition_progress
+
+        # Draw the appropriate transition type
+        if self.transition_type == 'fade':
+            self.renderer.draw_transition_fade(progress)
+        elif self.transition_type == 'wipe':
+            direction = 'right' if self.transition_phase == 'out' else 'left'
+            self.renderer.draw_transition_wipe(progress, direction)
+        elif self.transition_type == 'iris':
+            self.renderer.draw_transition_iris(progress)
     
     def handle_input(self):
         """Handle input for current scene"""
+        # Block input during transitions
+        if self.transition_active:
+            return
+
         # Handle big menu input when active
         if self.big_menu_active:
             result = self.big_menu.handle_input()

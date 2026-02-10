@@ -170,8 +170,6 @@ class Menu:
         else:
             self._draw_menu_list()
 
-        self.renderer.show()
-
     def _draw_menu_list(self):
         """Draw the menu items with scrollbar"""
         visible_start = self.scroll_offset

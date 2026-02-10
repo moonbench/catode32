@@ -75,8 +75,6 @@ class DebugScene(Scene):
         if len(self.lines) > self.LINES_VISIBLE:
             self._draw_scroll_indicator()
 
-        self.renderer.show()
-
     def _draw_scroll_indicator(self):
         """Draw a simple scroll indicator on the right"""
         indicator_x = 126
