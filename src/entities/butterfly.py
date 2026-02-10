@@ -72,10 +72,15 @@ class ButterflyEntity(Entity):
         # Randomize next direction change interval
         self.direction_interval = random.uniform(1.0, 3.0)
 
-    def draw(self, renderer):
-        """Draw the butterfly."""
+    def draw(self, renderer, camera_offset=0):
+        """Draw the butterfly.
+
+        Args:
+            renderer: the renderer to draw with
+            camera_offset: horizontal camera offset to subtract from x position
+        """
         if not self.visible:
             return
 
         frame = int(self.anim_counter) % len(BUTTERFLY1["frames"])
-        renderer.draw_sprite_obj(BUTTERFLY1, int(self.x), int(self.y), frame=frame)
+        renderer.draw_sprite_obj(BUTTERFLY1, int(self.x) - camera_offset, int(self.y), frame=frame)

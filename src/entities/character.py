@@ -53,18 +53,19 @@ class CharacterEntity(Entity):
         self.anim_eyes = (self.anim_eyes + dt * pose["eyes"].get("speed", 1)) % self._get_total_frames(pose["eyes"])
         self.anim_tail = (self.anim_tail + dt * pose["tail"].get("speed", 1)) % self._get_total_frames(pose["tail"])
 
-    def draw(self, renderer, mirror=False):
+    def draw(self, renderer, mirror=False, camera_offset=0):
         """Draw the character at its position.
 
         Args:
             renderer: the renderer to draw with
             mirror: if True, flip the character horizontally
+            camera_offset: horizontal camera offset to subtract from x position
         """
         if not self.visible:
             return
 
         pose = POSES[self.pose]
-        x, y = int(self.x), int(self.y)
+        x, y = int(self.x) - camera_offset, int(self.y)
 
         # Body
         body = pose["body"]

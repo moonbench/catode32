@@ -10,6 +10,11 @@ class Entity:
         """Update entity logic. Override in subclasses."""
         pass
 
-    def draw(self, renderer):
-        """Draw the entity. Override in subclasses."""
+    def draw(self, renderer, camera_offset=0):
+        """Draw the entity. Override in subclasses.
+
+        Args:
+            renderer: the renderer to draw with
+            camera_offset: horizontal camera offset to subtract from x position
+        """
         pass

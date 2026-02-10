@@ -36,3 +36,6 @@ WORLD_MAX_Y = DISPLAY_HEIGHT - CHAR_SIZE
 # Transition Settings
 TRANSITION_TYPE = 'fade'        # 'fade', 'wipe', 'iris'
 TRANSITION_DURATION = 0.5       # seconds per half-transition (total is 2x this)
+
+# Panning Settings
+PAN_SPEED = 2  # pixels per frame when D-pad held
