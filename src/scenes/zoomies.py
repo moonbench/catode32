@@ -6,7 +6,7 @@ import config
 import random
 from scene import Scene
 from assets.minigame_character import RUNCAT1, SITCAT1, SMALL_BIRD1
-from assets.nature import SMALLTREE1, PLANT1, CLOUD1, CLOUD2
+from assets.nature import SMALLTREE1, PLANT1, PLANT2, PLANT6, CLOUD1, CLOUD2
 
 
 class ZoomiesScene(Scene):
@@ -20,7 +20,7 @@ class ZoomiesScene(Scene):
     BASE_SPEED = 48  # Starting speed (pixels per second)
     MAX_SPEED = 120  # Maximum speed
     SPEED_INCREASE_INTERVAL = 5  # Points between speed increases
-    SPAWN_MIN = 1.0  # Minimum seconds between obstacles
+    SPAWN_MIN = 0.8  # Minimum seconds between obstacles
     SPAWN_MAX = 3.0  # Maximum seconds between obstacles
     CLOUD_SPEED_RATIO = 0.2  # Cloud speed as ratio of ground speed
     BIRD_CHANCE = 0.2  # Chance to spawn a bird instead of ground obstacle
@@ -123,7 +123,7 @@ class ZoomiesScene(Scene):
         if self.score_timer >= 0.1:
             self.score += 1
             self.score_timer -= 0.1
-            # Update speed when crossing a 100-point boundary
+            # Update speed when crossing a SPEED_INCREASE_INTERVAL boundary
             if self.score % self.SPEED_INCREASE_INTERVAL == 0:
                 self.current_speed = min(self.current_speed + 1, self.MAX_SPEED)
 
@@ -212,7 +212,7 @@ class ZoomiesScene(Scene):
             })
         else:
             # Spawn a ground obstacle
-            sprite = random.choice([SMALLTREE1, PLANT1])
+            sprite = random.choice([SMALLTREE1, PLANT1, PLANT2, PLANT6])
             self.obstacles.append({
                 "sprite": sprite,
                 "x": float(config.DISPLAY_WIDTH + 5),
