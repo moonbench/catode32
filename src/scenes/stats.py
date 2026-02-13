@@ -1,5 +1,5 @@
 from scene import Scene
-from assets.icons import UP_ICON, DOWN_ICON
+from ui import Popup
 
 # Stats configuration with display info and descriptions
 STATS_CONFIG = [
@@ -52,18 +52,17 @@ class StatsScene(Scene):
     VISIBLE_HEIGHT = 64
     CONTENT_WIDTH = 124  # Leave room for scrollbar
 
-    POPUP_VISIBLE_LINES = 5  # Lines visible in detail popup
-
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)
         self.selected_index = 0
         self.scroll_offset = 0
         self.showing_detail = False
-        self.detail_scroll_offset = 0
-        self.detail_total_lines = 0
 
         # Build list of just the stats (for selection indexing)
         self.stats_list = [item for item in STATS_CONFIG if item["type"] == "stat"]
+
+        # Detail popup
+        self.popup = Popup(renderer, x=4, y=8, width=120, height=48)
 
     def load(self):
         super().load()
@@ -75,7 +74,6 @@ class StatsScene(Scene):
         self.selected_index = 0
         self.scroll_offset = 0
         self.showing_detail = False
-        self.detail_scroll_offset = 0
 
     def exit(self):
         pass
@@ -232,64 +230,7 @@ class StatsScene(Scene):
 
     def _draw_detail_popup(self):
         """Draw the detail popup for selected stat"""
-        stat = self.stats_list[self.selected_index]
-
-        # Popup dimensions
-        popup_x = 4
-        popup_y = 8
-        popup_w = 120
-        popup_h = 48
-
-        # Draw background (black)
-        self.renderer.draw_rect(popup_x, popup_y, popup_w, popup_h, filled=True, color=0)
-        # Draw border (white)
-        self.renderer.draw_rect(popup_x, popup_y, popup_w, popup_h, filled=False, color=1)
-
-        # Draw description with scroll offset
-        desc = stat["desc"]
-        self.detail_total_lines = self._draw_wrapped_text(
-            desc, popup_x + 4, popup_y + 4, popup_w - 8,
-            self.POPUP_VISIBLE_LINES, self.detail_scroll_offset
-        )
-
-        # Draw scroll indicator if needed
-        if self.detail_total_lines > self.POPUP_VISIBLE_LINES:
-            icon_x = popup_x + popup_w - 12
-            # Up arrow if can scroll up
-            if self.detail_scroll_offset > 0:
-                self.renderer.draw_sprite(UP_ICON, 8, 8, icon_x, popup_y + 2)
-            # Down arrow if can scroll down
-            if self.detail_scroll_offset < self.detail_total_lines - self.POPUP_VISIBLE_LINES:
-                self.renderer.draw_sprite(DOWN_ICON, 8, 8, icon_x, popup_y + popup_h - 10)
-
-    def _draw_wrapped_text(self, text, x, y, max_width, max_lines, scroll_offset=0):
-        """Draw text with word wrapping and optional scrolling.
-
-        Returns total number of lines (for scroll calculations).
-        """
-        chars_per_line = max_width // 8  # Assuming 8px per character
-        words = text.split(' ')
-        lines = []
-        current_line = ""
-
-        for word in words:
-            test_line = current_line + (" " if current_line else "") + word
-            if len(test_line) <= chars_per_line:
-                current_line = test_line
-            else:
-                if current_line:
-                    lines.append(current_line)
-                current_line = word
-
-        if current_line:
-            lines.append(current_line)
-
-        # Draw visible lines with scroll offset
-        visible_lines = lines[scroll_offset:scroll_offset + max_lines]
-        for i, line in enumerate(visible_lines):
-            self.renderer.draw_text(line, x, y + i * 8)
-
-        return len(lines)
+        self.popup.draw()
 
     def handle_input(self):
         """Handle navigation and selection"""
@@ -297,13 +238,10 @@ class StatsScene(Scene):
         if self.showing_detail:
             # Scroll up/down in popup
             if self.input.was_just_pressed('up'):
-                if self.detail_scroll_offset > 0:
-                    self.detail_scroll_offset -= 1
+                self.popup.scroll_up()
 
             if self.input.was_just_pressed('down'):
-                max_scroll = max(0, self.detail_total_lines - self.POPUP_VISIBLE_LINES)
-                if self.detail_scroll_offset < max_scroll:
-                    self.detail_scroll_offset += 1
+                self.popup.scroll_down()
 
             # Close popup
             if self.input.was_just_pressed('b') or self.input.was_just_pressed('a'):
@@ -324,10 +262,11 @@ class StatsScene(Scene):
                 self.selected_index += 1
                 self._ensure_selection_visible()
 
-        # Show detail (reset scroll when opening)
+        # Show detail popup
         if self.input.was_just_pressed('a'):
+            stat = self.stats_list[self.selected_index]
+            self.popup.set_text(stat["desc"])
             self.showing_detail = True
-            self.detail_scroll_offset = 0
             return None
 
         # Exit scene

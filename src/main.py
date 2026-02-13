@@ -10,6 +10,7 @@ from scenes.outside import OutsideScene
 from scenes.debug import DebugScene
 from scenes.stats import StatsScene
 from scenes.zoomies import ZoomiesScene
+from scenes.maze import MazeScene
 
 class Game:
     def __init__(self):
@@ -32,6 +33,7 @@ class Game:
         self.scene_manager.register_scene('outside', OutsideScene)
         self.scene_manager.register_scene('stats', StatsScene)
         self.scene_manager.register_scene('zoomies', ZoomiesScene)
+        self.scene_manager.register_scene('maze', MazeScene)
         self.scene_manager.register_scene('debug', DebugScene)
 
         self.scene_manager.change_scene(NormalScene)

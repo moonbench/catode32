@@ -7,6 +7,7 @@ import random
 from scene import Scene
 from assets.minigame_character import RUNCAT1, SITCAT1, SMALL_BIRD1
 from assets.nature import SMALLTREE1, PLANT1, PLANT2, PLANT6, CLOUD1, CLOUD2
+from ui import Popup
 
 
 class ZoomiesScene(Scene):
@@ -29,6 +30,8 @@ class ZoomiesScene(Scene):
 
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)
+        # Hit message popup - centered on screen
+        self.hit_popup = Popup(renderer, x=14, y=10, width=100, height=24)
         self.reset_game()
 
     def reset_game(self):
@@ -296,10 +299,10 @@ class ZoomiesScene(Scene):
                 self._draw_centered_text(f"Best: {self.context.zoomies_high_score}", 32)
         elif self.is_hit:
             if self.is_new_best:
-                self._draw_centered_text("NEW BEST!", 12)
+                self.hit_popup.set_text(f"NEW BEST!\n{self.score}", wrap=False, center=True)
             else:
-                self._draw_centered_text("Ooof!", 12)
-                self._draw_centered_text(f"Best: {self.context.zoomies_high_score}", 24)
+                self.hit_popup.set_text(f"Ooof!\nBest: {self.context.zoomies_high_score}", wrap=False, center=True)
+            self.hit_popup.draw(show_scroll_indicators=False)
 
     def _draw_ground(self):
         """Draw the ground line with scrolling bumps"""

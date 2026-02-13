@@ -214,6 +214,8 @@ class SceneManager:
         minigame_items = []
         if 'zoomies' in self._scene_classes:
             minigame_items.append(MenuItem("Zoomies", icon=MINIGAME_ICONS.get("Zoomies"), action=('scene', 'zoomies')))
+        if 'maze' in self._scene_classes:
+            minigame_items.append(MenuItem("Maze", icon=MINIGAME_ICONS.get("Maze"), action=('scene', 'maze')))
         if minigame_items:
             items.append(MenuItem("Minigames", icon=MINIGAMES_ICON, submenu=minigame_items))
 

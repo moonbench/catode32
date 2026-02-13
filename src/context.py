@@ -24,3 +24,4 @@ class GameContext:
 
         # Minigame high scores
         self.zoomies_high_score = 0
+        self.maze_best_time = 0  # Best time in seconds (0 = not played)
