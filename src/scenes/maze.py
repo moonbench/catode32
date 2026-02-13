@@ -239,6 +239,9 @@ class MazeScene(Scene):
         # Draw player (cat)
         self.draw_player()
 
+        # Draw blinking position indicator
+        self.draw_position_indicator()
+
         # Draw win message
         if self.state == self.STATE_WIN:
             self.draw_win_message()
@@ -291,6 +294,18 @@ class MazeScene(Scene):
     def draw_player(self):
         """Draw cat at start position (fixed marker)"""
         self.renderer.draw_sprite_obj(SITCAT1, 3, 44)
+
+    def draw_position_indicator(self):
+        """Draw blinking 3x3 square at player's current cell center"""
+        if self.elapsed_time % 0.5 >= 0.25:
+            return
+
+        px, py = self.cell_to_pixel(self.player_x, self.player_y)
+        center_x = px + self.CELL_WIDTH // 2
+        center_y = py + self.CELL_HEIGHT // 2
+
+        # Draw 3x3 filled rect centered on the cell
+        self.renderer.draw_rect(center_x - 1, center_y - 1, 3, 3)
 
     def draw_win_message(self):
         """Draw win screen overlay"""
