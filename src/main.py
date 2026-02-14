@@ -20,23 +20,12 @@ class Game:
         self.input = InputHandler()
         self.context = GameContext()
 
-        # Setup the scene manager and first scene
+        # Setup the scene manager (imports all scenes during init)
         self.scene_manager = SceneManager(
             self.context,
             self.renderer,
             self.input,
         )
-
-        # Register scenes for lazy loading
-        self.scene_manager.register_scene('normal', 'scenes.normal.NormalScene')
-        self.scene_manager.register_scene('outside', 'scenes.outside.OutsideScene')
-        self.scene_manager.register_scene('stats', 'scenes.stats.StatsScene')
-        self.scene_manager.register_scene('zoomies', 'scenes.zoomies.ZoomiesScene')
-        self.scene_manager.register_scene('maze', 'scenes.maze.MazeScene')
-        self.scene_manager.register_scene('breakout', 'scenes.breakout.BreakoutScene')
-        self.scene_manager.register_scene('tictactoe', 'scenes.tictactoe.TicTacToeScene')
-        self.scene_manager.register_scene('debug_context', 'scenes.debug_context.DebugContextScene')
-        self.scene_manager.register_scene('debug_memory', 'scenes.debug_memory.DebugMemoryScene')
 
         self.scene_manager.change_scene_by_name('normal')
 

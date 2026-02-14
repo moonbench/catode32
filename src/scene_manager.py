@@ -26,7 +26,9 @@ class SceneManager:
         # Big menu (menu1) - consistent across all scenes
         self.big_menu = Menu(renderer, input_handler)
         self.big_menu_active = False
-        self._scene_classes = {}  # Registered scene classes for menu navigation
+
+        # Import and register all scenes upfront (after boot screen is showing)
+        self._scene_classes = self._load_all_scenes()
 
         # Transition state
         self.transition_active = False
@@ -35,32 +37,34 @@ class SceneManager:
         self.transition_progress = 0.0
         self.transition_phase = 'out'  # 'out' (closing) or 'in' (opening)
         self.pending_scene_class = None
-        
-    def register_scene(self, name, module_path):
-        """Register a scene for lazy loading.
 
-        Args:
-            name: Scene identifier (e.g., 'normal')
-            module_path: Import path string (e.g., 'scenes.normal.NormalScene')
-        """
-        self._scene_classes[name] = module_path
+    def _load_all_scenes(self):
+        """Import all scene modules and return name-to-class mapping."""
+        from scenes.normal import NormalScene
+        from scenes.outside import OutsideScene
+        from scenes.stats import StatsScene
+        from scenes.zoomies import ZoomiesScene
+        from scenes.maze import MazeScene
+        from scenes.breakout import BreakoutScene
+        from scenes.tictactoe import TicTacToeScene
+        from scenes.debug_context import DebugContextScene
+        from scenes.debug_memory import DebugMemoryScene
+
+        return {
+            'normal': NormalScene,
+            'outside': OutsideScene,
+            'stats': StatsScene,
+            'zoomies': ZoomiesScene,
+            'maze': MazeScene,
+            'breakout': BreakoutScene,
+            'tictactoe': TicTacToeScene,
+            'debug_context': DebugContextScene,
+            'debug_memory': DebugMemoryScene,
+        }
 
     def _get_scene_class(self, name):
-        """Lazily import and return a scene class by name"""
-        path = self._scene_classes.get(name)
-        if path is None:
-            return None
-        if isinstance(path, str):
-            module_name, class_name = path.rsplit('.', 1)
-            # MicroPython doesn't support fromlist, so import and navigate
-            parts = module_name.split('.')
-            module = __import__(module_name)
-            for part in parts[1:]:
-                module = getattr(module, part)
-            cls = getattr(module, class_name)
-            self._scene_classes[name] = cls  # Cache for next time
-            return cls
-        return path  # Already a class
+        """Return a scene class by name."""
+        return self._scene_classes.get(name)
 
     def change_scene_by_name(self, name):
         """Change scene using registered name"""
