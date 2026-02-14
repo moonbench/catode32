@@ -91,8 +91,9 @@ class TicTacToeScene(Scene):
         """Convert cell index (0-8) to top-left pixel coordinates"""
         row = cell_idx // 3
         col = cell_idx % 3
-        x = self.BOARD_OFFSET_X + col * self.CELL_SIZE
-        y = self.BOARD_OFFSET_Y + row * self.CELL_SIZE
+        # Stride is CELL_SIZE + 1 to account for grid lines
+        x = self.BOARD_OFFSET_X + col * (self.CELL_SIZE + 1)
+        y = self.BOARD_OFFSET_Y + row * (self.CELL_SIZE + 1)
         return x, y
 
     def _check_winner(self, mark):
@@ -257,18 +258,21 @@ class TicTacToeScene(Scene):
 
     def _draw_board(self):
         """Draw the 3x3 grid lines"""
-        # Vertical lines
+        # Board span: 3 cells of 19px + 2 lines of 1px = 59px
+        board_span = 3 * self.CELL_SIZE + 2
+
+        # Vertical lines (between columns)
         for i in range(1, 3):
-            x = self.BOARD_OFFSET_X + i * self.CELL_SIZE
+            x = self.BOARD_OFFSET_X + i * self.CELL_SIZE + (i - 1)
             y1 = self.BOARD_OFFSET_Y
-            y2 = self.BOARD_OFFSET_Y + 3 * self.CELL_SIZE - 1
+            y2 = self.BOARD_OFFSET_Y + board_span - 1
             self.renderer.draw_line(x, y1, x, y2)
 
-        # Horizontal lines
+        # Horizontal lines (between rows)
         for i in range(1, 3):
             x1 = self.BOARD_OFFSET_X
-            x2 = self.BOARD_OFFSET_X + 3 * self.CELL_SIZE - 1
-            y = self.BOARD_OFFSET_Y + i * self.CELL_SIZE
+            x2 = self.BOARD_OFFSET_X + board_span - 1
+            y = self.BOARD_OFFSET_Y + i * self.CELL_SIZE + (i - 1)
             self.renderer.draw_line(x1, y, x2, y)
 
     def _draw_marks(self):
@@ -293,35 +297,29 @@ class TicTacToeScene(Scene):
     def _draw_cursor(self):
         """Draw cursor highlight around selected cell"""
         cell_x, cell_y = self._cell_to_pixel(self.cursor_pos)
-        # Draw a rect outline around the cell (inset by 1 pixel)
-        self.renderer.draw_rect(cell_x + 1, cell_y + 1, self.CELL_SIZE - 2, self.CELL_SIZE - 2, filled=False)
+        # Draw a 17x17 rect centered in the 19x19 cell (1px margin on each side)
+        self.renderer.draw_rect(cell_x + 1, cell_y + 1, 17, 17, filled=False)
 
     def _draw_score(self):
-        """Draw score in the top-right area"""
+        """Draw score in the top-right area, side by side"""
         # Score area starts after the board (board ends at x=59)
-        score_x = 66
+        score_x = 62
 
-        # Player score (You)
         self.renderer.draw_text("You", score_x, 4)
-        self.renderer.draw_text(str(self.player_score), score_x + 8, 14)
-
-        # Divider line
-        self.renderer.draw_line(score_x, 28, score_x + 30, 28)
-
-        # Pet score
-        self.renderer.draw_text("Pet", score_x, 34)
-        self.renderer.draw_text(str(self.pet_score), score_x + 8, 44)
+        self.renderer.draw_text(str(self.player_score), score_x, 12)
+        self.renderer.draw_text("Pet", score_x + 28, 4)
+        self.renderer.draw_text(str(self.pet_score), score_x + 28, 12)
 
     def _draw_state_message(self):
         """Draw end game messages"""
         if self.state == self.STATE_PLAYER_WIN:
-            self.renderer.draw_text("WIN!", 70, 54)
+            self.renderer.draw_text("WIN!", 70, 22)
         elif self.state == self.STATE_PET_WIN:
-            self.renderer.draw_text("LOSE", 70, 54)
+            self.renderer.draw_text("LOSE", 70, 22)
         elif self.state == self.STATE_DRAW:
-            self.renderer.draw_text("DRAW", 70, 54)
+            self.renderer.draw_text("DRAW", 70, 22)
         elif self.state == self.STATE_PET_TURN:
-            self.renderer.draw_text("...", 76, 54)
+            self.renderer.draw_text("...", 76, 22)
 
     def handle_input(self):
         # Handle game over - press A to restart
