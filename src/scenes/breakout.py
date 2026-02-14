@@ -199,25 +199,25 @@ class BreakoutScene(Scene):
 
         if (self.ball_x < cat_x + cat_w and ball_right > cat_x and
                 self.ball_y < cat_y + cat_h and ball_bottom > cat_y):
-            # Determine which side was hit
-            # Calculate overlap on each side
-            overlap_left = ball_right - cat_x
-            overlap_right = (cat_x + cat_w) - self.ball_x
-            overlap_top = ball_bottom - cat_y
-            overlap_bottom = (cat_y + cat_h) - self.ball_y
+            # Calculate how far the ball penetrated from each side
+            overlap_left = ball_right - cat_x      # Ball entered from left
+            overlap_right = (cat_x + cat_w) - self.ball_x  # Ball entered from right
+            overlap_top = ball_bottom - cat_y      # Ball entered from top
+            overlap_bottom = (cat_y + cat_h) - self.ball_y  # Ball entered from bottom
 
             min_overlap = min(overlap_left, overlap_right, overlap_top, overlap_bottom)
 
-            if min_overlap == overlap_left and self.ball_vx > 0:
+            # Push ball out and reverse velocity based on smallest penetration
+            if min_overlap == overlap_left:
                 self.ball_x = cat_x - self.BALL_SIZE
                 self.ball_vx = -abs(self.ball_vx)
-            elif min_overlap == overlap_right and self.ball_vx < 0:
+            elif min_overlap == overlap_right:
                 self.ball_x = cat_x + cat_w
                 self.ball_vx = abs(self.ball_vx)
-            elif min_overlap == overlap_top and self.ball_vy > 0:
+            elif min_overlap == overlap_top:
                 self.ball_y = cat_y - self.BALL_SIZE
                 self.ball_vy = -abs(self.ball_vy)
-            elif min_overlap == overlap_bottom and self.ball_vy < 0:
+            else:  # overlap_bottom
                 self.ball_y = cat_y + cat_h
                 self.ball_vy = abs(self.ball_vy)
 
