@@ -36,9 +36,37 @@ class SceneManager:
         self.transition_phase = 'out'  # 'out' (closing) or 'in' (opening)
         self.pending_scene_class = None
         
-    def register_scene(self, name, scene_class):
-        """Register a scene class for menu navigation"""
-        self._scene_classes[name] = scene_class
+    def register_scene(self, name, module_path):
+        """Register a scene for lazy loading.
+
+        Args:
+            name: Scene identifier (e.g., 'normal')
+            module_path: Import path string (e.g., 'scenes.normal.NormalScene')
+        """
+        self._scene_classes[name] = module_path
+
+    def _get_scene_class(self, name):
+        """Lazily import and return a scene class by name"""
+        path = self._scene_classes.get(name)
+        if path is None:
+            return None
+        if isinstance(path, str):
+            module_name, class_name = path.rsplit('.', 1)
+            # MicroPython doesn't support fromlist, so import and navigate
+            parts = module_name.split('.')
+            module = __import__(module_name)
+            for part in parts[1:]:
+                module = getattr(module, part)
+            cls = getattr(module, class_name)
+            self._scene_classes[name] = cls  # Cache for next time
+            return cls
+        return path  # Already a class
+
+    def change_scene_by_name(self, name):
+        """Change scene using registered name"""
+        scene_class = self._get_scene_class(name)
+        if scene_class:
+            self.change_scene(scene_class)
 
     def change_scene(self, scene_class):
         """Start a transition to a new scene"""
@@ -119,6 +147,8 @@ class SceneManager:
 
     def _update_transition(self, dt):
         """Advance transition animation"""
+        # Cap dt to prevent jumps after slow scene loads
+        dt = min(dt, self.transition_duration / 4)
         # Advance progress
         self.transition_progress += dt / self.transition_duration
 
@@ -238,8 +268,9 @@ class SceneManager:
 
         if action_type == 'scene':
             scene_name = action[1]
-            if scene_name in self._scene_classes:
-                self.change_scene(self._scene_classes[scene_name])
+            scene_class = self._get_scene_class(scene_name)
+            if scene_class:
+                self.change_scene(scene_class)
     
     def unload_all(self):
         """Unload all cached scenes - call this on shutdown"""

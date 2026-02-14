@@ -5,14 +5,7 @@ from input import InputHandler
 from renderer import Renderer
 from context import GameContext
 from scene_manager import SceneManager
-from scenes.normal import NormalScene
-from scenes.outside import OutsideScene
-from scenes.debug import DebugScene
-from scenes.stats import StatsScene
-from scenes.zoomies import ZoomiesScene
-from scenes.maze import MazeScene
-from scenes.breakout import BreakoutScene
-from scenes.tictactoe import TicTacToeScene
+from assets.boot_img import STRETCH_CAT1
 
 class Game:
     def __init__(self):
@@ -20,6 +13,10 @@ class Game:
 
         # Setup shared resources
         self.renderer = Renderer()
+
+        # Show boot screen immediately
+        self._show_boot_screen()
+
         self.input = InputHandler()
         self.context = GameContext()
 
@@ -30,17 +27,17 @@ class Game:
             self.input,
         )
 
-        # Register scenes for big menu navigation
-        self.scene_manager.register_scene('normal', NormalScene)
-        self.scene_manager.register_scene('outside', OutsideScene)
-        self.scene_manager.register_scene('stats', StatsScene)
-        self.scene_manager.register_scene('zoomies', ZoomiesScene)
-        self.scene_manager.register_scene('maze', MazeScene)
-        self.scene_manager.register_scene('breakout', BreakoutScene)
-        self.scene_manager.register_scene('tictactoe', TicTacToeScene)
-        self.scene_manager.register_scene('debug', DebugScene)
+        # Register scenes for lazy loading
+        self.scene_manager.register_scene('normal', 'scenes.normal.NormalScene')
+        self.scene_manager.register_scene('outside', 'scenes.outside.OutsideScene')
+        self.scene_manager.register_scene('stats', 'scenes.stats.StatsScene')
+        self.scene_manager.register_scene('zoomies', 'scenes.zoomies.ZoomiesScene')
+        self.scene_manager.register_scene('maze', 'scenes.maze.MazeScene')
+        self.scene_manager.register_scene('breakout', 'scenes.breakout.BreakoutScene')
+        self.scene_manager.register_scene('tictactoe', 'scenes.tictactoe.TicTacToeScene')
+        self.scene_manager.register_scene('debug', 'scenes.debug.DebugScene')
 
-        self.scene_manager.change_scene(NormalScene)
+        self.scene_manager.change_scene_by_name('normal')
 
         # Prepare to start rendering
         self.last_frame_time = time.ticks_ms()
@@ -69,6 +66,18 @@ class Game:
             frame_time = time.ticks_diff(time.ticks_ms(), current_time)
             if frame_time < config.FRAME_TIME_MS:
                 time.sleep_ms(config.FRAME_TIME_MS - frame_time)
+
+    def _show_boot_screen(self):
+        self.renderer.clear()
+        # Center sprite (23x30) and text on 128x64 display
+        sprite_x = (config.DISPLAY_WIDTH - STRETCH_CAT1["width"]) // 2
+        sprite_y = 10
+        self.renderer.draw_sprite_obj(STRETCH_CAT1, sprite_x, sprite_y)
+        # "Loading..." is 10 chars * 8px = 80px wide
+        text_x = (config.DISPLAY_WIDTH - 80) // 2
+        text_y = sprite_y + STRETCH_CAT1["height"] + 6
+        self.renderer.draw_text("Loading...", text_x, text_y)
+        self.renderer.show()
 
 def main():
     try:
