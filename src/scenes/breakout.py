@@ -5,6 +5,7 @@ import random
 import config
 from scene import Scene
 from assets.minigame_character import CAT_AVATAR1
+from assets.minigame_assets import PAW_SMALL1
 
 
 class BreakoutScene(Scene):
@@ -25,8 +26,8 @@ class BreakoutScene(Scene):
 
     # Paddle physics
     PADDLE_MAX_SPEED = 120  # Maximum pixels per second
-    PADDLE_ACCELERATION = 600  # Pixels per second squared
-    PADDLE_FRICTION = 400  # Deceleration when not pressing
+    PADDLE_ACCELERATION = 800  # Pixels per second squared
+    PADDLE_FRICTION = 300  # Deceleration when not pressing
 
     # Cat avatar position (bottom-left)
     CAT_X = 0
@@ -40,7 +41,10 @@ class BreakoutScene(Scene):
     BRICK_COLS = 18
     BRICK_START_X = 2
     BRICK_START_Y = 2
-    POWERUP_BRICK_COUNT = 12  # Number of powerup bricks to place randomly
+    SPECIAL_BRICK_COUNT = 12  # Number of special bricks to place randomly
+
+    # Falling paw settings
+    PAW_FALL_SPEED = 40  # Pixels per second
 
     # Game states
     STATE_READY = 0
@@ -52,8 +56,12 @@ class BreakoutScene(Scene):
         super().__init__(context, renderer, input)
         self.reset_game()
 
-    def reset_game(self):
-        """Reset all game state for a new game"""
+    def reset_game(self, reset_score=True):
+        """Reset all game state for a new game
+
+        Args:
+            reset_score: If True, reset score to 0. If False, preserve current score.
+        """
         # Game state
         self.state = self.STATE_READY
 
@@ -68,28 +76,35 @@ class BreakoutScene(Scene):
         self.ball_vy = 0.0
         self._position_ball_on_paddle()
 
-        # Bricks: 2D list, None = destroyed, 'normal' = filled, 'powerup' = unfilled
+        # Bricks: 2D list, None = destroyed, 'normal' = filled, 'special' = unfilled
         self.bricks = self._create_bricks()
 
+        # Falling paws: list of {"x": float, "y": float}
+        self.falling_paws = []
+
+        # Score - only reset if requested
+        if reset_score:
+            self.score = 0
+
     def _create_bricks(self):
-        """Create the brick grid with randomly placed powerup bricks"""
+        """Create the brick grid with randomly placed special bricks"""
         # Start with all normal bricks
         bricks = [['normal' for _ in range(self.BRICK_COLS)]
                   for _ in range(self.BRICK_ROWS)]
 
-        # Randomly select positions for powerup bricks
+        # Randomly select positions for special bricks
         total_bricks = self.BRICK_ROWS * self.BRICK_COLS
-        powerup_count = min(self.POWERUP_BRICK_COUNT, total_bricks)
+        special_count = min(self.SPECIAL_BRICK_COUNT, total_bricks)
 
         # Create list of all positions
         positions = [(r, c) for r in range(self.BRICK_ROWS)
                      for c in range(self.BRICK_COLS)]
 
         # Randomly pick positions without using shuffle (not in MicroPython)
-        for _ in range(powerup_count):
+        for _ in range(special_count):
             idx = random.randint(0, len(positions) - 1)
             row, col = positions.pop(idx)
-            bricks[row][col] = 'powerup'
+            bricks[row][col] = 'special'
 
         return bricks
 
@@ -143,6 +158,9 @@ class BreakoutScene(Scene):
         # Brick collisions
         self._handle_brick_collisions()
 
+        # Update falling paws
+        self._update_falling_paws(dt)
+
         # Check if ball fell below screen
         if self.ball_y > config.DISPLAY_HEIGHT:
             self.state = self.STATE_LOSE
@@ -171,6 +189,42 @@ class BreakoutScene(Scene):
         elif self.paddle_x > max_x:
             self.paddle_x = max_x
             self.paddle_vx = 0
+
+    def _update_falling_paws(self, dt):
+        """Update falling paws - move down, check paddle/cat catch, remove if off-screen"""
+        paws_to_remove = []
+        cat_x, cat_y, cat_w, cat_h = self._get_cat_rect()
+
+        for i, paw in enumerate(self.falling_paws):
+            # Move paw down
+            paw["y"] += self.PAW_FALL_SPEED * dt
+
+            paw_right = paw["x"] + PAW_SMALL1["width"]
+            paw_bottom = paw["y"] + PAW_SMALL1["height"]
+
+            # Check if caught by paddle
+            if (paw_bottom >= self.PADDLE_Y and
+                    paw["y"] < self.PADDLE_Y + self.PADDLE_HEIGHT and
+                    paw_right > self.paddle_x and
+                    paw["x"] < self.paddle_x + self.PADDLE_WIDTH):
+                # Caught by paddle! Add score
+                self.score += 1
+                paws_to_remove.append(i)
+            # Check if caught by cat avatar (paddle can't reach there)
+            elif (paw_bottom >= cat_y and
+                    paw["y"] < cat_y + cat_h and
+                    paw_right > cat_x and
+                    paw["x"] < cat_x + cat_w):
+                # Caught by cat! Add score
+                self.score += 1
+                paws_to_remove.append(i)
+            elif paw["y"] > config.DISPLAY_HEIGHT:
+                # Off screen, remove
+                paws_to_remove.append(i)
+
+        # Remove paws in reverse order to maintain indices
+        for i in reversed(paws_to_remove):
+            self.falling_paws.pop(i)
 
     def _handle_wall_collisions(self):
         """Handle ball bouncing off walls"""
@@ -256,12 +310,10 @@ class BreakoutScene(Scene):
 
     def _handle_brick_collisions(self):
         """Handle ball hitting bricks"""
-        ball_cx = self.ball_x + self.BALL_SIZE / 2
-        ball_cy = self.ball_y + self.BALL_SIZE / 2
-
         for row in range(self.BRICK_ROWS):
             for col in range(self.BRICK_COLS):
-                if self.bricks[row][col] is None:
+                brick_type = self.bricks[row][col]
+                if brick_type is None:
                     continue
 
                 bx, by, bw, bh = self._get_brick_rect(row, col)
@@ -271,6 +323,12 @@ class BreakoutScene(Scene):
                         self.ball_x + self.BALL_SIZE > bx and
                         self.ball_y < by + bh and
                         self.ball_y + self.BALL_SIZE > by):
+
+                    # Spawn falling paw if special brick
+                    if brick_type == 'special':
+                        paw_x = bx + bw / 2 - PAW_SMALL1["width"] / 2
+                        paw_y = by + bh
+                        self.falling_paws.append({"x": paw_x, "y": paw_y})
 
                     # Destroy brick
                     self.bricks[row][col] = None
@@ -323,13 +381,27 @@ class BreakoutScene(Scene):
             filled=True
         )
 
+        # Draw falling paws
+        for paw in self.falling_paws:
+            self.renderer.draw_sprite_obj(
+                PAW_SMALL1, int(paw["x"]), int(paw["y"]), transparent=True
+            )
+
+        # Draw score above cat avatar
+        if self.score > 0:
+            score_str = str(self.score)
+            # Position score above cat avatar, centered
+            score_x = self.CAT_X + (CAT_AVATAR1["width"] - len(score_str) * 8) // 2
+            score_y = self.CAT_Y - 10
+            self.renderer.draw_text(score_str, score_x, score_y)
+
         # Draw state messages
         if self.state == self.STATE_READY:
-            self.renderer.draw_text("A:Start", 80, 56)
+            self.renderer.draw_text("A: Start", 32, 30)
         elif self.state == self.STATE_WIN:
             self.renderer.draw_text("WIN!", 50, 30)
         elif self.state == self.STATE_LOSE:
-            self.renderer.draw_text("GAME OVER", 35, 30)
+            self.renderer.draw_text("GAME OVER", 34, 30)
 
     def _draw_bricks(self):
         """Draw all bricks"""
@@ -345,7 +417,7 @@ class BreakoutScene(Scene):
                     # Filled brick
                     self.renderer.draw_rect(x, y, w, h, filled=True)
                 else:
-                    # Unfilled brick (powerup)
+                    # Unfilled brick (special)
                     self.renderer.draw_rect(x, y, w, h, filled=False)
 
     def handle_input(self):
@@ -354,9 +426,15 @@ class BreakoutScene(Scene):
             if self.input.was_just_pressed('a'):
                 self._launch_ball()
                 self.state = self.STATE_PLAYING
-        elif self.state in (self.STATE_WIN, self.STATE_LOSE):
+        elif self.state == self.STATE_WIN:
             if self.input.was_just_pressed('a'):
-                self.reset_game()
+                # Keep score when winning
+                self.reset_game(reset_score=False)
+            return None
+        elif self.state == self.STATE_LOSE:
+            if self.input.was_just_pressed('a'):
+                # Reset score on game over
+                self.reset_game(reset_score=True)
             return None
 
         # Handle paddle movement with acceleration

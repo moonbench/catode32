@@ -1,0 +1,5 @@
+PAW_SMALL1 = {
+    "width": 7,
+    "height": 7,
+    "frames": [ bytearray([0x28, 0xaa, 0x82, 0x38, 0x7c, 0x7c, 0x28]) ]
+}
