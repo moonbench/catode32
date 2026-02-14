@@ -319,6 +319,8 @@ class MazeScene(Scene):
 
     def handle_input(self):
         if self.state == self.STATE_WIN:
+            if self.input.was_just_pressed('a'):
+                self.reset_game()
             return None
 
         if self.input.was_just_pressed('up'):
