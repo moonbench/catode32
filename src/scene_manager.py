@@ -49,6 +49,7 @@ class SceneManager:
         from scenes.tictactoe import TicTacToeScene
         from scenes.debug_context import DebugContextScene
         from scenes.debug_memory import DebugMemoryScene
+        from scenes.debug_poses import DebugPosesScene
 
         return {
             'normal': NormalScene,
@@ -60,6 +61,7 @@ class SceneManager:
             'tictactoe': TicTacToeScene,
             'debug_context': DebugContextScene,
             'debug_memory': DebugMemoryScene,
+            'debug_poses': DebugPosesScene,
         }
 
     def _get_scene_class(self, name):
@@ -263,6 +265,8 @@ class SceneManager:
             debug_items.append(MenuItem("Context", icon=WRENCH_ICON, action=('scene', 'debug_context')))
         if 'debug_memory' in self._scene_classes:
             debug_items.append(MenuItem("Memory", icon=WRENCH_ICON, action=('scene', 'debug_memory')))
+        if 'debug_poses' in self._scene_classes:
+            debug_items.append(MenuItem("Poses", icon=WRENCH_ICON, action=('scene', 'debug_poses')))
         if debug_items:
             items.append(MenuItem("Debug", icon=WRENCH_ICON, submenu=debug_items))
 

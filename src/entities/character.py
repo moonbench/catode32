@@ -1,5 +1,5 @@
 from entities.entity import Entity
-from assets.poses import POSES
+from assets.character import POSES
 
 class CharacterEntity(Entity):
     """The main pet character entity."""
@@ -67,34 +67,35 @@ class CharacterEntity(Entity):
         pose = POSES[self.pose]
         x, y = int(self.x) - camera_offset, int(self.y)
 
-        # Body
+        # Get the positions for the parts
         body = pose["body"]
         body_frame = self._get_frame_index(body, self.anim_body)
         body_x = x - self._get_anchor_x(body, mirror)
         body_y = y - body["anchor_y"]
-        renderer.draw_sprite_obj(body, body_x, body_y, frame=body_frame, mirror_h=mirror)
 
-        # Head
         head = pose["head"]
         head_frame = self._get_frame_index(head, self.anim_head)
         head_root_x = body_x + self._get_point(body, "head_x", body_frame, mirror)
         head_root_y = body_y + self._get_point(body, "head_y", body_frame)
         head_x = head_root_x - self._get_anchor_x(head, mirror)
         head_y = head_root_y - head["anchor_y"]
-        renderer.draw_sprite_obj(head, head_x, head_y, frame=head_frame, mirror_h=mirror)
 
-        # Eyes
         eyes = pose["eyes"]
         eye_frame = self._get_frame_index(eyes, self.anim_eyes)
         eye_x = head_x + self._get_point(head, "eye_x", head_frame, mirror) - self._get_anchor_x(eyes, mirror)
         eye_y = head_y + self._get_point(head, "eye_y", head_frame) - eyes["anchor_y"]
-        renderer.draw_sprite_obj(eyes, eye_x, eye_y, frame=eye_frame, mirror_h=mirror)
 
-        # Tail
         tail = pose["tail"]
         tail_frame = self._get_frame_index(tail, self.anim_tail)
         tail_root_x = body_x + self._get_point(body, "tail_x", body_frame, mirror)
         tail_root_y = body_y + self._get_point(body, "tail_y", body_frame)
         tail_x = tail_root_x - self._get_anchor_x(tail, mirror)
         tail_y = tail_root_y - tail["anchor_y"]
+
+
+        # Draw the parts
         renderer.draw_sprite_obj(tail, tail_x, tail_y, frame=tail_frame, mirror_h=mirror)
+        renderer.draw_sprite_obj(body, body_x, body_y, frame=body_frame, mirror_h=mirror)
+        renderer.draw_sprite_obj(head, head_x, head_y, frame=head_frame, mirror_h=mirror)
+        renderer.draw_sprite_obj(eyes, eye_x, eye_y, frame=eye_frame, mirror_h=mirror)
+

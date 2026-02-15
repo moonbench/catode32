@@ -37,16 +37,16 @@ class DebugMemoryScene(Scene):
         total = free + alloc
 
         self.lines.append("Memory:")
-        self.lines.append(f"  Free: {free}")
-        self.lines.append(f"  Used: {alloc}")
-        self.lines.append(f"  Total: {total}")
+        self.lines.append(f" Free: {free}")
+        self.lines.append(f" Used: {alloc}")
+        self.lines.append(f" Total: {total}")
         self.lines.append("")
 
         # List loaded modules
         self.lines.append("Modules loaded:")
         modules = sorted(sys.modules.keys())
         for mod in modules:
-            self.lines.append(f"  {mod}")
+            self.lines.append(f" {mod}")
 
     def update(self, dt):
         self._build_lines()
