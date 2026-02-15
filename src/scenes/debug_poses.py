@@ -12,6 +12,8 @@ class DebugPosesScene(Scene):
         self.pose_names = []
         self.pose_index = 0
         self.show_anchors = False
+        self.show_grid = False
+        self.grid_offset = 0.0
 
     def load(self):
         super().load()
@@ -26,6 +28,8 @@ class DebugPosesScene(Scene):
     def enter(self):
         self.pose_index = 0
         self.show_anchors = False
+        self.show_grid = False
+        self.grid_offset = 0.0
         if self.pose_names:
             self.character.set_pose(self.pose_names[0])
 
@@ -34,9 +38,15 @@ class DebugPosesScene(Scene):
 
     def update(self, dt):
         self.character.update(dt)
+        if self.show_grid:
+            self.grid_offset = (self.grid_offset + dt * 16) % 8
 
     def draw(self):
         self.renderer.clear()
+
+        # Draw moving grid background if enabled
+        if self.show_grid:
+            self._draw_moving_grid()
 
         # Draw floor
         self.renderer.draw_line(0, 60, 128, 60)
@@ -124,6 +134,16 @@ class DebugPosesScene(Scene):
         self.renderer.draw_pixel(cx + 1, cy - 1, color=1)
         self.renderer.draw_pixel(cx - 1, cy + 1, color=1)
 
+    def _draw_moving_grid(self):
+        """Draw a moving grid background for testing sprite fill gaps."""
+        offset = int(self.grid_offset)
+        # Draw vertical lines (moving right)
+        for x in range(-8 + offset, 128 + 8, 8):
+            self.renderer.draw_line(x, 0, x, 128)
+        # Draw horizontal lines (moving down)
+        for y in range(-8 + offset, 128 + 8, 8):
+            self.renderer.draw_line(0, y, 128, y)
+
     def handle_input(self):
         # Left/right to cycle poses
         if self.input.was_just_pressed('left'):
@@ -137,6 +157,10 @@ class DebugPosesScene(Scene):
         # Up to toggle anchor display
         if self.input.was_just_pressed('up'):
             self.show_anchors = not self.show_anchors
+
+        # Down to toggle moving grid background
+        if self.input.was_just_pressed('down'):
+            self.show_grid = not self.show_grid
 
         # B to go back to normal scene
         if self.input.was_just_pressed('b'):
