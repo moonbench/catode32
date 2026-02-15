@@ -16,7 +16,7 @@ class DebugPosesScene(Scene):
     def load(self):
         super().load()
         self.pose_names = list(POSES.keys())
-        self.character = CharacterEntity(64, 50)
+        self.character = CharacterEntity(64, 60)
         if self.pose_names:
             self.character.set_pose(self.pose_names[0])
 
@@ -38,6 +38,9 @@ class DebugPosesScene(Scene):
     def draw(self):
         self.renderer.clear()
 
+        # Draw floor
+        self.renderer.draw_line(0, 60, 128, 60)
+
         # Draw character
         self.character.draw(self.renderer)
 
@@ -49,7 +52,7 @@ class DebugPosesScene(Scene):
         # Draw anchor/attachment point markers if enabled
         if self.show_anchors:
             self._draw_debug_markers()
-
+        
     def _draw_debug_markers(self):
         """Draw anchor points and attachment points for debugging"""
         pose = POSES[self.pose_names[self.pose_index]]
