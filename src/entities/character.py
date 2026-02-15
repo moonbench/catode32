@@ -1,12 +1,39 @@
 from entities.entity import Entity
 from assets.character import POSES
 
+
+def get_pose(pose_name):
+    """Get a pose by dot-notation name (e.g., 'sitting.side.neutral').
+
+    Returns the pose dict or None if not found.
+    """
+    parts = pose_name.split(".")
+    if len(parts) != 3:
+        return None
+    position, direction, emotion = parts
+    try:
+        return POSES[position][direction][emotion]
+    except KeyError:
+        return None
+
+
+def get_all_pose_names():
+    """Get a flat list of all pose names in dot notation."""
+    names = []
+    for position, directions in POSES.items():
+        for direction, emotions in directions.items():
+            for emotion in emotions.keys():
+                names.append(f"{position}.{direction}.{emotion}")
+    return names
+
+
 class CharacterEntity(Entity):
     """The main pet character entity."""
 
-    def __init__(self, x, y, pose="idle"):
+    def __init__(self, x, y, pose="sitting.side.neutral"):
         super().__init__(x, y)
-        self.pose = pose
+        self.pose_name = pose
+        self._pose = get_pose(pose)
 
         self.anim_body = 0.0
         self.anim_head = 0.0
@@ -14,9 +41,11 @@ class CharacterEntity(Entity):
         self.anim_tail = 0.0
 
     def set_pose(self, pose_name):
-        """Change the character's pose."""
-        if pose_name in POSES:
-            self.pose = pose_name
+        """Change the character's pose using dot notation (e.g., 'sitting.side.neutral')."""
+        pose = get_pose(pose_name)
+        if pose is not None:
+            self.pose_name = pose_name
+            self._pose = pose
 
     def _get_point(self, sprite, key, frame=0, mirror=False):
         """Get a point value from a sprite, handling both static (int) and animated (list) values.
@@ -46,7 +75,7 @@ class CharacterEntity(Entity):
 
     def update(self, dt):
         """Update animation counters."""
-        pose = POSES[self.pose]
+        pose = self._pose
 
         self.anim_body = (self.anim_body + dt * pose["body"].get("speed", 1)) % self._get_total_frames(pose["body"])
         self.anim_head = (self.anim_head + dt * pose["head"].get("speed", 1)) % self._get_total_frames(pose["head"])
@@ -64,7 +93,7 @@ class CharacterEntity(Entity):
         if not self.visible:
             return
 
-        pose = POSES[self.pose]
+        pose = self._pose
         x, y = int(self.x) - camera_offset, int(self.y)
 
         # Get the positions for the parts

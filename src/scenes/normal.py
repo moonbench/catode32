@@ -67,7 +67,7 @@ class NormalScene(Scene):
 
         # Create character
         self.character = CharacterEntity(100, 63)
-        self.character.set_pose("idle_forward")
+        self.character.set_pose("sitting.forward.neutral")
 
         self.menu = Menu(self.renderer, self.input)
 

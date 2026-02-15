@@ -428,72 +428,91 @@ CHAR_TAIL_ANNOYED = {
 
 #
 # Poses (Combinations of body assets)
+# Structure: position -> direction -> emotion
 #
 POSES = {
-    "idle": {
-        "head": CHAR_HEAD_SIDE_NEUTRAL,
-        "body": CHAR_BODY_SIDE_SITTING,
-        "eyes": CHAR_EYES_SIDE_NEUTRAL,
-        "tail": CHAR_TAIL_NEUTRAL,
+    "sitting": {
+        "side": {
+            "neutral": {
+                "head": CHAR_HEAD_SIDE_NEUTRAL,
+                "body": CHAR_BODY_SIDE_SITTING,
+                "eyes": CHAR_EYES_SIDE_NEUTRAL,
+                "tail": CHAR_TAIL_NEUTRAL,
+            },
+        },
+        "forward": {
+            "neutral": {
+                "head": CHAR_HEAD_FRONT_NEUTRAL,
+                "body": CHAR_BODY_FRONT_SITTING,
+                "eyes": CHAR_EYES_FRONT_NEUTRAL2,
+                "tail": CHAR_TAIL_NEUTRAL,
+            },
+            "sleepy": {
+                "head": CHAR_HEAD_FRONT_NEUTRAL,
+                "body": CHAR_BODY_FRONT_SITTING,
+                "eyes": CHAR_EYES_FRONT_NEUTRAL,
+                "tail": CHAR_TAIL_NEUTRAL,
+            },
+            "shocked": {
+                "head": CHAR_HEAD_FRONT_SHOCKED,
+                "body": CHAR_BODY_FRONT_SITTING,
+                "eyes": CHAR_EYES_FRONT_SHOCKED,
+                "tail": CHAR_TAIL_SHOCKED,
+            },
+        },
     },
-    "idle_laying": {
-        "head": CHAR_HEAD_SIDE_NEUTRAL,
-        "body": CHAR_BODY_SIDE_LAYING,
-        "eyes": CHAR_EYES_SIDE_NEUTRAL,
-        "tail": CHAR_TAIL_NEUTRAL2,
+    "sitting_silly": {
+        "side": {
+            "neutral": {
+                "head": CHAR_HEAD_SIDE_NEUTRAL2,
+                "body": CHAR_BODY_SIDE_SITTING2,
+                "eyes": CHAR_EYES_SIDE_NEUTRAL,
+                "tail": CHAR_TAIL_NEUTRAL2,
+            },
+            "aloof": {
+                "head": CHAR_HEAD_SIDE_NEUTRAL2,
+                "body": CHAR_BODY_SIDE_SITTING2,
+                "eyes": CHAR_EYES_SIDE_ALOOF,
+                "tail": CHAR_TAIL_NEUTRAL2,
+            },
+        },
     },
-    "idle_forward": {
-        "head": CHAR_HEAD_FRONT_NEUTRAL,
-        "body": CHAR_BODY_FRONT_SITTING,
-        "eyes": CHAR_EYES_FRONT_NEUTRAL2,
-        "tail": CHAR_TAIL_NEUTRAL,
+    "laying": {
+        "side": {
+            "neutral": {
+                "head": CHAR_HEAD_SIDE_NEUTRAL,
+                "body": CHAR_BODY_SIDE_LAYING,
+                "eyes": CHAR_EYES_SIDE_NEUTRAL,
+                "tail": CHAR_TAIL_NEUTRAL2,
+            },
+            "annoyed": {
+                "head": CHAR_HEAD_SIDE_AIRPLANE,
+                "body": CHAR_BODY_SIDE_LAYING,
+                "eyes": CHAR_EYES_SIDE_ANNOYED,
+                "tail": CHAR_TAIL_ANNOYED,
+            },
+            "happy": {
+                "head": CHAR_HEAD_SIDE_NEUTRAL,
+                "body": CHAR_BODY_SIDE_LAYING,
+                "eyes": CHAR_EYES_SIDE_HAPPY,
+                "tail": CHAR_TAIL_NEUTRAL2,
+            },
+        },
     },
-    "idle_forward_sleepy": {
-        "head": CHAR_HEAD_FRONT_NEUTRAL,
-        "body": CHAR_BODY_FRONT_SITTING,
-        "eyes": CHAR_EYES_FRONT_NEUTRAL,
-        "tail": CHAR_TAIL_NEUTRAL,
+    "standing": {
+        "side": {
+            "neutral": {
+                "head": CHAR_HEAD_SIDE_NEUTRAL,
+                "body": CHAR_BODY_SIDE_STANDING,
+                "eyes": CHAR_EYES_SIDE_NEUTRAL,
+                "tail": CHAR_TAIL_NEUTRAL,
+            },
+            "annoyed": {
+                "head": CHAR_HEAD_SIDE_AIRPLANE,
+                "body": CHAR_BODY_SIDE_STANDING,
+                "eyes": CHAR_EYES_SIDE_ANNOYED,
+                "tail": CHAR_TAIL_ANNOYED,
+            },
+        },
     },
-    "idle_stand": {
-        "head": CHAR_HEAD_SIDE_NEUTRAL,
-        "body": CHAR_BODY_SIDE_STANDING,
-        "eyes": CHAR_EYES_SIDE_NEUTRAL,
-        "tail": CHAR_TAIL_NEUTRAL,
-    },
-    "idle_sitting": {
-        "head": CHAR_HEAD_SIDE_NEUTRAL2,
-        "body": CHAR_BODY_SIDE_SITTING2,
-        "eyes": CHAR_EYES_SIDE_NEUTRAL,
-        "tail": CHAR_TAIL_NEUTRAL2,
-    },
-    "aloof_sitting": {
-        "head": CHAR_HEAD_SIDE_NEUTRAL2,
-        "body": CHAR_BODY_SIDE_SITTING2,
-        "eyes": CHAR_EYES_SIDE_ALOOF,
-        "tail": CHAR_TAIL_NEUTRAL2,
-    },
-    "shocked_forward": {
-        "head": CHAR_HEAD_FRONT_SHOCKED,
-        "body": CHAR_BODY_FRONT_SITTING,
-        "eyes": CHAR_EYES_FRONT_SHOCKED,
-        "tail": CHAR_TAIL_SHOCKED,
-    },
-    "annoyed": {
-        "head": CHAR_HEAD_SIDE_AIRPLANE,
-        "body": CHAR_BODY_SIDE_STANDING,
-        "eyes": CHAR_EYES_SIDE_ANNOYED,
-        "tail": CHAR_TAIL_ANNOYED,
-    },
-    "annoyed_laying": {
-        "head": CHAR_HEAD_SIDE_AIRPLANE,
-        "body": CHAR_BODY_SIDE_LAYING,
-        "eyes": CHAR_EYES_SIDE_ANNOYED,
-        "tail": CHAR_TAIL_ANNOYED,
-    },
-    "happy_laying": {
-        "head": CHAR_HEAD_SIDE_NEUTRAL,
-        "body": CHAR_BODY_SIDE_LAYING,
-        "eyes": CHAR_EYES_SIDE_HAPPY,
-        "tail": CHAR_TAIL_NEUTRAL2,
-    }
 }

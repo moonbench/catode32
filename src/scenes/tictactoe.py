@@ -61,7 +61,7 @@ class TicTacToeScene(Scene):
 
         # Reset pet pose to idle
         if self.character:
-            self.character.set_pose("idle_laying")
+            self.character.set_pose("laying.side.neutral")
 
         # Alternate who goes first each round
         if self.round_number % 2 == 0:
@@ -72,7 +72,7 @@ class TicTacToeScene(Scene):
     def load(self):
         super().load()
         self.character = CharacterEntity(100, 63)
-        self.character.set_pose("idle_laying")
+        self.character.set_pose("laying.side.neutral")
 
     def unload(self):
         super().unload()
@@ -144,7 +144,7 @@ class TicTacToeScene(Scene):
                 self.state = self.STATE_PET_WIN
                 self.pet_score += 1
                 self.end_delay_timer = 0.0
-                self.character.set_pose("happy_laying")
+                self.character.set_pose("laying.side.happy")
             elif self._is_board_full():
                 self.state = self.STATE_DRAW
                 self.end_delay_timer = 0.0
@@ -244,7 +244,7 @@ class TicTacToeScene(Scene):
                 self.state = self.STATE_PLAYER_WIN
                 self.player_score += 1
                 self.end_delay_timer = 0.0
-                self.character.set_pose("annoyed_laying")
+                self.character.set_pose("laying.side.annoyed")
             elif self._is_board_full():
                 self.state = self.STATE_DRAW
                 self.end_delay_timer = 0.0

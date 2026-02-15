@@ -1,6 +1,5 @@
 from scene import Scene
-from entities.character import CharacterEntity
-from assets.character import POSES
+from entities.character import CharacterEntity, get_all_pose_names
 
 
 class DebugPosesScene(Scene):
@@ -17,7 +16,7 @@ class DebugPosesScene(Scene):
 
     def load(self):
         super().load()
-        self.pose_names = list(POSES.keys())
+        self.pose_names = get_all_pose_names()
         self.character = CharacterEntity(64, 60)
         if self.pose_names:
             self.character.set_pose(self.pose_names[0])
@@ -54,10 +53,12 @@ class DebugPosesScene(Scene):
         # Draw character
         self.character.draw(self.renderer)
 
-        # Draw pose name at top
+        # Draw pose name at top (split into position, direction, emotion)
         if self.pose_names:
             pose_name = self.pose_names[self.pose_index]
-            self.renderer.draw_text(pose_name, 0, 0)
+            parts = pose_name.split(".")
+            for i, part in enumerate(parts):
+                self.renderer.draw_text(part, 0, i * 8)
 
         # Draw anchor/attachment point markers if enabled
         if self.show_anchors:
@@ -65,7 +66,7 @@ class DebugPosesScene(Scene):
         
     def _draw_debug_markers(self):
         """Draw anchor points and attachment points for debugging"""
-        pose = POSES[self.pose_names[self.pose_index]]
+        pose = self.character._pose
         x, y = int(self.character.x), int(self.character.y)
 
         body = pose["body"]
