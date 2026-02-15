@@ -6,6 +6,7 @@ import config
 from scene import Scene
 from assets.minigame_assets import PAW_LARGE1, RING_17
 from entities.character import CharacterEntity
+from ui import Popup
 
 
 class TicTacToeScene(Scene):
@@ -46,6 +47,8 @@ class TicTacToeScene(Scene):
         self.player_score = 0
         self.pet_score = 0
         self.character = None
+        # Win/lose/draw popup - centered horizontally, at top of screen
+        self.result_popup = Popup(renderer, x=14, y=0, width=100, height=24)
         self.reset_game()
 
     def reset_game(self):
@@ -55,6 +58,10 @@ class TicTacToeScene(Scene):
         self.winning_line = None
         self.pet_think_timer = 0.0
         self.end_delay_timer = 0.0
+
+        # Reset pet pose to idle
+        if self.character:
+            self.character.set_pose("idle_laying")
 
         # Alternate who goes first each round
         if self.round_number % 2 == 0:
@@ -137,6 +144,7 @@ class TicTacToeScene(Scene):
                 self.state = self.STATE_PET_WIN
                 self.pet_score += 1
                 self.end_delay_timer = 0.0
+                self.character.set_pose("happy_laying")
             elif self._is_board_full():
                 self.state = self.STATE_DRAW
                 self.end_delay_timer = 0.0
@@ -236,6 +244,7 @@ class TicTacToeScene(Scene):
                 self.state = self.STATE_PLAYER_WIN
                 self.player_score += 1
                 self.end_delay_timer = 0.0
+                self.character.set_pose("annoyed_laying")
             elif self._is_board_full():
                 self.state = self.STATE_DRAW
                 self.end_delay_timer = 0.0
@@ -321,11 +330,14 @@ class TicTacToeScene(Scene):
     def _draw_state_message(self):
         """Draw end game messages"""
         if self.state == self.STATE_PLAYER_WIN:
-            self.renderer.draw_text("WIN!", 70, 21)
+            self.result_popup.set_text("You Win!\nA: New Game", wrap=False, center=True)
+            self.result_popup.draw(show_scroll_indicators=False)
         elif self.state == self.STATE_PET_WIN:
-            self.renderer.draw_text("LOSE", 70, 21)
+            self.result_popup.set_text("You Lose!\nA: New Game", wrap=False, center=True)
+            self.result_popup.draw(show_scroll_indicators=False)
         elif self.state == self.STATE_DRAW:
-            self.renderer.draw_text("DRAW", 70, 21)
+            self.result_popup.set_text("Draw!\nA: New Game", wrap=False, center=True)
+            self.result_popup.draw(show_scroll_indicators=False)
         elif self.state == self.STATE_PET_TURN:
             self.renderer.draw_text("...", 76, 20)
 
