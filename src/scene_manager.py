@@ -4,6 +4,7 @@ import gc
 import time
 import config
 from menu import Menu, MenuItem
+from settings import Settings, SettingItem
 from assets.icons import WRENCH_ICON, SUN_ICON, HOUSE_ICON, STATS_ICON, MINIGAME_ICONS, MINIGAMES_ICON
 
 
@@ -26,6 +27,11 @@ class SceneManager:
         # Big menu (menu1) - consistent across all scenes
         self.big_menu = Menu(renderer, input_handler)
         self.big_menu_active = False
+
+        # Settings screens
+        self.settings = Settings(renderer, input_handler)
+        self.settings_active = False
+        self.settings_type = None  # Track which settings screen is open
 
         # Import and register all scenes upfront (after boot screen is showing)
         self._scene_classes = self._load_all_scenes()
@@ -174,6 +180,11 @@ class SceneManager:
     
     def draw(self):
         """Draw current scene and transition overlay"""
+        if self.settings_active:
+            self.settings.draw()
+            self.renderer.show()
+            return
+
         if self.big_menu_active:
             self.big_menu.draw()
             self.renderer.show()
@@ -209,6 +220,18 @@ class SceneManager:
         """Handle input for current scene"""
         # Block input during transitions
         if self.transition_active:
+            return
+
+        # Handle settings input when active
+        if self.settings_active:
+            result = self.settings.handle_input()
+            if result is not None:
+                self._handle_settings_result(result)
+                self.settings_active = False
+                self.settings_type = None
+                # Return to big menu after settings
+                self.big_menu_active = True
+                self.big_menu.open(self._build_big_menu_items())
             return
 
         # Handle big menu input when active
@@ -270,6 +293,9 @@ class SceneManager:
         if debug_items:
             items.append(MenuItem("Debug", icon=WRENCH_ICON, submenu=debug_items))
 
+        # Environment settings
+        items.append(MenuItem("Environment", icon=SUN_ICON, action=('settings', 'environment')))
+
         return items
 
     def _handle_big_menu_action(self, action):
@@ -284,7 +310,51 @@ class SceneManager:
             scene_class = self._get_scene_class(scene_name)
             if scene_class:
                 self.change_scene(scene_class)
+
+        elif action_type == 'settings':
+            settings_name = action[1]
+            if settings_name == 'environment':
+                self._open_environment_settings()
     
+    def _open_environment_settings(self):
+        """Open the environment settings screen"""
+        # Get current values from context, with defaults
+        env = getattr(self.context, 'environment', {})
+
+        items = [
+            SettingItem(
+                "Time", "time_of_day",
+                options=["Dawn", "Morning", "Noon", "Afternoon", "Evening", "Dusk", "Night"],
+                value=env.get('time_of_day', "Noon")
+            ),
+            SettingItem(
+                "Season", "season",
+                options=["Spring", "Summer", "Fall", "Winter"],
+                value=env.get('season', "Summer")
+            ),
+            SettingItem(
+                "Moon", "moon_phase",
+                options=["New", "Wax Cres", "1st Qtr", "Wax Gib",
+                         "Full", "Wan Gib", "3rd Qtr", "Wan Cres"],
+                value=env.get('moon_phase', "Full")
+            ),
+            SettingItem(
+                "Weather", "weather",
+                options=["Clear", "Cloudy", "Overcast", "Rain", "Storm", "Snow", "Windy"],
+                value=env.get('weather', "Clear")
+            ),
+        ]
+
+        self.settings.open(items, transition=False)
+        self.settings_active = True
+        self.settings_type = 'environment'
+
+    def _handle_settings_result(self, result):
+        """Handle settings screen result"""
+        if self.settings_type == 'environment':
+            # Save environment settings to context
+            self.context.environment = result
+
     def unload_all(self):
         """Unload all cached scenes - call this on shutdown"""
         for scene_name, scene in self.scene_cache.items():
