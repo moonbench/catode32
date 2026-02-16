@@ -26,4 +26,5 @@ class GameContext:
         self.zoomies_high_score = 0
         self.maze_best_time = 0  # Best time in seconds (0 = not played)
 
+        # For storing time/weather/season/moon-phase type data
         self.environment = {}
