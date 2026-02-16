@@ -2,7 +2,7 @@
 settings.py - Composable settings component for option selection
 """
 
-from ui import Scrollbar
+from ui import Scrollbar, adjust_scroll_offset
 
 
 class SettingItem:
@@ -138,10 +138,9 @@ class Settings:
 
     def _adjust_scroll(self):
         """Keep selected item visible in the scroll window"""
-        if self.selected_index < self.scroll_offset:
-            self.scroll_offset = self.selected_index
-        elif self.selected_index >= self.scroll_offset + self.VISIBLE_ITEMS:
-            self.scroll_offset = self.selected_index - self.VISIBLE_ITEMS + 1
+        self.scroll_offset = adjust_scroll_offset(
+            self.selected_index, self.scroll_offset, self.VISIBLE_ITEMS
+        )
 
     def draw(self):
         """Render the settings to screen"""

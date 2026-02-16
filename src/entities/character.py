@@ -9,11 +9,13 @@ def get_pose(pose_name):
     """
     parts = pose_name.split(".")
     if len(parts) != 3:
+        print(f"[character] Invalid pose format: '{pose_name}' (expected 'position.direction.emotion')")
         return None
     position, direction, emotion = parts
     try:
         return POSES[position][direction][emotion]
     except KeyError:
+        print(f"[character] Pose not found: '{pose_name}'")
         return None
 
 
@@ -46,6 +48,8 @@ class CharacterEntity(Entity):
         if pose is not None:
             self.pose_name = pose_name
             self._pose = pose
+        else:
+            print(f"[character] Failed to set pose: '{pose_name}', keeping current pose")
 
     def _get_point(self, sprite, key, frame=0, mirror=False):
         """Get a point value from a sprite, handling both static (int) and animated (list) values.
@@ -75,8 +79,10 @@ class CharacterEntity(Entity):
 
     def update(self, dt):
         """Update animation counters."""
-        pose = self._pose
+        if self._pose is None:
+            return
 
+        pose = self._pose
         self.anim_body = (self.anim_body + dt * pose["body"].get("speed", 1)) % self._get_total_frames(pose["body"])
         self.anim_head = (self.anim_head + dt * pose["head"].get("speed", 1)) % self._get_total_frames(pose["head"])
         self.anim_eyes = (self.anim_eyes + dt * pose["eyes"].get("speed", 1)) % self._get_total_frames(pose["eyes"])
@@ -90,7 +96,7 @@ class CharacterEntity(Entity):
             mirror: if True, flip the character horizontally
             camera_offset: horizontal camera offset to subtract from x position
         """
-        if not self.visible:
+        if not self.visible or self._pose is None:
             return
 
         pose = self._pose

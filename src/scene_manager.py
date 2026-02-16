@@ -5,6 +5,8 @@ import time
 import config
 from menu import Menu, MenuItem
 from settings import Settings, SettingItem
+from transitions import TransitionManager
+from ui import OverlayManager
 from assets.icons import WRENCH_ICON, SUN_ICON, HOUSE_ICON, STATS_ICON, MINIGAME_ICONS, MINIGAMES_ICON
 
 
@@ -24,24 +26,20 @@ class SceneManager:
         self.scene_access_order = []  # Track LRU order explicitly
         self.max_cached_scenes = 2  # Limit cached scenes for memory
 
-        # Big menu (menu1) - consistent across all scenes
+        # Overlay management (menus, settings, dialogs)
+        self.overlays = OverlayManager()
         self.big_menu = Menu(renderer, input_handler)
-        self.big_menu_active = False
-
-        # Settings screens
         self.settings = Settings(renderer, input_handler)
-        self.settings_active = False
-        self.settings_type = None  # Track which settings screen is open
 
         # Import and register all scenes upfront (after boot screen is showing)
         self._scene_classes = self._load_all_scenes()
 
-        # Transition state
-        self.transition_active = False
-        self.transition_type = config.TRANSITION_TYPE
-        self.transition_duration = config.TRANSITION_DURATION
-        self.transition_progress = 0.0
-        self.transition_phase = 'out'  # 'out' (closing) or 'in' (opening)
+        # Transition manager
+        self.transitions = TransitionManager(
+            renderer,
+            transition_type=config.TRANSITION_TYPE,
+            duration=config.TRANSITION_DURATION
+        )
         self.pending_scene_class = None
 
     def _load_all_scenes(self):
@@ -86,7 +84,7 @@ class SceneManager:
             return
 
         # Don't start a new transition if one is already active
-        if self.transition_active:
+        if self.transitions.active:
             return
 
         # If no current scene, switch immediately (initial load)
@@ -94,11 +92,15 @@ class SceneManager:
             self._perform_scene_switch(scene_class)
             return
 
-        # Start transition-out phase
-        self.transition_active = True
-        self.transition_phase = 'out'
-        self.transition_progress = 0.0
+        # Store pending scene and start transition
         self.pending_scene_class = scene_class
+        self.transitions.start(on_midpoint=self._on_transition_midpoint)
+
+    def _on_transition_midpoint(self):
+        """Called at transition midpoint to perform the scene switch."""
+        if self.pending_scene_class:
+            self._perform_scene_switch(self.pending_scene_class)
+            self.pending_scene_class = None
 
     def _perform_scene_switch(self, scene_class):
         """Actually switch to a new scene (called at transition midpoint)"""
@@ -147,8 +149,7 @@ class SceneManager:
         """Update current scene and transitions"""
 
         # Handle transition animation
-        if self.transition_active:
-            self._update_transition(dt)
+        if self.transitions.update(dt):
             return  # Don't update scene during transition
 
         # Update current scene
@@ -156,37 +157,11 @@ class SceneManager:
             result = self.current_scene.update(dt)
             if result and result[0] == 'change_scene':
                 self.change_scene(result[1])
-
-    def _update_transition(self, dt):
-        """Advance transition animation"""
-        # Cap dt to prevent jumps after slow scene loads
-        dt = min(dt, self.transition_duration * 0.5)
-        # Advance progress
-        self.transition_progress += dt / self.transition_duration
-
-        if self.transition_progress >= 1.0:
-            self.transition_progress = 1.0
-
-            if self.transition_phase == 'out':
-                # Transition-out complete, switch scenes and start transition-in
-                self._perform_scene_switch(self.pending_scene_class)
-                self.pending_scene_class = None
-                self.transition_phase = 'in'
-                self.transition_progress = 0.0
-            else:
-                # Transition-in complete, end transition
-                self.transition_active = False
-                self.transition_progress = 0.0
     
     def draw(self):
         """Draw current scene and transition overlay"""
-        if self.settings_active:
-            self.settings.draw()
-            self.renderer.show()
-            return
-
-        if self.big_menu_active:
-            self.big_menu.draw()
+        # If an overlay is active, draw it instead of the scene
+        if self.overlays.draw():
             self.renderer.show()
             return
 
@@ -194,66 +169,48 @@ class SceneManager:
             self.current_scene.draw()
 
         # Draw transition overlay if active
-        if self.transition_active:
-            self._draw_transition()
+        self.transitions.draw()
 
         self.renderer.show()
-
-    def _draw_transition(self):
-        """Draw the transition effect overlay"""
-        # Calculate effective progress (inverted for 'in' phase)
-        if self.transition_phase == 'out':
-            progress = self.transition_progress
-        else:
-            progress = 1.0 - self.transition_progress
-
-        # Draw the appropriate transition type
-        if self.transition_type == 'fade':
-            self.renderer.draw_transition_fade(progress)
-        elif self.transition_type == 'wipe':
-            direction = 'right' if self.transition_phase == 'out' else 'left'
-            self.renderer.draw_transition_wipe(progress, direction)
-        elif self.transition_type == 'iris':
-            self.renderer.draw_transition_iris(progress)
     
     def handle_input(self):
         """Handle input for current scene"""
         # Block input during transitions
-        if self.transition_active:
+        if self.transitions.active:
             return
 
-        # Handle settings input when active
-        if self.settings_active:
-            result = self.settings.handle_input()
-            if result is not None:
-                self._handle_settings_result(result)
-                self.settings_active = False
-                self.settings_type = None
-                # Return to big menu after settings
-                self.big_menu_active = True
-                self.big_menu.open(self._build_big_menu_items())
-            return
-
-        # Handle big menu input when active
-        if self.big_menu_active:
-            result = self.big_menu.handle_input()
-            if result == 'closed':
-                self.big_menu_active = False
-            elif result is not None:
-                self.big_menu_active = False
-                self._handle_big_menu_action(result)
+        # Route input to active overlay if any
+        if self.overlays.handle_input():
             return
 
         # Open big menu on menu1 button
         if self.input.was_just_pressed('menu1'):
-            self.big_menu_active = True
-            self.big_menu.open(self._build_big_menu_items())
+            self._open_big_menu()
             return
 
         if self.current_scene:
             result = self.current_scene.handle_input()
             if result and result[0] == 'change_scene':
                 self.change_scene(result[1])
+
+    def _open_big_menu(self):
+        """Open the big menu as an overlay."""
+        self.big_menu.open(self._build_big_menu_items())
+        self.overlays.push(self.big_menu, on_result=self._on_big_menu_result)
+
+    def _on_big_menu_result(self, result, metadata):
+        """Handle big menu result."""
+        if result == 'closed':
+            return
+        self._handle_big_menu_action(result)
+
+    def _on_settings_result(self, result, metadata):
+        """Handle settings overlay result."""
+        settings_type = metadata.get('settings_type')
+        if settings_type == 'environment':
+            self.context.environment = result
+        # Return to big menu after settings
+        self._open_big_menu()
 
     def _build_big_menu_items(self):
         """Build the big menu items"""
@@ -346,14 +303,11 @@ class SceneManager:
         ]
 
         self.settings.open(items, transition=False)
-        self.settings_active = True
-        self.settings_type = 'environment'
-
-    def _handle_settings_result(self, result):
-        """Handle settings screen result"""
-        if self.settings_type == 'environment':
-            # Save environment settings to context
-            self.context.environment = result
+        self.overlays.push(
+            self.settings,
+            on_result=self._on_settings_result,
+            metadata={'settings_type': 'environment'}
+        )
 
     def unload_all(self):
         """Unload all cached scenes - call this on shutdown"""

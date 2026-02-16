@@ -6,7 +6,6 @@ class GameContext:
         self.vigor = 50 # Inverse of exhaustion
         self.comfort = 50
         self.playfulness = 50
-        self.comfort = 50
         self.focus = 50
         self.affection = 50
 

@@ -3,10 +3,115 @@
 from assets.icons import UP_ICON, DOWN_ICON
 
 
-class Scrollbar:
-    """A reusable scrollbar component."""
+class OverlayManager:
+    """Manages a stack of UI overlays (menus, settings, dialogs).
 
-    def __init__(self, renderer, x=126, y=0, track_height=64, min_thumb_height=4):
+    Overlays are drawn on top of the scene and intercept input.
+    The topmost overlay receives input and is drawn.
+    """
+
+    def __init__(self):
+        """Initialize the overlay manager."""
+        self._stack = []  # Stack of (overlay, metadata) tuples
+        self._result_handlers = {}  # overlay -> callback mapping
+
+    @property
+    def active(self):
+        """Whether any overlay is currently active."""
+        return len(self._stack) > 0
+
+    @property
+    def current(self):
+        """The topmost overlay, or None if no overlays."""
+        return self._stack[-1][0] if self._stack else None
+
+    def push(self, overlay, on_result=None, metadata=None):
+        """Push an overlay onto the stack.
+
+        Args:
+            overlay: The overlay object (must have handle_input and draw methods)
+            on_result: Optional callback when overlay returns a result
+            metadata: Optional metadata dict associated with this overlay
+        """
+        self._stack.append((overlay, metadata or {}))
+        if on_result:
+            self._result_handlers[id(overlay)] = on_result
+
+    def pop(self):
+        """Pop the topmost overlay from the stack.
+
+        Returns:
+            Tuple of (overlay, metadata) that was removed, or (None, None)
+        """
+        if not self._stack:
+            return None, None
+        overlay, metadata = self._stack.pop()
+        self._result_handlers.pop(id(overlay), None)
+        return overlay, metadata
+
+    def handle_input(self):
+        """Route input to the topmost overlay.
+
+        Returns:
+            True if an overlay consumed the input, False otherwise
+        """
+        if not self._stack:
+            return False
+
+        overlay, metadata = self._stack[-1]
+        result = overlay.handle_input()
+
+        if result is not None:
+            # Overlay returned a result
+            handler = self._result_handlers.get(id(overlay))
+            self.pop()
+
+            if handler:
+                handler(result, metadata)
+
+        return True
+
+    def draw(self):
+        """Draw the topmost overlay.
+
+        Returns:
+            True if an overlay was drawn, False otherwise
+        """
+        if not self._stack:
+            return False
+
+        overlay, _ = self._stack[-1]
+        overlay.draw()
+        return True
+
+    def clear(self):
+        """Clear all overlays from the stack."""
+        self._stack.clear()
+        self._result_handlers.clear()
+
+
+def adjust_scroll_offset(selected_index, scroll_offset, visible_items):
+    """Calculate new scroll offset to keep selected item visible.
+
+    Args:
+        selected_index: The currently selected item index
+        scroll_offset: The current scroll offset
+        visible_items: Number of items visible at once
+
+    Returns:
+        The new scroll offset
+    """
+    if selected_index < scroll_offset:
+        return selected_index
+    elif selected_index >= scroll_offset + visible_items:
+        return selected_index - visible_items + 1
+    return scroll_offset
+
+
+class Scrollbar:
+    """A reusable scrollbar component with optional state management."""
+
+    def __init__(self, renderer, x=126, y=0, track_height=64, min_thumb_height=4, visible_items=None):
         """Initialize the scrollbar.
 
         Args:
@@ -15,6 +120,7 @@ class Scrollbar:
             y: Y position (top of track)
             track_height: Height of the scrollbar track
             min_thumb_height: Minimum height of the thumb
+            visible_items: If provided, enables stateful mode with this many visible items
         """
         self.renderer = renderer
         self.x = x
@@ -22,15 +128,55 @@ class Scrollbar:
         self.track_height = track_height
         self.min_thumb_height = min_thumb_height
 
-    def draw(self, total_items, visible_items, scroll_offset):
+        # Optional state management
+        self._visible_items = visible_items
+        self._scroll_offset = 0
+
+    @property
+    def scroll_offset(self):
+        """Current scroll offset (stateful mode only)."""
+        return self._scroll_offset
+
+    @scroll_offset.setter
+    def scroll_offset(self, value):
+        self._scroll_offset = max(0, value)
+
+    def reset(self):
+        """Reset scroll offset to 0."""
+        self._scroll_offset = 0
+
+    def adjust_for_selection(self, selected_index, visible_items=None):
+        """Adjust scroll offset to keep selected item visible.
+
+        Args:
+            selected_index: The currently selected item index
+            visible_items: Override visible_items if not using stateful mode
+
+        Returns:
+            The new scroll offset
+        """
+        vis = visible_items if visible_items is not None else self._visible_items
+        if vis is None:
+            return self._scroll_offset
+
+        self._scroll_offset = adjust_scroll_offset(selected_index, self._scroll_offset, vis)
+        return self._scroll_offset
+
+    def draw(self, total_items, visible_items=None, scroll_offset=None):
         """Draw the scrollbar if content exceeds visible area.
 
         Args:
             total_items: Total number of items (or total pixel height)
-            visible_items: Number of visible items (or visible pixel height)
-            scroll_offset: Current scroll position
+            visible_items: Number of visible items (uses internal state if not provided)
+            scroll_offset: Current scroll position (uses internal state if not provided)
         """
-        if total_items <= visible_items:
+        # Use internal state if not provided
+        if visible_items is None:
+            visible_items = self._visible_items
+        if scroll_offset is None:
+            scroll_offset = self._scroll_offset
+
+        if visible_items is None or total_items <= visible_items:
             return
 
         # Calculate thumb size proportional to visible/total ratio
