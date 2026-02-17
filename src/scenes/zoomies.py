@@ -6,7 +6,7 @@ import config
 import random
 from scene import Scene
 from assets.minigame_character import RUNCAT1, SITCAT1, SMALL_BIRD1
-from assets.nature import SMALLTREE1, PLANT1, PLANT2, PLANT6, CLOUD1, CLOUD2
+from assets.nature import SMALLTREE1, PLANT1, PLANT2, PLANT6, CLOUD1, CLOUD2, CLOUD3
 from ui import Popup
 
 
@@ -100,7 +100,7 @@ class ZoomiesScene(Scene):
 
     def _add_cloud_at(self, x):
         """Add a cloud at the given x position"""
-        sprite = random.choice([CLOUD1, CLOUD2])
+        sprite = random.choice([CLOUD1, CLOUD2, CLOUD3])
         # Random y position in upper portion of screen
         y = random.randint(-10, 10)
         self.clouds.append({"sprite": sprite, "x": float(x), "y": y})

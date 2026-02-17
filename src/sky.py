@@ -3,7 +3,7 @@
 import math
 import random
 import config
-from assets.nature import SUN, MOON, CLOUD1, CLOUD2, HOT_AIR_BALLOON, PLANE_TINY
+from assets.nature import SUN, MOON, CLOUD1, CLOUD2, CLOUD3, HOT_AIR_BALLOON, PLANE_TINY
 
 
 def _xorshift32(x):
@@ -76,6 +76,8 @@ CLOUD_TEMPLATES = [
     {"sprite": CLOUD1, "y": -5, "base_speed": 5.0},
     {"sprite": CLOUD2, "y": -15, "base_speed": 6.0},
     {"sprite": CLOUD1, "y": -12, "base_speed": 3.5},
+    {"sprite": CLOUD3, "y": -3, "base_speed": 3.0},
+    {"sprite": CLOUD3, "y": -14, "base_speed": 5.5},
 ]
 
 
