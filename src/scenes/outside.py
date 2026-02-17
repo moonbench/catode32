@@ -4,6 +4,7 @@ from environment import Environment, LAYER_BACKGROUND, LAYER_FOREGROUND
 from entities.character import CharacterEntity
 from entities.butterfly import ButterflyEntity
 from menu import Menu, MenuItem
+from reactions import ReactionManager
 from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS, SNACK_ICONS, SUN_ICON
 from assets.nature import PLANT1, PLANTER1, PLANT2, CLOUD1, CLOUD2
 
@@ -21,6 +22,10 @@ class OutsideScene(Scene):
         self.cloud1 = None
         self.cloud2 = None
         self.cloud3 = None
+
+        # Reaction state
+        self.default_pose = "sitting.side.neutral"
+        self.reactions = ReactionManager()
 
     def load(self):
         super().load()
@@ -132,6 +137,9 @@ class OutsideScene(Scene):
         # Update character (not in environment - we draw it separately for mirror control)
         self.character.update(dt)
 
+        # Update reactions
+        self.reactions.update(dt, self.character, self.default_pose)
+
         # Update environment entities (butterflies)
         self.environment.update(dt)
 
@@ -149,6 +157,10 @@ class OutsideScene(Scene):
         # Draw character separately (needs mirror control, draws with foreground parallax)
         camera_offset = int(self.environment.camera_x)
         self.character.draw(self.renderer, mirror=True, camera_offset=camera_offset)
+
+        # Draw reaction bubble if active (mirrored since character faces right)
+        char_screen_x = int(self.character.x) - camera_offset
+        self.reactions.draw(self.renderer, char_screen_x, self.character.y, mirror=True)
 
     def handle_input(self):
         """Process input - can also return scene change instructions"""
@@ -204,15 +216,20 @@ class OutsideScene(Scene):
 
         if action_type == "pets":
             self.context.affection = min(100, self.context.affection + 5)
+            self.reactions.trigger("pets", self.character)
         elif action_type == "point_bird":
             self.context.curiosity = min(100, self.context.curiosity + 10)
             self.context.stimulation = min(100, self.context.stimulation + 5)
+            self.reactions.trigger("point_bird", self.character)
         elif action_type == "throw_stick":
             self.context.playfulness = min(100, self.context.playfulness + 15)
             self.context.energy = max(0, self.context.energy - 10)
+            self.reactions.trigger("throw_stick", self.character)
         elif action_type == "treat":
             self.context.fullness = min(100, self.context.fullness + 5)
             self.context.affection = min(100, self.context.affection + 3)
+            self.reactions.trigger("snack", self.character)
         elif action_type == "toy":
             self.context.playfulness = min(100, self.context.playfulness + 15)
             self.context.stimulation = min(100, self.context.stimulation + 10)
+            self.reactions.trigger("toy", self.character)

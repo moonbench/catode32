@@ -3,6 +3,7 @@ from scene import Scene
 from environment import Environment, LAYER_FOREGROUND
 from entities.character import CharacterEntity
 from menu import Menu, MenuItem
+from reactions import ReactionManager
 from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS, SNACK_ICONS
 from assets.furniture import BOOKSHELF
 from assets.nature import PLANTER1, PLANT3
@@ -20,6 +21,10 @@ class NormalScene(Scene):
 
         # Reference to fish object for animation
         self.fish_obj = None
+
+        # Reaction state
+        self.default_pose = "sitting.forward.neutral"
+        self.reactions = ReactionManager()
 
     def load(self):
         super().load()
@@ -88,6 +93,9 @@ class NormalScene(Scene):
         self.fish_angle = (self.fish_angle + (dt * 25)) % 360
         self.fish_obj["rotate"] = self.fish_angle
 
+        # Update reactions
+        self.reactions.update(dt, self.character, self.default_pose)
+
     def draw(self):
         """Draw the scene"""
         if self.menu_active:
@@ -109,6 +117,10 @@ class NormalScene(Scene):
         # Draw character (with foreground parallax)
         camera_offset = int(self.environment.camera_x)
         self.character.draw(self.renderer, camera_offset=camera_offset)
+
+        # Draw reaction bubble if active
+        char_screen_x = int(self.character.x) - camera_offset
+        self.reactions.draw(self.renderer, char_screen_x, self.character.y)
 
     def handle_input(self):
         """Process input - can also return scene change instructions"""
@@ -173,14 +185,19 @@ class NormalScene(Scene):
 
         if action_type == "pets":
             self.context.affection = min(100, self.context.affection + 5)
+            self.reactions.trigger("pets", self.character)
         elif action_type == "psst":
             self.context.curiosity = min(100, self.context.curiosity + 3)
+            self.reactions.trigger("psst", self.character)
         elif action_type == "kiss":
             self.context.affection = min(100, self.context.affection + 10)
+            self.reactions.trigger("kiss", self.character)
         elif action_type == "snack":
             snack_name = action[1]
             self.context.fullness = min(100, self.context.fullness + 10)
+            self.reactions.trigger("snack", self.character)
         elif action_type == "toy":
             toy_name = action[1]
             self.context.playfulness = min(100, self.context.playfulness + 15)
             self.context.stimulation = min(100, self.context.stimulation + 10)
+            self.reactions.trigger("toy", self.character)

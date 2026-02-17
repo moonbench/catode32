@@ -257,7 +257,7 @@ class Renderer:
             # Draw without transparency (overwrites everything)
             self.display.blit(sprite_fb, x, y)
 
-    def draw_sprite_obj(self, sprite, x, y, frame=0, transparent=True, invert=False, mirror_h=False, mirror_v=False, rotate=0, skew_x=0, skew_y=0):
+    def draw_sprite_obj(self, sprite, x, y, frame=0, transparent=True, invert=False, mirror_h=False, mirror_v=False, rotate=0, skew_x=0, skew_y=0, transparent_color=0):
         """Draw a sprite object at the given position
 
         Args:
@@ -303,5 +303,6 @@ class Renderer:
             mirror_v=mirror_v,
             rotate=rotate,
             skew_x=skew_x,
-            skew_y=skew_y
+            skew_y=skew_y,
+            transparent_color=transparent_color
         )
