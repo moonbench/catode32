@@ -135,7 +135,12 @@ find $BUILD_DIR -type f -name "*.mpy" | while read -r file; do
 done
 
 echo ""
-echo "Step 6: Verifying upload..."
+echo "Step 6: Uploading boot.py..."
+mp fs cp boot.py :boot.py
+echo -e "${GREEN}✓ boot.py uploaded${NC}"
+
+echo ""
+echo "Step 7: Verifying upload..."
 echo "Root files:"
 mp fs ls /
 echo ""

@@ -103,26 +103,48 @@ Deploys the project to the ESP32's flash storage:
 
 This script:
 - Installs the `ssd1306` library via `mip`
-- Cleans existing files from the device (preserves `boot.py` and `lib/`)
-- Uploads all Python files from `src/` to the device
+- Compiles all `.py` files to `.mpy` bytecode
+- Cleans existing files from the device (preserves `lib/`)
+- Uploads compiled `.mpy` files and `boot.py` to the device
 
 Use this when you want the pet to run standalone without a laptop connection.
 
 ## Running the Game
 
-After uploading, start the game with:
+After uploading, the game starts automatically on power-up or reset.
 
-```bash
-mpremote exec 'import main; main.main()'
-```
+**To enter REPL mode instead:** Hold **A+B buttons** while powering on or pressing reset. This skips auto-run so `mpremote` can connect.
 
-Or connect to the REPL and run interactively:
+To manually start the game from REPL:
 
 ```bash
 mpremote
 >>> import main
 >>> main.main()
 ```
+
+## Troubleshooting
+
+### "could not enter raw repl" error
+
+If you see `mpremote.transport.TransportError: could not enter raw repl` when running `./dev.sh` or other mpremote commands, it means `boot.py` is on the device and auto-running the game, blocking mpremote from connecting.
+
+**To fix this:**
+
+1. Run `mpremote` to connect to the device
+2. Press **Ctrl+C** to interrupt the running game
+3. Press **Ctrl+B** to exit raw REPL and enter friendly REPL
+4. Remove boot.py:
+   ```python
+   import os
+   os.remove('boot.py')
+   ```
+5. Press **Ctrl+X** to exit mpremote
+
+Now `./dev.sh` should work again.
+
+> [!TIP]
+> During development, don't keep `boot.py` on the device. Only run `./upload.sh` when you need standalone operation (battery-powered, showing friends, etc.). When you're done and want to return to development, remove `boot.py` using the steps above.
 
 ## Controls
 
