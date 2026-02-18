@@ -9,6 +9,7 @@ echo ""
 # Configuration
 DEVICE_PORT="${1:-}"  # Optional: pass port as first argument
 SRC_DIR="src"
+BUILD_DIR="build"
 
 # Color codes for output
 GREEN='\033[0;32m'
@@ -25,6 +26,12 @@ fi
 # Check if mpremote is available
 if ! command -v mpremote &> /dev/null; then
     echo -e "${RED}Error: mpremote not found. Install with: pip install mpremote${NC}"
+    exit 1
+fi
+
+# Check for mpy-cross
+if ! command -v mpy-cross &> /dev/null; then
+    echo -e "${RED}Error: mpy-cross not found. Install with: pip install mpy-cross${NC}"
     exit 1
 fi
 
@@ -51,7 +58,27 @@ mp mip install ssd1306
 echo -e "${GREEN}✓ SSD1306 library installed${NC}"
 
 echo ""
-echo -e "${YELLOW}Step 3: Cleaning ALL files from device...${NC}"
+echo -e "${YELLOW}Step 3: Compiling .py to .mpy...${NC}"
+rm -rf "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
+
+find "$SRC_DIR" -name "*.py" | while read -r pyfile; do
+    REL_PATH="${pyfile#$SRC_DIR/}"
+    MPY_PATH="$BUILD_DIR/${REL_PATH%.py}.mpy"
+    mkdir -p "$(dirname "$MPY_PATH")"
+    echo -n "  Compiling $REL_PATH..."
+    if mpy-cross -march=xtensawin "$pyfile" -o "$MPY_PATH" 2>/dev/null; then
+        echo -e " ${GREEN}✓${NC}"
+    else
+        echo -e " ${RED}✗${NC}"
+        echo -e "${RED}Compilation failed for $pyfile${NC}"
+        exit 1
+    fi
+done
+echo -e "${GREEN}✓ Compilation complete${NC}"
+
+echo ""
+echo -e "${YELLOW}Step 4: Cleaning ALL files from device...${NC}"
 echo "  (keeping boot.py and lib/ directory for safety)"
 
 # Function to recursively delete files and directories
@@ -84,31 +111,31 @@ clean_device
 echo -e "${GREEN}✓ Device cleaned${NC}"
 
 echo ""
-echo "Step 4: Uploading source files..."
+echo "Step 5: Uploading compiled files..."
 # Count files for progress
-TOTAL_FILES=$(find $SRC_DIR -type f -name "*.py" | wc -l)
+TOTAL_FILES=$(find $BUILD_DIR -type f -name "*.mpy" | wc -l)
 CURRENT=0
 
-# Upload all Python files
-find $SRC_DIR -type f -name "*.py" | while read -r file; do
+# Upload all compiled .mpy files
+find $BUILD_DIR -type f -name "*.mpy" | while read -r file; do
     CURRENT=$((CURRENT + 1))
-    # Get relative path and remove src/ prefix
-    REL_PATH="${file#$SRC_DIR/}"
+    # Get relative path and remove build/ prefix
+    REL_PATH="${file#$BUILD_DIR/}"
     echo -n "  [$CURRENT/$TOTAL_FILES] Uploading $REL_PATH..."
-    
+
     # Create directory if needed
     DIR_PATH=$(dirname "/$REL_PATH")
     if [ "$DIR_PATH" != "/" ]; then
         mp fs mkdir "$DIR_PATH" 2>/dev/null || true
     fi
-    
+
     # Upload file
     mp fs cp "$file" ":/$REL_PATH"
     echo -e " ${GREEN}✓${NC}"
 done
 
 echo ""
-echo "Step 5: Verifying upload..."
+echo "Step 6: Verifying upload..."
 echo "Root files:"
 mp fs ls /
 echo ""

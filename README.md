@@ -59,15 +59,21 @@ mpremote mip install ssd1306
 
 ## Development Workflow
 
-For the fastest iteration during development, use `mpremote mount` to run code directly from your computer without writing to ESP32's flash:
+For the fastest iteration during development, use the `dev.sh` script which compiles Python to bytecode and runs via `mpremote mount`:
 
 ```bash
-mpremote mount src run src/main.py
+./dev.sh
 ```
 
-This mounts your local `src/` directory as the device's filesystem and executes `main.py`. All imports resolve from your computer, so edits take effect immediately on the next run. Nothing is written to flash memory.
+This script:
+- Compiles all `.py` files in `src/` to `.mpy` bytecode in `build/`
+- Mounts the `build/` directory on the device
+- Runs the game
+
+Using precompiled `.mpy` files provides faster startup and slightly lower RAM usage compared to raw `.py` files.
 
 > [!NOTE]
+> Requires `mpy-cross` (`pip install mpy-cross`) and `mpremote` (`pip install mpremote`).
 > Any libraries used (like `ssd1306`) must already be installed on the device.
 
 ## Scripts

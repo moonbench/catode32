@@ -1,3 +1,4 @@
 *.bin
 old/*
 .DS_store
+build/
