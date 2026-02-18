@@ -35,19 +35,21 @@ MOON_PHASE_FRAMES = {
 # Returns (x, y) in world coordinates for background layer
 # x ranges across the sky, y is height (lower = higher in sky)
 CELESTIAL_POSITIONS = {
-    "Dawn": (20, 12),      # Low on left horizon
-    "Morning": (50, 6),    # Rising
-    "Noon": (80, 2),       # High in sky
-    "Afternoon": (110, 6), # Descending
-    "Evening": (140, 10),  # Low on right
-    "Dusk": (160, 14),     # Setting
+    # Sun positions (moves left to right)
+    "Dawn": (20, 12),      # Sun low on left horizon
+    "Morning": (50, 6),    # Sun rising
+    "Noon": (80, 2),       # Sun high in sky
+    "Afternoon": (110, 6), # Sun descending
+    # Moon positions (also moves left to right, like on Earth)
+    "Evening": (30, 10),   # Moon low on left (rising)
+    "Dusk": (60, 6),       # Moon rising higher
     "Night": (90, 4),      # Moon high in sky
 }
 
 # Weather to cloud configuration
 # Returns (min_clouds, max_clouds, speed_multiplier)
 WEATHER_CLOUD_CONFIG = {
-    "Clear": (1, 2, 1.0),
+    "Clear": (1, 2, 0.7),
     "Cloudy": (3, 5, 1.0),
     "Overcast": (5, 7, 0.8),
     "Rain": (5, 8, 1.0),

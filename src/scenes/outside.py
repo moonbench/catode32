@@ -94,7 +94,6 @@ class OutsideScene(Scene):
         self.sky.configure(env_settings, world_width=self.environment.world_width)
         self.sky.add_to_environment(self.environment, LAYER_BACKGROUND)
 
-        # Add precipitation to all layers for depth effect (each layer has its own particles)
         self.environment.add_custom_draw(LAYER_MIDGROUND, self.sky.make_precipitation_drawer(0.6, 1))
         self.environment.add_custom_draw(LAYER_FOREGROUND, self.sky.make_precipitation_drawer(1.0, 2))
 
