@@ -130,7 +130,13 @@ class CharacterEntity(Entity):
 
         # Draw the parts
         renderer.draw_sprite_obj(tail, tail_x, tail_y, frame=tail_frame, mirror_h=mirror)
-        renderer.draw_sprite_obj(body, body_x, body_y, frame=body_frame, mirror_h=mirror)
-        renderer.draw_sprite_obj(head, head_x, head_y, frame=head_frame, mirror_h=mirror)
+
+        if pose.get("head_first") == True:
+            renderer.draw_sprite_obj(head, head_x, head_y, frame=head_frame, mirror_h=mirror)
+            renderer.draw_sprite_obj(body, body_x, body_y, frame=body_frame, mirror_h=mirror)
+        else:
+            renderer.draw_sprite_obj(body, body_x, body_y, frame=body_frame, mirror_h=mirror)
+            renderer.draw_sprite_obj(head, head_x, head_y, frame=head_frame, mirror_h=mirror)
+
         renderer.draw_sprite_obj(eyes, eye_x, eye_y, frame=eye_frame, mirror_h=mirror)
 
