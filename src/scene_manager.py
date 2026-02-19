@@ -1,7 +1,7 @@
 # scene_manager.py - Manages scene transitions and lifecycle
 
 import gc
-import time
+import sys
 import config
 from menu import Menu, MenuItem
 from settings import Settings, SettingItem
@@ -12,7 +12,7 @@ from assets.icons import WRENCH_ICON, SUN_ICON, HOUSE_ICON, STATS_ICON, MINIGAME
 
 class SceneManager:
     """Manages scene loading, unloading, and transitions"""
-    
+
     def __init__(self, context, renderer, input_handler):
         self.context = context
         self.renderer = renderer
@@ -31,8 +31,9 @@ class SceneManager:
         self.big_menu = Menu(renderer, input_handler)
         self.settings = Settings(renderer, input_handler)
 
-        # Import and register all scenes upfront (after boot screen is showing)
-        self._scene_classes = self._load_all_scenes()
+        # Scene registry: name -> (module_path, class_name)
+        # Scenes are lazy-loaded when first accessed
+        self._scene_registry = self._build_scene_registry()
 
         # Transition manager
         self.transitions = TransitionManager(
@@ -42,35 +43,46 @@ class SceneManager:
         )
         self.pending_scene_class = None
 
-    def _load_all_scenes(self):
-        """Import all scene modules and return name-to-class mapping."""
-        from scenes.normal import NormalScene
-        from scenes.outside import OutsideScene
-        from scenes.stats import StatsScene
-        from scenes.zoomies import ZoomiesScene
-        from scenes.maze import MazeScene
-        from scenes.breakout import BreakoutScene
-        from scenes.tictactoe import TicTacToeScene
-        from scenes.debug_context import DebugContextScene
-        from scenes.debug_memory import DebugMemoryScene
-        from scenes.debug_poses import DebugPosesScene
+    def _build_scene_registry(self):
+        """Build registry of scene names to (module_path, class_name) tuples.
 
+        Scenes are NOT imported here - just registered for lazy loading.
+        """
         return {
-            'normal': NormalScene,
-            'outside': OutsideScene,
-            'stats': StatsScene,
-            'zoomies': ZoomiesScene,
-            'maze': MazeScene,
-            'breakout': BreakoutScene,
-            'tictactoe': TicTacToeScene,
-            'debug_context': DebugContextScene,
-            'debug_memory': DebugMemoryScene,
-            'debug_poses': DebugPosesScene,
+            'normal': ('scenes.normal', 'NormalScene'),
+            'outside': ('scenes.outside', 'OutsideScene'),
+            'stats': ('scenes.stats', 'StatsScene'),
+            'zoomies': ('scenes.zoomies', 'ZoomiesScene'),
+            'maze': ('scenes.maze', 'MazeScene'),
+            'breakout': ('scenes.breakout', 'BreakoutScene'),
+            'tictactoe': ('scenes.tictactoe', 'TicTacToeScene'),
+            'debug_context': ('scenes.debug_context', 'DebugContextScene'),
+            'debug_memory': ('scenes.debug_memory', 'DebugMemoryScene'),
+            'debug_poses': ('scenes.debug_poses', 'DebugPosesScene'),
         }
 
     def _get_scene_class(self, name):
-        """Return a scene class by name."""
-        return self._scene_classes.get(name)
+        """Return a scene class by name, importing it lazily if needed."""
+        if name not in self._scene_registry:
+            return None
+
+        module_path, class_name = self._scene_registry[name]
+
+        # Import the module (or get from cache if already loaded)
+        module = __import__(module_path, None, None, [class_name])
+        return getattr(module, class_name)
+
+    def _unload_scene_module(self, scene_name):
+        """Unload a scene's module from sys.modules to free memory."""
+        if scene_name not in self._scene_registry:
+            return
+
+        module_path, _ = self._scene_registry[scene_name]
+
+        if module_path in sys.modules:
+            print(f"Unloading module: {module_path}")
+            del sys.modules[module_path]
+            gc.collect()
 
     def change_scene_by_name(self, name):
         """Change scene using registered name"""
@@ -140,11 +152,25 @@ class SceneManager:
         """Remove old scenes if cache is too large"""
         while len(self.scene_cache) > self.max_cached_scenes:
             # Remove the least recently used scene (first in access order)
-            oldest_name = self.scene_access_order.pop(0)
-            print(f"Unloading cached scene: {oldest_name}")
-            self.scene_cache[oldest_name].unload()
-            del self.scene_cache[oldest_name]
+            oldest_class_name = self.scene_access_order.pop(0)
+            print(f"Unloading cached scene: {oldest_class_name}")
+            self.scene_cache[oldest_class_name].unload()
+            del self.scene_cache[oldest_class_name]
+
+            # Also unload the module to free memory
+            # Find the registry name for this class
+            for reg_name, (_, class_name) in self._scene_registry.items():
+                if class_name == oldest_class_name:
+                    self._unload_scene_module(reg_name)
+                    break
     
+    def _handle_scene_change(self, scene_ref):
+        """Handle a scene change request. scene_ref can be a name (str) or class."""
+        if isinstance(scene_ref, str):
+            self.change_scene_by_name(scene_ref)
+        else:
+            self.change_scene(scene_ref)
+
     def update(self, dt):
         """Update current scene and transitions"""
 
@@ -156,7 +182,7 @@ class SceneManager:
         if self.current_scene:
             result = self.current_scene.update(dt)
             if result and result[0] == 'change_scene':
-                self.change_scene(result[1])
+                self._handle_scene_change(result[1])
     
     def draw(self):
         """Draw current scene and transition overlay"""
@@ -191,7 +217,7 @@ class SceneManager:
         if self.current_scene:
             result = self.current_scene.handle_input()
             if result and result[0] == 'change_scene':
-                self.change_scene(result[1])
+                self._handle_scene_change(result[1])
 
     def _open_big_menu(self):
         """Open the big menu as an overlay."""
@@ -217,35 +243,35 @@ class SceneManager:
         items = []
 
         # Location options
-        if 'normal' in self._scene_classes:
+        if 'normal' in self._scene_registry:
             items.append(MenuItem("Go inside", icon=HOUSE_ICON, action=('scene', 'normal')))
-        if 'outside' in self._scene_classes:
+        if 'outside' in self._scene_registry:
             items.append(MenuItem("Go outside", icon=SUN_ICON, action=('scene', 'outside')))
 
         # Stats page
-        if 'stats' in self._scene_classes:
+        if 'stats' in self._scene_registry:
             items.append(MenuItem("Pet stats", icon=STATS_ICON, action=('scene', 'stats')))
 
         # Minigames submenu
         minigame_items = []
-        if 'zoomies' in self._scene_classes:
+        if 'zoomies' in self._scene_registry:
             minigame_items.append(MenuItem("Zoomies", icon=MINIGAME_ICONS.get("Zoomies"), action=('scene', 'zoomies')))
-        if 'maze' in self._scene_classes:
+        if 'maze' in self._scene_registry:
             minigame_items.append(MenuItem("Maze", icon=MINIGAME_ICONS.get("Maze"), action=('scene', 'maze')))
-        if 'breakout' in self._scene_classes:
+        if 'breakout' in self._scene_registry:
             minigame_items.append(MenuItem("Breakout", icon=MINIGAME_ICONS.get("Breakout"), action=('scene', 'breakout')))
-        if 'tictactoe' in self._scene_classes:
+        if 'tictactoe' in self._scene_registry:
             minigame_items.append(MenuItem("TicTacToe", icon=MINIGAME_ICONS.get("TicTacToe"), action=('scene', 'tictactoe')))
         if minigame_items:
             items.append(MenuItem("Minigames", icon=MINIGAMES_ICON, submenu=minigame_items))
 
         # Debug submenu
         debug_items = []
-        if 'debug_context' in self._scene_classes:
+        if 'debug_context' in self._scene_registry:
             debug_items.append(MenuItem("Context", icon=WRENCH_ICON, action=('scene', 'debug_context')))
-        if 'debug_memory' in self._scene_classes:
+        if 'debug_memory' in self._scene_registry:
             debug_items.append(MenuItem("Memory", icon=WRENCH_ICON, action=('scene', 'debug_memory')))
-        if 'debug_poses' in self._scene_classes:
+        if 'debug_poses' in self._scene_registry:
             debug_items.append(MenuItem("Poses", icon=WRENCH_ICON, action=('scene', 'debug_poses')))
         if debug_items:
             items.append(MenuItem("Debug", icon=WRENCH_ICON, submenu=debug_items))

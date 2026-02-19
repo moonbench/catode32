@@ -94,8 +94,6 @@ class DebugContextScene(Scene):
 
         # B button or menu1 to go back (will be caught by SceneManager for menu1)
         if self.input.was_just_pressed('b'):
-            # Import here to avoid circular imports
-            from scenes.normal import NormalScene
-            return ('change_scene', NormalScene)
+            return ('change_scene', 'normal')
 
         return None

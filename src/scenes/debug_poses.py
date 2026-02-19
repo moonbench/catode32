@@ -165,7 +165,6 @@ class DebugPosesScene(Scene):
 
         # B to go back to normal scene
         if self.input.was_just_pressed('b'):
-            from scenes.normal import NormalScene
-            return ('change_scene', NormalScene)
+            return ('change_scene', 'normal')
 
         return None

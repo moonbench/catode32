@@ -82,7 +82,6 @@ class DebugMemoryScene(Scene):
             self.scroll_offset = min(max_scroll, self.scroll_offset + 1)
 
         if self.input.was_just_pressed('b'):
-            from scenes.normal import NormalScene
-            return ('change_scene', NormalScene)
+            return ('change_scene', 'normal')
 
         return None
