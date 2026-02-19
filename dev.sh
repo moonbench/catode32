@@ -52,8 +52,6 @@ done
 
 if [ "$FAILED" -eq 1 ]; then
     echo -e "${RED}Compilation failed. Check mpy-cross output above.${NC}"
-    echo -e "${YELLOW}Tip: For ESP32-C6 (RISC-V), you may need a different -march flag.${NC}"
-    echo "Try running: mpremote exec \"import sys; print(sys.implementation)\""
     exit 1
 fi
 

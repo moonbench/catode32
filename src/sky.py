@@ -15,7 +15,7 @@ def _xorshift32(x):
 
 # Time of day categories
 DAYTIME_TIMES = ("Morning", "Noon", "Afternoon")
-NIGHTTIME_TIMES = ("Night",)
+NIGHTTIME_TIMES = ("Night", "Late Night")
 TRANSITION_TIMES = ("Dawn", "Dusk", "Evening")
 
 # Moon phase to frame index mapping
@@ -41,9 +41,10 @@ CELESTIAL_POSITIONS = {
     "Noon": (80, 2),       # Sun high in sky
     "Afternoon": (110, 6), # Sun descending
     # Moon positions (also moves left to right, like on Earth)
-    "Evening": (30, 10),   # Moon low on left (rising)
-    "Dusk": (60, 6),       # Moon rising higher
+    "Dusk": (30, 12),       # Moon low on left (rising)
+    "Evening": (60, 7),   # Moon rising
     "Night": (90, 4),      # Moon high in sky
+    "Late Night": (110, 7), # Moon descending
 }
 
 # Weather to cloud configuration

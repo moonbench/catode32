@@ -1,6 +1,10 @@
 #!/bin/bash
 # upload.sh - Upload script for virtual pet project
 
+# Note, this installs boot.py on the device which is required for standalone operation
+# However, when boot.py is installed, mpremote will struggl to get a REPL shell, which makes development difficult
+# There are instructions in the README for how to remove boot.py so you can develop again
+
 set -e  # Exit on any error
 
 echo "=== Virtual Pet Upload Script ==="
