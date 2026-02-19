@@ -307,6 +307,12 @@ class SkyRenderer:
         # Precipitation particles
         self._precip_particles = []
 
+        # Lightning state (storm weather only)
+        self._lightning_active = False
+        self._lightning_flashes_remaining = 0
+        self._lightning_timer = 0.0
+        self._lightning_invert_state = False
+
     def configure(self, environment_settings, world_width=256, day_of_year=0):
         """
         Configure sky from environment settings dict.
@@ -556,6 +562,9 @@ class SkyRenderer:
         # Update precipitation particles
         self._update_precipitation_particles(dt)
 
+        # Update lightning
+        self._update_lightning(dt)
+
     def _update_precipitation_particles(self, dt):
         """Update precipitation particle positions"""
         if not self._precip_particles:
@@ -599,6 +608,36 @@ class SkyRenderer:
                     p["x"] += self.world_width
                 elif p["x"] > self.world_width:
                     p["x"] -= self.world_width
+
+    def _update_lightning(self, dt):
+        """Update lightning effect state"""
+        if self._lightning_active:
+            self._lightning_timer -= dt
+            if self._lightning_timer <= 0:
+                # Toggle invert state
+                self._lightning_invert_state = not self._lightning_invert_state
+                self._lightning_flashes_remaining -= 1
+
+                if self._lightning_flashes_remaining <= 0:
+                    # Lightning strike complete
+                    self._lightning_active = False
+                    self._lightning_invert_state = False
+                else:
+                    # Set timer for next flash toggle
+                    self._lightning_timer = 0.05  # 50ms per flash state
+        elif self.weather == "Storm":
+            # Maybe spawn new lightning
+            if random.random() < 0.003:  # ~0.3% chance per frame
+                self._lightning_active = True
+                # 2-5 inversions means 4-10 state changes (on/off pairs)
+                num_inversions = random.randint(2, 5)
+                self._lightning_flashes_remaining = num_inversions * 2
+                self._lightning_timer = 0.05
+                self._lightning_invert_state = True
+
+    def get_lightning_invert_state(self):
+        """Return True if display should be inverted due to lightning"""
+        return self._lightning_invert_state
 
     def _maybe_spawn_shooting_star(self):
         """Check if a shooting star should spawn (very rare)"""

@@ -34,6 +34,10 @@ class Renderer:
     def show(self):
         """Update the physical display with buffer contents"""
         self.display.show()
+
+    def invert(self, state):
+        """Invert the display colors (hardware-level)"""
+        self.display.invert(state)
     
     def draw_character(self, character):
         """

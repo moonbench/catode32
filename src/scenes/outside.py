@@ -133,6 +133,9 @@ class OutsideScene(Scene):
         char_screen_x = int(self.character.x) - camera_offset
         self.reactions.draw(self.renderer, char_screen_x, self.character.y, mirror=True)
 
+        # Apply lightning inversion (hardware-level, affects display after show())
+        self.renderer.invert(self.sky.get_lightning_invert_state())
+
     def handle_input(self):
         """Process input"""
         if self.menu_active:
