@@ -48,9 +48,9 @@ class SleepingBehavior(BaseBehavior):
         super().__init__(character)
 
         # Phase durations
-        self.settle_duration = 1.5
-        self.sleep_duration = 10.0
-        self.wake_duration = 1.0
+        self.settle_duration = 2.5
+        self.sleep_duration = 45.0
+        self.wake_duration = 5.0
 
         self._sleep_pose = None
 

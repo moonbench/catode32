@@ -21,6 +21,13 @@ class EatingBehavior:
         "leaning_forward.side.eating",
     }
 
+    # Stat effects for each meal type
+    MEAL_STATS = {
+        "chicken": {"fullness": 30, "energy": 10},
+        "fish": {"fullness": 25, "affection": 5},
+    }
+    DEFAULT_STATS = {"fullness": 20}
+
     def __init__(self, character):
         """Initialize the eating behavior.
 
@@ -38,6 +45,7 @@ class EatingBehavior:
         self._bowl_y_progress = 0.0  # 0 = start (above), 1 = ground level
         self._pose_before = None
         self._on_complete = None
+        self._meal_type = None
 
         # Timing configuration
         self.eating_speed = 0.4  # Bowl frames per second during eating phase
@@ -70,18 +78,17 @@ class EatingBehavior:
         """Apply per-frame stat changes (for manager compatibility).
 
         Eating doesn't apply gradual stat effects - stats are applied
-        on completion via the scene's callback.
+        once on completion via _apply_meal_stats().
         """
         pass
 
-    def start(self, bowl_sprite, on_complete=None):
+    def start(self, bowl_sprite, meal_type, on_complete=None):
         """Begin the eating animation sequence.
 
         Args:
             bowl_sprite: The food bowl sprite dict (with frames)
+            meal_type: Type of meal being eaten (e.g., "chicken", "fish")
             on_complete: Optional callback function called when eating finishes.
-                         Receives a boolean: True if completed naturally,
-                         False if interrupted.
         """
         if self._active:
             return
@@ -94,6 +101,7 @@ class EatingBehavior:
         self._bowl_y_progress = 0.0
         self._pose_before = self._character.pose_name
         self._on_complete = on_complete
+        self._meal_type = meal_type
         self._character.set_pose("standing.side.happy")
 
     def stop(self, completed=True):
@@ -111,17 +119,34 @@ class EatingBehavior:
         self._phase_timer = 0.0
         self._bowl_y_progress = 1.0  # Ensure bowl is at ground level
 
+        # Apply stat changes if eating completed naturally
+        if completed:
+            self._apply_meal_stats()
+
         # Only restore previous pose if eating completed naturally
         if self._pose_before and completed:
             self._character.set_pose(self._pose_before)
 
         self._pose_before = None
         self._bowl_sprite = None
+        self._meal_type = None
 
         callback = self._on_complete
         self._on_complete = None
         if callback:
-            callback(completed)
+            callback()
+
+    def _apply_meal_stats(self):
+        """Apply stat changes for the current meal type."""
+        context = getattr(self._character, "context", None)
+        if not context or not self._meal_type:
+            return
+
+        stats = self.MEAL_STATS.get(self._meal_type, self.DEFAULT_STATS)
+        for stat, delta in stats.items():
+            current = getattr(context, stat, 0)
+            new_value = max(0, min(100, current + delta))
+            setattr(context, stat, new_value)
 
     def update(self, dt):
         """Update the eating sequence.

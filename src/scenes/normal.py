@@ -4,7 +4,7 @@ from environment import Environment, LAYER_FOREGROUND
 from entities.character import CharacterEntity
 from menu import Menu, MenuItem
 from actions import ReactionManager, apply_action
-from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS, SNACK_ICONS
+from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS, SNACK_ICONS, FISH_ICON, CHICKEN_ICON, MEAL_ICON
 from assets.furniture import BOOKSHELF
 from assets.nature import PLANTER1, PLANT3
 from assets.items import FISH1, BOX_SMALL_1, PLANTER_SMALL_1, FOOD_BOWL
@@ -13,7 +13,6 @@ from assets.items import FISH1, BOX_SMALL_1, PLANTER_SMALL_1, FOOD_BOWL
 class NormalScene(Scene):
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)
-        self.say_meow = False
         self.menu_active = False
         self.environment = None
         self.character = None
@@ -28,7 +27,6 @@ class NormalScene(Scene):
 
         # Eating state
         self.food_bowl_obj = None
-        self._current_meal = None
 
     def load(self):
         super().load()
@@ -120,13 +118,6 @@ class NormalScene(Scene):
         # Draw environment with all layers
         self.environment.draw(self.renderer)
 
-        # Draw speech bubble if active (UI layer, doesn't scroll)
-        if self.say_meow:
-            # Draw relative to character's screen position
-            camera_offset = int(self.environment.camera_x)
-            char_screen_x = int(self.character.x) - camera_offset
-            self.renderer.draw_text("Meow", char_screen_x - 50, int(self.character.y) - 30)
-
         # Draw character (with foreground parallax)
         camera_offset = int(self.environment.camera_x)
         self.character.draw(self.renderer, camera_offset=camera_offset)
@@ -158,9 +149,6 @@ class NormalScene(Scene):
         if dx != 0:
             self.environment.pan(dx * config.PAN_SPEED)
 
-        if self.input.was_just_pressed('a'):
-            self.say_meow = not self.say_meow
-
         return None
 
     def _build_menu_items(self):
@@ -173,10 +161,10 @@ class NormalScene(Scene):
 
         # Meals submenu
         meal_items = [
-            MenuItem("Chicken", icon=KIBBLE_ICON, action=("meal", "chicken")),
-            MenuItem("Fish", icon=KIBBLE_ICON, action=("meal", "fish")),
+            MenuItem("Chicken", icon=CHICKEN_ICON, action=("meal", "chicken")),
+            MenuItem("Fish", icon=FISH_ICON, action=("meal", "fish")),
         ]
-        items.append(MenuItem("Meals", icon=KIBBLE_ICON, submenu=meal_items))
+        items.append(MenuItem("Meals", icon=MEAL_ICON, submenu=meal_items))
 
         # Build snacks submenu from inventory
         snack_items = [
@@ -210,10 +198,8 @@ class NormalScene(Scene):
         Args:
             meal_type: "chicken" or "fish"
         """
-        self._current_meal = meal_type
-
         # Start eating first so bowl sprite is set
-        self.character.eating.start(FOOD_BOWL, on_complete=self._on_eating_complete)
+        self.character.eating.start(FOOD_BOWL, meal_type, on_complete=self._on_eating_complete)
 
         # Add food bowl to environment at character's calculated position
         bowl_x, bowl_y = self.character.eating.get_bowl_position(
@@ -227,27 +213,9 @@ class NormalScene(Scene):
         }
         self.environment.layers[LAYER_FOREGROUND].append(self.food_bowl_obj)
 
-    def _on_eating_complete(self, completed=True):
-        """Called when eating animation finishes or is interrupted.
-
-        Args:
-            completed: True if eating finished naturally, False if interrupted.
-        """
+    def _on_eating_complete(self):
+        """Called when eating finishes. Handles visual cleanup."""
         # Remove food bowl from environment
         if self.food_bowl_obj and self.food_bowl_obj in self.environment.layers[LAYER_FOREGROUND]:
             self.environment.layers[LAYER_FOREGROUND].remove(self.food_bowl_obj)
         self.food_bowl_obj = None
-
-        # Only apply stat changes if eating completed naturally
-        if completed:
-            meal_stats = {
-                "chicken": {"fullness": 30, "energy": 10},
-                "fish": {"fullness": 25, "affection": 5},
-            }
-            stats = meal_stats.get(self._current_meal, {"fullness": 20})
-            for stat, delta in stats.items():
-                current = getattr(self.context, stat, 0)
-                new_value = max(0, min(100, current + delta))
-                setattr(self.context, stat, new_value)
-
-        self._current_meal = None

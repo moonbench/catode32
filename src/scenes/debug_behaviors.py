@@ -57,15 +57,15 @@ class DebugBehaviorsScene(Scene):
         # Draw floor line
         self.renderer.draw_line(0, 60, 128, 60)
 
-        # Draw character on right side
-        if self.character:
-            self.character.draw(self.renderer)
-
         # Draw behavior list on left (width ~60px)
         self._draw_behavior_list()
 
         # Draw current behavior status at bottom
         self._draw_status()
+
+        # Draw character on right side
+        if self.character:
+            self.character.draw(self.renderer)
 
     def _draw_behavior_list(self):
         """Draw the list of behaviors with selection indicator."""
@@ -161,7 +161,9 @@ class DebugBehaviorsScene(Scene):
         """Trigger eating behavior with food bowl."""
         try:
             from assets.items import FOOD_BOWL
-            self.character.behavior_manager.trigger("eating", bowl_sprite=FOOD_BOWL)
+            self.character.behavior_manager.trigger(
+                "eating", bowl_sprite=FOOD_BOWL, meal_type="chicken"
+            )
         except ImportError:
             # Fall back if food bowl not available
             pass

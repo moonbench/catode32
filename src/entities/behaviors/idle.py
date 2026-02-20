@@ -43,7 +43,7 @@ class IdleBehavior(BaseBehavior):
 
         # How long to stay in one pose before considering a change
         self.min_pose_duration = 10.0
-        self.max_pose_duration = 30.0
+        self.max_pose_duration = 60.0
         self._time_until_pose_change = 0.0
         self._current_idle_pose = None
 
