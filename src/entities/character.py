@@ -44,16 +44,30 @@ class CharacterEntity(Entity):
 
         # Eating state
         self._eating = False
+        self._eating_phase = None  # "lowering", "pre_eating", "eating", "post_eating"
+        self._eating_phase_timer = 0.0
         self._eating_bowl_sprite = None
         self._eating_bowl_frame = 0.0
-        self._eating_speed = 0.8  # Frames per second
+        self._eating_bowl_y_progress = 0.0  # 0 = start (above), 1 = ground level
+        self._eating_speed = 0.4  # Bowl frames per second during eating phase
         self._eating_pose_before = None
         self._eating_on_complete = None
 
+        # Eating phase durations
+        self._eating_lower_duration = 0.5  # Time for bowl to lower
+        self._eating_pause_duration = 1.5  # Pre/post eating pause
+
+    # Poses used during the eating sequence
+    EATING_POSES = {
+        "standing.side.happy",
+        "leaning_forward.side.neutral",
+        "leaning_forward.side.eating",
+    }
+
     def set_pose(self, pose_name):
         """Change the character's pose using dot notation (e.g., 'sitting.side.neutral')."""
-        # If eating and pose is changing to something else, cancel eating
-        if self._eating and pose_name != "leaning_forward.side.eating":
+        # If eating and pose is changing to something outside the eating sequence, cancel
+        if self._eating and pose_name not in self.EATING_POSES:
             self.stop_eating(completed=False)
 
         pose = get_pose(pose_name)
@@ -66,6 +80,13 @@ class CharacterEntity(Entity):
     def start_eating(self, bowl_sprite, on_complete=None):
         """Begin the eating animation sequence.
 
+        Phases:
+        1. lowering - Bowl lowers to ground, cat stands happy
+        2. pre_eating - Brief pause, cat leans forward neutral
+        3. eating - Cat eats, bowl empties through frames
+        4. post_eating - Brief pause, cat leans forward neutral
+        5. Complete - Return to original pose
+
         Args:
             bowl_sprite: The food bowl sprite dict (with frames)
             on_complete: Optional callback function to call when eating finishes
@@ -73,11 +94,14 @@ class CharacterEntity(Entity):
         if self._eating:
             return
         self._eating = True
+        self._eating_phase = "lowering"
+        self._eating_phase_timer = 0.0
         self._eating_bowl_sprite = bowl_sprite
         self._eating_bowl_frame = 0.0
+        self._eating_bowl_y_progress = 0.0
         self._eating_pose_before = self.pose_name
         self._eating_on_complete = on_complete
-        self.set_pose("leaning_forward.side.eating")
+        self.set_pose("standing.side.happy")
 
     def stop_eating(self, completed=True):
         """End the eating state.
@@ -89,6 +113,9 @@ class CharacterEntity(Entity):
         if not self._eating:
             return
         self._eating = False
+        self._eating_phase = None
+        self._eating_phase_timer = 0.0
+        self._eating_bowl_y_progress = 1.0  # Ensure bowl is at ground level
         # Only restore previous pose if eating completed naturally
         if self._eating_pose_before and completed:
             self.set_pose(self._eating_pose_before)
@@ -120,7 +147,14 @@ class CharacterEntity(Entity):
         bowl_offset_x = 30
         bowl_width = self._eating_bowl_sprite["width"] if self._eating_bowl_sprite else 22
         bowl_height = self._eating_bowl_sprite["height"] if self._eating_bowl_sprite else 8
-        bowl_y = int(self.y) - bowl_height
+
+        # Ground level Y (where bowl ends up)
+        ground_y = int(self.y) - bowl_height
+        # Start Y (above the scene, off-screen or high up)
+        start_y = ground_y - 40
+
+        # Interpolate Y based on lowering progress
+        bowl_y = int(start_y + (ground_y - start_y) * self._eating_bowl_y_progress)
 
         if mirror:
             bowl_x = int(self.x) + bowl_offset_x - bowl_width // 2
@@ -128,6 +162,41 @@ class CharacterEntity(Entity):
             bowl_x = int(self.x) - bowl_offset_x - bowl_width // 2
 
         return bowl_x, bowl_y
+
+    def _update_eating(self, dt):
+        """Update the eating sequence phases."""
+        phase = self._eating_phase
+        self._eating_phase_timer += dt
+
+        if phase == "lowering":
+            # Bowl lowers to ground while cat stands happy
+            progress = self._eating_phase_timer / self._eating_lower_duration
+            self._eating_bowl_y_progress = min(progress, 1.0)
+            if progress >= 1.0:
+                self._eating_phase = "pre_eating"
+                self._eating_phase_timer = 0.0
+                self.set_pose("leaning_forward.side.neutral")
+
+        elif phase == "pre_eating":
+            # Brief pause before eating
+            if self._eating_phase_timer >= self._eating_pause_duration:
+                self._eating_phase = "eating"
+                self._eating_phase_timer = 0.0
+                self.set_pose("leaning_forward.side.eating")
+
+        elif phase == "eating":
+            # Actual eating - bowl frames advance
+            num_frames = len(self._eating_bowl_sprite["frames"])
+            self._eating_bowl_frame += dt * self._eating_speed
+            if self._eating_bowl_frame >= num_frames:
+                self._eating_phase = "post_eating"
+                self._eating_phase_timer = 0.0
+                self.set_pose("leaning_forward.side.neutral")
+
+        elif phase == "post_eating":
+            # Brief pause after eating
+            if self._eating_phase_timer >= self._eating_pause_duration:
+                self.stop_eating()
 
     def _get_point(self, sprite, key, frame=0, mirror=False):
         """Get a point value from a sprite, handling both static (int) and animated (list) values.
@@ -166,12 +235,9 @@ class CharacterEntity(Entity):
         self.anim_eyes = (self.anim_eyes + dt * pose["eyes"].get("speed", 1)) % self._get_total_frames(pose["eyes"])
         self.anim_tail = (self.anim_tail + dt * pose["tail"].get("speed", 1)) % self._get_total_frames(pose["tail"])
 
-        # Update eating animation
+        # Update eating phases
         if self._eating and self._eating_bowl_sprite:
-            num_frames = len(self._eating_bowl_sprite["frames"])
-            self._eating_bowl_frame += dt * self._eating_speed
-            if self._eating_bowl_frame >= num_frames:
-                self.stop_eating()
+            self._update_eating(dt)
 
     def draw(self, renderer, mirror=False, camera_offset=0):
         """Draw the character at its position.

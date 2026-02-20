@@ -93,8 +93,11 @@ class NormalScene(Scene):
         # Update character
         self.character.update(dt)
 
-        # Sync food bowl frame with character's eating progress
+        # Sync food bowl with character's eating progress
         if self.food_bowl_obj and self.character.is_eating:
+            bowl_x, bowl_y = self.character.get_bowl_position(mirror=False)
+            self.food_bowl_obj["x"] = bowl_x
+            self.food_bowl_obj["y"] = bowl_y
             self.food_bowl_obj["frame"] = self.character.get_bowl_frame()
 
         # Update fish rotation
