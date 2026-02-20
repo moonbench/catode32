@@ -26,7 +26,7 @@ class ZoomiesScene(Scene):
     CLOUD_SPEED_RATIO = 0.2  # Cloud speed as ratio of ground speed
     BIRD_CHANCE = 0.2  # Chance to spawn a bird instead of ground obstacle
     BIRD_Y_LOW = 38  # Bird y position when low (jump over)
-    BIRD_Y_HIGH = 20  # Bird y position when high (duck under / stay on ground)
+    BIRD_Y_HIGH = 21  # Bird y position when high (duck under / stay on ground)
 
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)

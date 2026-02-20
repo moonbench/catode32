@@ -29,8 +29,8 @@ class SleepingBehavior(BaseBehavior):
     COOLDOWN = 120.0  # 2 minutes between sleeps
 
     # Stat effects during sleep
-    STAT_EFFECTS = {"energy": 2.0, "vigor": 0.5}
-    COMPLETION_BONUS = {"energy": 15, "vigor": 5}
+    STAT_EFFECTS = {"energy": 2.0, "vigor": 0.5, "comfort": 0.2}
+    COMPLETION_BONUS = {"energy": 15, "vigor": 5, "comfort": 10}
 
     # Sleep pose options
     SLEEP_POSES = [
