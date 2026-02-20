@@ -7,7 +7,7 @@ from actions import ReactionManager, apply_action
 from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS, SNACK_ICONS
 from assets.furniture import BOOKSHELF
 from assets.nature import PLANTER1, PLANT3
-from assets.items import FISH1, BOX_SMALL_1, PLANTER_SMALL_1
+from assets.items import FISH1, BOX_SMALL_1, PLANTER_SMALL_1, FOOD_BOWL
 
 
 class NormalScene(Scene):
@@ -25,6 +25,10 @@ class NormalScene(Scene):
         # Reaction state
         self.default_pose = "sitting.forward.neutral"
         self.reactions = ReactionManager()
+
+        # Eating state
+        self.food_bowl_obj = None
+        self._current_meal = None
 
     def load(self):
         super().load()
@@ -49,11 +53,11 @@ class NormalScene(Scene):
         # Plants in the middle
         self.environment.add_object(
             LAYER_FOREGROUND, PLANTER1,
-            x=50, y=63 - PLANTER1["height"]
+            x=42, y=63 - PLANTER1["height"]
         )
         self.environment.add_object(
             LAYER_FOREGROUND, PLANT3,
-            x=51, y=63 - PLANTER1["height"] - PLANT3["height"]
+            x=43, y=63 - PLANTER1["height"] - PLANT3["height"]
         )
 
         # Fish - store reference for rotation animation
@@ -88,6 +92,10 @@ class NormalScene(Scene):
     def update(self, dt):
         # Update character
         self.character.update(dt)
+
+        # Sync food bowl frame with character's eating progress
+        if self.food_bowl_obj and self.character.is_eating:
+            self.food_bowl_obj["frame"] = self.character.get_bowl_frame()
 
         # Update fish rotation
         self.fish_angle = (self.fish_angle + (dt * 25)) % 360
@@ -158,6 +166,13 @@ class NormalScene(Scene):
             MenuItem("Give kiss", icon=HEART_ICON, action=("kiss",)),
         ]
 
+        # Meals submenu
+        meal_items = [
+            MenuItem("Chicken", icon=KIBBLE_ICON, action=("meal", "chicken")),
+            MenuItem("Fish", icon=KIBBLE_ICON, action=("meal", "fish")),
+        ]
+        items.append(MenuItem("Meals", icon=KIBBLE_ICON, submenu=meal_items))
+
         # Build snacks submenu from inventory
         snack_items = [
             MenuItem(snack, icon=SNACK_ICONS.get(snack), action=("snack", snack))
@@ -179,4 +194,53 @@ class NormalScene(Scene):
     def _handle_menu_action(self, action):
         """Handle menu selection"""
         if action:
-            apply_action(action[0], self.context, self.character, self.reactions)
+            if action[0] == "meal":
+                self._start_eating(action[1])
+            else:
+                apply_action(action[0], self.context, self.character, self.reactions)
+
+    def _start_eating(self, meal_type):
+        """Start the eating sequence.
+
+        Args:
+            meal_type: "chicken" or "fish"
+        """
+        self._current_meal = meal_type
+
+        # Start eating first so bowl sprite is set
+        self.character.start_eating(FOOD_BOWL, on_complete=self._on_eating_complete)
+
+        # Add food bowl to environment at character's calculated position
+        bowl_x, bowl_y = self.character.get_bowl_position(mirror=False)
+        self.food_bowl_obj = {
+            "sprite": FOOD_BOWL,
+            "x": bowl_x,
+            "y": bowl_y,
+            "frame": 0,
+        }
+        self.environment.layers[LAYER_FOREGROUND].append(self.food_bowl_obj)
+
+    def _on_eating_complete(self, completed=True):
+        """Called when eating animation finishes or is interrupted.
+
+        Args:
+            completed: True if eating finished naturally, False if interrupted.
+        """
+        # Remove food bowl from environment
+        if self.food_bowl_obj and self.food_bowl_obj in self.environment.layers[LAYER_FOREGROUND]:
+            self.environment.layers[LAYER_FOREGROUND].remove(self.food_bowl_obj)
+        self.food_bowl_obj = None
+
+        # Only apply stat changes if eating completed naturally
+        if completed:
+            meal_stats = {
+                "chicken": {"fullness": 30, "energy": 10},
+                "fish": {"fullness": 25, "affection": 5},
+            }
+            stats = meal_stats.get(self._current_meal, {"fullness": 20})
+            for stat, delta in stats.items():
+                current = getattr(self.context, stat, 0)
+                new_value = max(0, min(100, current + delta))
+                setattr(self.context, stat, new_value)
+
+        self._current_meal = None
