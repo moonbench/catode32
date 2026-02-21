@@ -7,14 +7,14 @@ from ui import draw_bubble
 # Variant configurations
 VARIANTS = {
     "kiss": {
-        "pose": "sitting.forward.happy",
+        "pose": "sitting.side.happy",
         "bubble": "heart",
         "duration": 2.5,
         "stats": {"affection": 10},
     },
     "pets": {
-        "pose": "sitting.forward.content",
-        "bubble": "note",
+        "pose": "sitting_silly.side.happy",
+        "bubble": "heart",
         "duration": 2.0,
         "stats": {"affection": 5},
     },
@@ -42,7 +42,7 @@ class AffectionBehavior(BaseBehavior):
         """
         super().__init__(character)
         self._bubble = None
-        self._duration = 2.0
+        self._duration = 8.0
 
     def start(self, variant=None, context=None, on_complete=None):
         """Begin the affection reaction.
