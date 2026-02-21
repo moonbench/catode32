@@ -33,8 +33,7 @@ buttons = {
     'RIGHT': Pin(19, Pin.IN, Pin.PULL_UP),
     'A': Pin(1, Pin.IN, Pin.PULL_UP),
     'B': Pin(0, Pin.IN, Pin.PULL_UP),
-    'MENU1': Pin(3, Pin.IN, Pin.PULL_UP),
-    'MENU2': Pin(2, Pin.IN, Pin.PULL_UP)
+    'MENU': Pin(3, Pin.IN, Pin.PULL_UP)
 }
 
 print('Press buttons... (Ctrl+C to stop)')
