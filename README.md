@@ -8,7 +8,7 @@ A virtual pet game for ESP32 with MicroPython, featuring an SSD1306 OLED display
 
 ### Hardware Requirements
 
-- **ESP32-C6 SuperMini** development board
+- **ESP32-C6 SuperMini** OR **ESP32-C3** development board
 - **SSD1306 OLED Display** (128x64, I2C)
 - **7 Push Buttons** for input
 
@@ -16,9 +16,23 @@ A virtual pet game for ESP32 with MicroPython, featuring an SSD1306 OLED display
 
 - `mpremote` installed (`pip install mpremote`)
 
+### Board Configuration
+
+The project supports both ESP32-C6 and ESP32-C3 boards. To configure for your board:
+
+1. Open `src/config.py`
+2. Set `BOARD_TYPE` to either `"ESP32-C6"` or `"ESP32-C3"`
+
+```python
+# In src/config.py
+BOARD_TYPE = "ESP32-C6"  # Change to "ESP32-C3" for ESP32-C3 board
+```
+
 ### Wiring
 
-This is the wiring I used for the project. If you change these, then you'll want to update the values in `src/config.py`
+Choose the wiring diagram for your board. Each button connects between GPIO pin and GND (internal pull-ups enabled).
+
+#### ESP32-C6 Wiring
 
 **Display (I2C):**
 |Display Pin | ESP32-C6 Pin |
@@ -39,18 +53,55 @@ This is the wiring I used for the project. If you change these, then you'll want
 | B      | GPIO0    |
 | MENU   | GPIO3    |
 
-Each button connects between GPIO pin and GND (internal pull-ups enabled).
+#### ESP32-C3 Wiring
+
+**Display (I2C):**
+|Display Pin | ESP32-C3 Pin |
+|--------|----------|
+|VCC | 3V3 |
+|GND | GND |
+|SDA | GPIO6 |
+|SCL | GPIO7 |
+
+**Buttons:**
+| Button | GPIO Pin |
+|--------|----------|
+| UP     | GPIO0    |
+| DOWN   | GPIO1    |
+| LEFT   | GPIO2    |
+| RIGHT  | GPIO3    |
+| A      | GPIO4    |
+| B      | GPIO5    |
+| MENU   | GPIO10   |
+
+> **Note:** The ESP32-C3 configuration avoids strapping pins (GPIO8, GPIO9) to prevent boot issues.
 
 ## Installation
 
 ### 1. Flash MicroPython (if not already done)
 
+**For ESP32-C6:**
 ```bash
 esptool.py --chip esp32c6 --port /dev/cu.usbmodem* erase_flash
 esptool.py --chip esp32c6 --port /dev/cu.usbmodem* write_flash -z 0x0 ESP32_GENERIC_C6-*.bin
 ```
 
-### 2. Install SSD1306 Library
+**For ESP32-C3:**
+```bash
+esptool.py --chip esp32c3 --port /dev/cu.usbmodem* erase_flash
+esptool.py --chip esp32c3 --port /dev/cu.usbmodem* write_flash -z 0x0 ESP32_GENERIC_C3-*.bin
+```
+
+> Download MicroPython firmware from [micropython.org/download](https://micropython.org/download/)
+
+### 2. Configure Board Type
+
+Before uploading, set your board type in `src/config.py`:
+```python
+BOARD_TYPE = "ESP32-C6"  # or "ESP32-C3"
+```
+
+### 3. Install SSD1306 Library
 
 ```bash
 mpremote mip install ssd1306
