@@ -109,7 +109,7 @@ class Settings:
             dict: Settings values when closed (via B or menu button)
         """
         # Menu button closes
-        if self.input.was_just_pressed('menu2') or self.input.was_just_pressed('menu1'):
+        if self.input.was_just_pressed('menu1'):
             return self.close()
 
         # B button closes

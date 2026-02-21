@@ -126,8 +126,8 @@ class NormalScene(Scene):
                 self._handle_menu_action(result)
             return None
 
-        # Open menu on menu2 button
-        if self.input.was_just_pressed('menu2'):
+        # Open menu on B long press (replaces menu2 button)
+        if self.input.was_long_pressed('b'):
             self.menu_active = True
             self.menu.open(self._build_menu_items())
             return None

@@ -10,7 +10,7 @@ A virtual pet game for ESP32 with MicroPython, featuring an SSD1306 OLED display
 
 - **ESP32-C6 SuperMini** development board
 - **SSD1306 OLED Display** (128x64, I2C)
-- **8 Push Buttons** for input
+- **7 Push Buttons** for input
 
 ### Software Requirements
 
@@ -31,14 +31,13 @@ This is the wiring I used for the project. If you change these, then you'll want
 **Buttons:**
 | Button | GPIO Pin |
 |--------|----------|
-| UP     | GPIO0    |
-| DOWN   | GPIO1    |
-| LEFT   | GPIO2    |
-| RIGHT  | GPIO3    |
-| A      | GPIO20   |
-| B      | GPIO19   |
-| MENU1  | GPIO18   |
-| MENU2  | GPIO14   |
+| UP     | GPIO14   |
+| DOWN   | GPIO18   |
+| LEFT   | GPIO20   |
+| RIGHT  | GPIO19   |
+| A      | GPIO1    |
+| B      | GPIO0    |
+| MENU   | GPIO3    |
 
 Each button connects between GPIO pin and GND (internal pull-ups enabled).
 
@@ -148,6 +147,9 @@ Now `./dev.sh` should work again.
 
 ## Controls
 
-- **D-pad**: Navigate / Move character
-- **A/B buttons**: Action buttons
-- **Menu buttons**: Additional functions
+- **D-pad** (UP/DOWN/LEFT/RIGHT): Navigate menus, move character, pan camera
+- **A button**: Select/confirm actions
+- **B button**: 
+  - Short press: Back/cancel in menus
+  - Long press (hold 0.5s): Open context menu for pet interactions
+- **MENU button**: Open main menu (scenes, stats, minigames, settings)

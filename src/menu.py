@@ -69,7 +69,7 @@ class Menu:
             any other value: The action from the selected MenuItem
         """
         # Menu button closes instantly from any state
-        if self.input.was_just_pressed('menu2') or self.input.was_just_pressed('menu1'):
+        if self.input.was_just_pressed('menu1'):
             self.close()
             return 'closed'
 

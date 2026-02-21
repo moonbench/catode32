@@ -17,7 +17,6 @@ BTN_RIGHT = 19
 BTN_A = 1
 BTN_B = 0
 BTN_MENU1 = 3
-BTN_MENU2 = 2
 
 # Game Constants
 FPS = 12  # Target frames per second
