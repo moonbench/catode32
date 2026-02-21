@@ -15,7 +15,8 @@ class SleepingBehavior(BaseBehavior):
 
     NAME = "sleeping"
     POSES = {
-        "sitting.side.neutral",  # Settling pose
+        "sitting.side.looking_down",  # Considering pose
+        "leaning_forward.side.neutral",  # Settling pose
         "sleeping.side.sploot",
         "sleeping.side.modest",
         "sleeping.side.crossed",
@@ -48,6 +49,7 @@ class SleepingBehavior(BaseBehavior):
         super().__init__(character)
 
         # Phase durations
+        self.considering_duration = 1.0
         self.settle_duration = 2.5
         self.sleep_duration = 45.0
         self.wake_duration = 5.0
@@ -64,7 +66,7 @@ class SleepingBehavior(BaseBehavior):
             return
 
         self._active = True
-        self._phase = "settling"
+        self._phase = "considering"
         self._phase_timer = 0.0
         self._progress = 0.0
         self._pose_before = self._character.pose_name
@@ -74,7 +76,7 @@ class SleepingBehavior(BaseBehavior):
         self._sleep_pose = random.choice(self.SLEEP_POSES)
 
         # Start with settling pose
-        self._character.set_pose("sitting.side.neutral")
+        self._character.set_pose("sitting.side.looking_down")
 
     def update(self, dt):
         """Update sleep phases.
@@ -87,7 +89,13 @@ class SleepingBehavior(BaseBehavior):
 
         self._phase_timer += dt
 
-        if self._phase == "settling":
+        if self._phase == "considering":
+            if self._phase_timer >= self.considering_duration:
+                self._phase = "settling"
+                self._phase_timer = 0.0
+                self._character.set_pose("leaning_forward.side.neutral")
+
+        elif self._phase == "settling":
             if self._phase_timer >= self.settle_duration:
                 self._phase = "sleeping"
                 self._phase_timer = 0.0
@@ -103,5 +111,6 @@ class SleepingBehavior(BaseBehavior):
                 # Stay in sleep pose briefly while "waking"
 
         elif self._phase == "waking":
+            print("waking")
             if self._phase_timer >= self.wake_duration:
                 self.stop(completed=True)

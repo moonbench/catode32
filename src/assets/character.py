@@ -865,6 +865,12 @@ POSES = {
                 "body": CHAR_BODY_SIDE_SITTING,
                 "eyes": CHAR_EYES_SIDE_ANNOYED,
                 "tail": CHAR_TAIL_ANNOYED,
+            },
+            "looking_down": {
+                "head": CHAR_HEAD_SIDE_NEUTRAL2,
+                "body": CHAR_BODY_SIDE_SITTING,
+                "eyes": CHAR_EYES_SIDE_DOWN,
+                "tail": CHAR_TAIL_NEUTRAL2,
             }
         },
         "forward": {
