@@ -182,6 +182,11 @@ class OutsideScene(Scene):
 
         return items
 
+    def open_context_menu(self):
+        """Open the context menu (called when switching from big menu)"""
+        self.menu_active = True
+        self.menu.open(self._build_menu_items())
+
     def _handle_menu_action(self, action):
         """Handle menu selection"""
         if not action:

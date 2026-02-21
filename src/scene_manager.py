@@ -229,6 +229,12 @@ class SceneManager:
         """Handle big menu result."""
         if result == 'closed':
             return
+        elif result == 'switch_to_context_menu':
+            # User wants to switch from big menu to context menu
+            # Signal the scene to open its context menu
+            if self.current_scene and hasattr(self.current_scene, 'open_context_menu'):
+                self.current_scene.open_context_menu()
+            return
         self._handle_big_menu_action(result)
 
     def _on_settings_result(self, result, metadata):
