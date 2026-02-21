@@ -104,6 +104,5 @@ class SleepingBehavior(BaseBehavior):
                 # Stay in sleep pose briefly while "waking"
 
         elif self._phase == "waking":
-            print("waking")
             if self._phase_timer >= self.wake_duration:
                 self.stop(completed=True)

@@ -102,16 +102,8 @@ class DebugBehaviorsScene(Scene):
         active = self.character.behavior_manager.active_behavior
 
         if active:
-            # Show behavior name and phase
-            status = f"{active.NAME}:{active.phase}"
-            self.renderer.draw_text(status[:21], 0, 48)
-
             # Show progress percentage
-            progress_pct = int(active.progress * 100)
-            progress_str = f"Progress:{progress_pct}%"
-            self.renderer.draw_text(progress_str, 0, 56)
-        else:
-            self.renderer.draw_text("No behavior", 0, 48)
+            self.renderer.draw_rect(0, 60, int(active.progress * 128), 4, True)
 
     def handle_input(self):
         # Navigation
