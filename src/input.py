@@ -88,15 +88,29 @@ class InputHandler:
         current_time = time.ticks_ms()
         is_currently_pressed = self.is_pressed(button_name)
         was_previously_pressed = self.button_states[button_name]
+        time_since_last = time.ticks_diff(current_time, self.last_press_time[button_name])
         
-        # Button is being held
-        if is_currently_pressed and was_previously_pressed:
+        # Button just pressed (initialize state)
+        if is_currently_pressed and not was_previously_pressed:
+            # Check debounce time
+            if time_since_last > self.debounce_time_ms:
+                self.button_states[button_name] = True
+                self.last_press_time[button_name] = current_time
+                self.long_press_triggered[button_name] = False
+        
+        # Button is being held - check for long press
+        elif is_currently_pressed and was_previously_pressed:
             # Check if hold time reached and not already triggered
             if not self.long_press_triggered[button_name]:
                 time_held = time.ticks_diff(current_time, self.last_press_time[button_name])
                 if time_held >= self.hold_time_ms:
                     self.long_press_triggered[button_name] = True
                     return True
+        
+        # Button released - reset state
+        elif not is_currently_pressed and was_previously_pressed:
+            self.button_states[button_name] = False
+            self.long_press_triggered[button_name] = False
         
         return False
     
