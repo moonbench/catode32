@@ -66,16 +66,8 @@ class Menu:
         Returns:
             None: Still navigating, no action taken
             'closed': Menu was closed without selection
-            'switch_to_context_menu': User wants to switch from big menu to context menu
             any other value: The action from the selected MenuItem
         """
-        # Check for menu button short press to switch menus
-        hold_time = self.input.was_released_after_hold('menu1')
-        if hold_time >= 0 and hold_time < self.input.hold_time_ms:
-            # Short press - switch to context menu
-            self.close()
-            return 'switch_to_context_menu'
-
         # Handle confirmation dialog if active
         if self.pending_confirmation:
             return self._handle_confirmation_input()
