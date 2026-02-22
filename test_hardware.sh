@@ -36,6 +36,7 @@ try:
     print(config.BTN_A)
     print(config.BTN_B)
     print(config.BTN_MENU1)
+    print(config.BTN_MENU2)
 except Exception as e:
     # Default to ESP32-C6 values if config can't be read
     print('ESP32-C6')
@@ -48,6 +49,7 @@ except Exception as e:
     print('1')
     print('0')
     print('3')
+    print('2')
 ")
 
 # Parse the configuration values
@@ -60,11 +62,12 @@ BTN_LEFT=$(echo "$CONFIG" | sed -n '6p')
 BTN_RIGHT=$(echo "$CONFIG" | sed -n '7p')
 BTN_A=$(echo "$CONFIG" | sed -n '8p')
 BTN_B=$(echo "$CONFIG" | sed -n '9p')
-BTN_MENU=$(echo "$CONFIG" | sed -n '10p')
+BTN_MENU1=$(echo "$CONFIG" | sed -n '10p')
+BTN_MENU2=$(echo "$CONFIG" | sed -n '11p')
 
 echo "Board type: $BOARD_TYPE"
 echo "I2C pins: SDA=GPIO$I2C_SDA, SCL=GPIO$I2C_SCL"
-echo "Button pins: UP=$BTN_UP, DOWN=$BTN_DOWN, LEFT=$BTN_LEFT, RIGHT=$BTN_RIGHT, A=$BTN_A, B=$BTN_B, MENU=$BTN_MENU"
+echo "Button pins: UP=$BTN_UP, DOWN=$BTN_DOWN, LEFT=$BTN_LEFT, RIGHT=$BTN_RIGHT, A=$BTN_A, B=$BTN_B, MENU1=$BTN_MENU1, MENU2=$BTN_MENU2"
 echo ""
 
 echo "Test 1: Checking I2C Display..."
@@ -86,7 +89,8 @@ buttons = {
     'RIGHT': Pin($BTN_RIGHT, Pin.IN, Pin.PULL_UP),
     'A': Pin($BTN_A, Pin.IN, Pin.PULL_UP),
     'B': Pin($BTN_B, Pin.IN, Pin.PULL_UP),
-    'MENU': Pin($BTN_MENU, Pin.IN, Pin.PULL_UP)
+    'MENU1': Pin($BTN_MENU1, Pin.IN, Pin.PULL_UP),
+    'MENU2': Pin($BTN_MENU2, Pin.IN, Pin.PULL_UP)
 }
 
 print('Press buttons... (Ctrl+C to stop)')
