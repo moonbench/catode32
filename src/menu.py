@@ -68,11 +68,6 @@ class Menu:
             'closed': Menu was closed without selection
             any other value: The action from the selected MenuItem
         """
-        # Menu button closes instantly from any state
-        if self.input.was_just_pressed('menu2') or self.input.was_just_pressed('menu1'):
-            self.close()
-            return 'closed'
-
         # Handle confirmation dialog if active
         if self.pending_confirmation:
             return self._handle_confirmation_input()

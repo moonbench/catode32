@@ -18,19 +18,23 @@ class InputHandler:
             'right': Pin(config.BTN_RIGHT, Pin.IN, Pin.PULL_UP),
             'a': Pin(config.BTN_A, Pin.IN, Pin.PULL_UP),
             'b': Pin(config.BTN_B, Pin.IN, Pin.PULL_UP),
-            'menu1': Pin(config.BTN_MENU1, Pin.IN, Pin.PULL_UP),
-            'menu2': Pin(config.BTN_MENU2, Pin.IN, Pin.PULL_UP)
+            'menu1': Pin(config.BTN_MENU1, Pin.IN, Pin.PULL_UP)
         }
         
         # Track button states for debouncing
         self.button_states = {}
         self.last_press_time = {}
         self.debounce_time_ms = 50  # 50ms debounce
+        self.hold_time_ms = config.BUTTON_HOLD_TIME_MS  # Configurable long press detection
+        
+        # Track if long press has been triggered
+        self.long_press_triggered = {}
         
         # Initialize state tracking
         for btn_name in self.buttons:
             self.button_states[btn_name] = False
             self.last_press_time[btn_name] = 0
+            self.long_press_triggered[btn_name] = False
     
     def is_pressed(self, button_name):
         """
@@ -45,7 +49,8 @@ class InputHandler:
     def was_just_pressed(self, button_name):
         """
         Check if a button was just pressed (with debouncing)
-        Returns True only on the rising edge of a button press
+        Returns True only on the rising edge of a button press (short press)
+        Does not trigger if the button is held long enough for a long press
         """
         if button_name not in self.buttons:
             return False
@@ -61,13 +66,83 @@ class InputHandler:
             if time_since_last > self.debounce_time_ms:
                 self.button_states[button_name] = True
                 self.last_press_time[button_name] = current_time
+                self.long_press_triggered[button_name] = False
                 return True
         
-        # Button released
+        # Button released - trigger short press only if long press didn't trigger
         if not is_currently_pressed and was_previously_pressed:
             self.button_states[button_name] = False
+            # Reset long press flag for next press
+            self.long_press_triggered[button_name] = False
         
         return False
+    
+    def was_long_pressed(self, button_name):
+        """
+        Check if a button was held down for long press duration
+        Returns True once when the hold threshold is reached
+        """
+        if button_name not in self.buttons:
+            return False
+        
+        current_time = time.ticks_ms()
+        is_currently_pressed = self.is_pressed(button_name)
+        was_previously_pressed = self.button_states[button_name]
+        time_since_last = time.ticks_diff(current_time, self.last_press_time[button_name])
+        
+        # Button just pressed (initialize state)
+        if is_currently_pressed and not was_previously_pressed:
+            # Check debounce time
+            if time_since_last > self.debounce_time_ms:
+                self.button_states[button_name] = True
+                self.last_press_time[button_name] = current_time
+                self.long_press_triggered[button_name] = False
+        
+        # Button is being held - check for long press
+        elif is_currently_pressed and was_previously_pressed:
+            # Check if hold time reached and not already triggered
+            if not self.long_press_triggered[button_name]:
+                time_held = time.ticks_diff(current_time, self.last_press_time[button_name])
+                if time_held >= self.hold_time_ms:
+                    self.long_press_triggered[button_name] = True
+                    return True
+        
+        # Button released - reset state
+        elif not is_currently_pressed and was_previously_pressed:
+            self.button_states[button_name] = False
+            self.long_press_triggered[button_name] = False
+        
+        return False
+    
+    def was_released_after_hold(self, button_name):
+        """
+        Check if a button was just released and return the hold duration
+        Returns the hold time in ms if button was just released, or -1 if not
+        This is useful for distinguishing short press from long press on release
+        """
+        if button_name not in self.buttons:
+            return -1
+        
+        current_time = time.ticks_ms()
+        is_currently_pressed = self.is_pressed(button_name)
+        was_previously_pressed = self.button_states[button_name]
+        
+        # Button just pressed (initialize state)
+        if is_currently_pressed and not was_previously_pressed:
+            time_since_last = time.ticks_diff(current_time, self.last_press_time[button_name])
+            if time_since_last > self.debounce_time_ms:
+                self.button_states[button_name] = True
+                self.last_press_time[button_name] = current_time
+                self.long_press_triggered[button_name] = False
+        
+        # Button released - return hold duration
+        elif not is_currently_pressed and was_previously_pressed:
+            hold_time = time.ticks_diff(current_time, self.last_press_time[button_name])
+            self.button_states[button_name] = False
+            self.long_press_triggered[button_name] = False
+            return hold_time
+        
+        return -1
     
     def get_direction(self):
         """
