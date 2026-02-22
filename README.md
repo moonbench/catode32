@@ -203,3 +203,9 @@ Now `./dev.sh` should work again.
 - **D-pad**: Navigate / Move character
 - **A/B buttons**: Action buttons
 - **Menu buttons**: Additional functions
+
+## Contributing
+
+It's helpful to open an issue prior to making a PR to allow discussion on the changes.
+
+It's also helpful to keep PRs small and targeted.
