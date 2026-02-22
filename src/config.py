@@ -23,6 +23,7 @@ _ESP32_C6_CONFIG = {
     'BTN_A': 1,
     'BTN_B': 0,
     'BTN_MENU1': 3,
+    'BTN_MENU2': 2,
 }
 
 # ESP32-C3 Pin Configuration
@@ -38,6 +39,7 @@ _ESP32_C3_CONFIG = {
     'BTN_A': 4,
     'BTN_B': 5,
     'BTN_MENU1': 10,
+    'BTN_MENU2': 11,
 }
 
 # Select configuration based on board type
@@ -63,6 +65,7 @@ BTN_RIGHT = _CONFIG['BTN_RIGHT']
 BTN_A = _CONFIG['BTN_A']
 BTN_B = _CONFIG['BTN_B']
 BTN_MENU1 = _CONFIG['BTN_MENU1']
+BTN_MENU2 = _CONFIG['BTN_MENU2']
 
 # Game Constants
 FPS = 12  # Target frames per second

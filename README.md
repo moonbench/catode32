@@ -73,7 +73,8 @@ Choose the wiring diagram for your board. Each button connects between GPIO pin 
 | RIGHT  | GPIO3    |
 | A      | GPIO4    |
 | B      | GPIO5    |
-| MENU   | GPIO10   |
+| MENU1   | GPIO10  |
+| MENU2   | GPIO11  |
 
 > **Note:** The ESP32-C3 configuration avoids strapping pins (GPIO8, GPIO9) to prevent boot issues.
 
