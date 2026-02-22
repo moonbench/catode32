@@ -23,6 +23,7 @@ _ESP32_C6_CONFIG = {
     'BTN_A': 1,
     'BTN_B': 0,
     'BTN_MENU1': 3,
+    'BUTTON_HOLD_TIME_MS': 500,  # Milliseconds to hold button for long press detection
 }
 
 # ESP32-C3 Pin Configuration
@@ -38,6 +39,7 @@ _ESP32_C3_CONFIG = {
     'BTN_A': 4,
     'BTN_B': 5,
     'BTN_MENU1': 10,
+    'BUTTON_HOLD_TIME_MS': 500,  # Milliseconds to hold button for long press detection
 }
 
 # Select configuration based on board type
