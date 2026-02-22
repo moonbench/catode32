@@ -1,5 +1,7 @@
 # Virtual Pet
 
+## This is a fork of catode32 which can be found here: https://github.com/moonbench/catode32
+
 A virtual pet game for ESP32 with MicroPython, featuring an SSD1306 OLED display and button controls.
 
 ![catstars](https://github.com/user-attachments/assets/2ffc652a-f392-42e7-9a13-d7fb91f3770d)
