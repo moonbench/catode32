@@ -13,6 +13,15 @@ fi
 echo "Resetting device..."
 mpremote reset
 
+echo "Uploading config.py to device..."
+
+if mpremote ls | grep -q 'config.py'; then
+    echo "config.py already exists on device."
+else
+    echo "Uploading config.py to device..."
+    mpremote cp src/config.py :/config.py
+fi
+
 echo "Waiting for device to restart..."
 sleep 2
 

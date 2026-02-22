@@ -6,7 +6,7 @@ config.py - Hardware configuration and game constants
 # BOARD SELECTION - Change this to match your ESP32 board
 # ============================================================================
 # Supported boards: "ESP32-C6", "ESP32-C3"
-BOARD_TYPE = "ESP32-C6"  # Change to "ESP32-C3" if using ESP32-C3 board
+BOARD_TYPE = "ESP32-C3"  # Change to "ESP32-C3" if using ESP32-C3 board
 
 # ============================================================================
 # Board-Specific Pin Configurations
