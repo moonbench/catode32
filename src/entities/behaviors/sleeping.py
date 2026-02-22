@@ -1,5 +1,6 @@
 """Sleeping behavior for energy recovery."""
 
+import math
 import random
 from entities.behaviors.base import BaseBehavior
 
@@ -106,3 +107,35 @@ class SleepingBehavior(BaseBehavior):
         elif self._phase == "waking":
             if self._phase_timer >= self.wake_duration:
                 self.stop(completed=True)
+
+    def draw(self, renderer, char_x, char_y, mirror=False):
+        """Draw animated Z's above the pet when sleeping.
+
+        Args:
+            renderer: The renderer to draw with.
+            char_x: Character's x position on screen.
+            char_y: Character's y position.
+            mirror: If True, character is facing right.
+        """
+        if not self._active or self._phase != "sleeping":
+            return
+
+        # Animation parameters
+        num_zs = 4
+        base_x = char_x + (20 if mirror else -20)
+        base_y = char_y - 35
+        wave_speed = 3.0
+        wave_amplitude = 3
+        z_spacing_x = 8
+        z_spacing_y = -2
+
+        for i in range(num_zs):
+            # Each Z has a phase offset for the wave effect
+            phase_offset = i * 0.8
+            wave_offset = math.sin(self._phase_timer * wave_speed - phase_offset) * wave_amplitude
+
+            # Position each Z slightly higher and to the side
+            x = int(base_x + i * z_spacing_x)
+            y = int(base_y + i * z_spacing_y + wave_offset)
+
+            renderer.draw_text("z", x, y)
