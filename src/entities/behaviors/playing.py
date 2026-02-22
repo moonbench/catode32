@@ -8,11 +8,11 @@ from ui import draw_bubble
 TRIGGERS = {
     "toy": {
         "bubble": "exclaim",
-        "stats": {"playfulness": 15, "stimulation": 10},
+        "stats": {"playfulness": 15, "stimulation": 1, "energy": -5, "focus": -1},
     },
     "throw_stick": {
         "bubble": "star",
-        "stats": {"playfulness": 15, "energy": -10},
+        "stats": {"playfulness": 15, "energy": -10, "focus": -1},
     },
 }
 

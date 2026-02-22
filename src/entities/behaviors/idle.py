@@ -30,7 +30,7 @@ class IdleBehavior(BaseBehavior):
     COOLDOWN = 0.0  # No cooldown
 
     # Slowly build curiosity while idle
-    STAT_EFFECTS = {"curiosity": 0.1, "energy": -0.1}
+    STAT_EFFECTS = {"curiosity": 0.1, "energy": -0.1, "fullness": -0.1, "stimulation": -0.1, "affection": -0.05}
     COMPLETION_BONUS = {}  # No completion bonus - idle doesn't really "complete"
 
     def __init__(self, character):
