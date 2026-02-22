@@ -352,6 +352,8 @@ CHAR_BODY_SIDE_STANDING = { # 3/4 left, standing
 0x79, 0xe0, 0x78, 0xe0, ])
     ]
 }
+
+
 CHAR_BODY_SIDE_SITTING2 = {
     "width": 25,
     "height": 20,
@@ -1048,7 +1050,7 @@ POSES = {
             },
             "neutral_looking_down": {
                 "head": CHAR_HEAD_SIDE_NEUTRAL,
-                "body": CHAR_BODY_SIDE_SITTING,
+                "body": CHAR_BODY_SIDE_STANDING,
                 "eyes": CHAR_EYES_SIDE_DOWN,
                 "tail": CHAR_TAIL_NEUTRAL
             }

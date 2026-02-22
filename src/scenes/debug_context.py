@@ -31,34 +31,24 @@ class DebugContextScene(Scene):
         """Build display lines from context"""
         self.lines = []
 
-        # Pet stats
-        self.lines.append("Pet stats:")
-        stats = [
-            ('fullness', self.context.fullness),
-            ('stimulation', self.context.stimulation),
-            ('energy', self.context.energy),
-            ('vigor', self.context.vigor),
-            ('comfort', self.context.comfort),
-            ('playfulness', self.context.playfulness),
-            ('focus', self.context.focus),
-            ('affection', self.context.affection),
-            ('health', self.context.health),
-            ('fulfillment', self.context.fulfillment),
-            ('cleanliness', self.context.cleanliness),
-            ('curiosity', self.context.curiosity),
-            ('confidence', self.context.confidence),
-        ]
-        for name, value in stats:
-            self.lines.append(f"{name}: {value}")
+        # Dynamically get all context attributes
+        for name, value in self.context.__dict__.items():
+            if name.startswith('_'):
+                continue
 
-        self.lines.append("")
-
-        # Inventory
-        self.lines.append("Inventory:")
-        for category, items in self.context.inventory.items():
-            self.lines.append(f"{category}:")
-            for item in items:
-                self.lines.append(f"  {item}")
+            if isinstance(value, (int, float)):
+                self.lines.append(f"{name}: {value}")
+            elif isinstance(value, dict):
+                self.lines.append(f"{name}:")
+                for key, items in value.items():
+                    if isinstance(items, list):
+                        self.lines.append(f"  {key}:")
+                        for item in items:
+                            self.lines.append(f"    {item}")
+                    else:
+                        self.lines.append(f"  {key}: {items}")
+            elif value is not None:
+                self.lines.append(f"{name}: {value}")
 
     def update(self, dt):
         # Refresh values periodically

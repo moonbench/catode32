@@ -54,7 +54,7 @@ class InvestigatingBehavior(BaseBehavior):
         self._pose_before = self._character.pose_name
         self._on_complete = on_complete
 
-        self._character.set_pose("standing.side.neutral")
+        self._character.set_pose("sitting.side.looking_down")
 
     def update(self, dt):
         """Update investigation phases.
@@ -67,11 +67,13 @@ class InvestigatingBehavior(BaseBehavior):
 
         self._phase_timer += dt
 
+        print(f"-->{self._phase}")
+
         if self._phase == "approaching":
             if self._phase_timer >= self.approach_duration:
                 self._phase = "sniffing"
                 self._phase_timer = 0.0
-                self._character.set_pose("standing.side.neutral_looking_down")
+                self._character.set_pose("leaning_forward.side.neutral")
 
         elif self._phase == "sniffing":
             self._progress = min(1.0, self._phase_timer / self.sniff_duration)
@@ -79,7 +81,7 @@ class InvestigatingBehavior(BaseBehavior):
             if self._phase_timer >= self.sniff_duration:
                 self._phase = "reacting"
                 self._phase_timer = 0.0
-                self._character.set_pose("sitting.forward.aloof")
+                self._character.set_pose("sitting.side.looking_down")
 
         elif self._phase == "reacting":
             if self._phase_timer >= self.react_duration:

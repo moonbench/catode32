@@ -8,7 +8,7 @@ from ui import Scrollbar
 class DebugBehaviorsScene(Scene):
     """Debug scene for testing behavior execution."""
 
-    LINES_VISIBLE = 6
+    LINES_VISIBLE = 7
     LINE_HEIGHT = 8
 
     def __init__(self, context, renderer, input):
@@ -22,7 +22,7 @@ class DebugBehaviorsScene(Scene):
     def load(self):
         super().load()
         # Create character with context for behavior management
-        self.character = CharacterEntity(90, 60, context=self.context)
+        self.character = CharacterEntity(100, 60, context=self.context)
 
         # Build behavior list from manager
         if self.character.behavior_manager:
@@ -73,9 +73,7 @@ class DebugBehaviorsScene(Scene):
         for i in range(self.scroll_offset, visible_end):
             key, name = self.behaviors[i]
             line_y = y + (i - self.scroll_offset) * self.LINE_HEIGHT
-
-            # Selection indicator
-            prefix = ">" if i == self.selected_index else " "
+            is_selected = i == self.selected_index
 
             # Check if this behavior is currently active
             suffix = ""
@@ -84,7 +82,12 @@ class DebugBehaviorsScene(Scene):
                 if behavior and behavior.active:
                     suffix = "*"
 
-            self.renderer.draw_text(f"{prefix}{name}{suffix}", 0, line_y)
+            # Draw selection background (inverted)
+            if is_selected:
+                self.renderer.draw_rect(0, line_y, 128, self.LINE_HEIGHT, filled=True, color=1)
+
+            text_color = 0 if is_selected else 1
+            self.renderer.draw_text(f"{name}{suffix}", 1, line_y, text_color)
 
         # Scrollbar if needed (will appear on right edge of screen)
         if len(self.behaviors) > self.LINES_VISIBLE:
@@ -102,16 +105,8 @@ class DebugBehaviorsScene(Scene):
         active = self.character.behavior_manager.active_behavior
 
         if active:
-            # Show behavior name and phase
-            status = f"{active.NAME}:{active.phase}"
-            self.renderer.draw_text(status[:21], 0, 48)
-
             # Show progress percentage
-            progress_pct = int(active.progress * 100)
-            progress_str = f"Progress:{progress_pct}%"
-            self.renderer.draw_text(progress_str, 0, 56)
-        else:
-            self.renderer.draw_text("No behavior", 0, 48)
+            self.renderer.draw_rect(0, 60, int(active.progress * 128), 4, True)
 
     def handle_input(self):
         # Navigation
