@@ -118,6 +118,13 @@ class NormalScene(Scene):
         """Process input - can also return scene change instructions"""
         # Handle menu input when active
         if self.menu_active:
+            # Check for menu button short press to switch to big menu (before menu consumes it)
+            hold_time = self.input.was_released_after_hold('menu1')
+            if hold_time >= 0 and hold_time < self.input.hold_time_ms:
+                # Short press - close context menu and open big menu
+                self.menu_active = False
+                return ('open_big_menu',)
+            
             result = self.menu.handle_input()
             if result == 'closed':
                 self.menu_active = False
@@ -126,11 +133,21 @@ class NormalScene(Scene):
                 self._handle_menu_action(result)
             return None
 
-        # Open menu on menu2 button
-        if self.input.was_just_pressed('menu2'):
-            self.menu_active = True
-            self.menu.open(self._build_menu_items())
-            return None
+        # Check MENU1 button release for short press FIRST (before was_long_pressed resets state)
+        hold_time = self.input.was_released_after_hold('menu1')
+        if hold_time >= 0:
+            # Button was released before long press threshold
+            if hold_time < self.input.hold_time_ms:
+                # Short press - open context menu
+                self.menu_active = True
+                self.menu.open(self._build_menu_items())
+                return None
+            # If hold_time >= threshold, long press already triggered, ignore release
+
+        # Check for long press (instant at 500ms threshold)
+        if self.input.was_long_pressed('menu1'):
+            # Long press reached - open big menu immediately
+            return ('open_big_menu',)
 
         # D-pad pans camera
         dx, dy = self.input.get_direction()
@@ -171,6 +188,11 @@ class NormalScene(Scene):
             items.append(MenuItem("Use toys", icon=TOYS_ICON, submenu=toy_items))
 
         return items
+
+    def open_context_menu(self):
+        """Open the context menu (called when switching from big menu)"""
+        self.menu_active = True
+        self.menu.open(self._build_menu_items())
 
     def _handle_menu_action(self, action):
         """Handle menu selection"""

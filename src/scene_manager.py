@@ -206,19 +206,30 @@ class SceneManager:
         if self.transitions.active:
             return
 
+        # Check for menu button short press to switch FROM big menu TO context menu
+        # (Check before routing to overlay so we can intercept)
+        if self.overlays.active and self.overlays.current == self.big_menu:
+            hold_time = self.input.was_released_after_hold('menu1')
+            if hold_time >= 0 and hold_time < self.input.hold_time_ms:
+                # Short press while big menu is open - switch to context menu
+                self.overlays.pop()  # Close big menu
+                if self.current_scene and hasattr(self.current_scene, 'open_context_menu'):
+                    self.current_scene.open_context_menu()
+                return
+
         # Route input to active overlay if any
         if self.overlays.handle_input():
             return
 
-        # Open big menu on menu1 button
-        if self.input.was_just_pressed('menu1'):
-            self._open_big_menu()
-            return
-
+        # Let scenes handle menu1 button (they check short press for context menu)
+        # Scenes will return 'open_big_menu' signal for long press
         if self.current_scene:
             result = self.current_scene.handle_input()
-            if result and result[0] == 'change_scene':
-                self._handle_scene_change(result[1])
+            if result:
+                if result[0] == 'change_scene':
+                    self._handle_scene_change(result[1])
+                elif result[0] == 'open_big_menu':
+                    self._open_big_menu()
 
     def _open_big_menu(self):
         """Open the big menu as an overlay."""
