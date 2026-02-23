@@ -7,6 +7,7 @@ from entities.behaviors.affection import AffectionBehavior
 from entities.behaviors.attention import AttentionBehavior
 from entities.behaviors.snacking import SnackingBehavior
 from entities.behaviors.playing import PlayingBehavior
+from entities.behaviors.being_groomed import BeingGroomedBehavior
 from menu import Menu, MenuItem
 from assets.icons import TOYS_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS
 from assets.nature import PLANT1, PLANTER1, PLANT2
@@ -154,6 +155,7 @@ class OutsideScene(Scene):
         """Build context-aware menu items for outside"""
         items = [
             MenuItem("Give pets", icon=HAND_ICON, action=("pets",)),
+            MenuItem("Groom", icon=HAND_ICON, action=("groom",)),
             MenuItem("Point at bird", icon=HAND_ICON, action=("point_bird",)),
             MenuItem("Throw stick", icon=HAND_ICON, action=("throw_stick",)),
             MenuItem("Give treat", icon=KIBBLE_ICON, action=("treat",)),
@@ -184,5 +186,7 @@ class OutsideScene(Scene):
             self.character.trigger(PlayingBehavior, trigger="throw_stick")
         elif action_type == "treat":
             self.character.trigger(SnackingBehavior, variant="treat")
+        elif action_type == "groom":
+            self.character.trigger(BeingGroomedBehavior)
         elif action_type == "toy":
             self.character.trigger(PlayingBehavior, trigger="toy")
