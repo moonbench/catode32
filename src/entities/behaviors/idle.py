@@ -73,18 +73,21 @@ class IdleBehavior(BaseBehavior):
         from entities.behaviors.napping import NappingBehavior
         from entities.behaviors.playing import PlayingBehavior
         from entities.behaviors.investigating import InvestigatingBehavior
+        from entities.behaviors.observing import ObservingBehavior
         from entities.behaviors.stretching import StretchingBehavior
         from entities.behaviors.lounging import LoungeingBehavior
 
         candidates = []
-        for cls in (SleepingBehavior, NappingBehavior, PlayingBehavior, InvestigatingBehavior, StretchingBehavior, LoungeingBehavior):
+        for cls in (SleepingBehavior, NappingBehavior, PlayingBehavior, InvestigatingBehavior, ObservingBehavior, StretchingBehavior, LoungeingBehavior):
             if cls.can_trigger(context):
                 candidates.append(cls)
 
         if not candidates:
             return None
 
-        return min(candidates, key=lambda cls: cls.get_priority(context))
+        best_priority = min(cls.get_priority(context) for cls in candidates)
+        top = [cls for cls in candidates if cls.get_priority(context) == best_priority]
+        return random.choice(top)
 
     def _pick_new_pose(self):
         """Select a new random idle pose and reset the timer."""

@@ -1,5 +1,6 @@
 """Investigating behavior for curious exploration."""
 
+import random
 from entities.behaviors.base import BaseBehavior
 
 
@@ -72,3 +73,9 @@ class InvestigatingBehavior(BaseBehavior):
         elif self._phase == "reacting":
             if self._phase_timer >= self.react_duration:
                 self.stop(completed=True)
+
+    def next(self, context):
+        if random.random() < 0.5:
+            from entities.behaviors.observing import ObservingBehavior
+            return ObservingBehavior
+        return None  # -> idle
