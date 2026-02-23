@@ -67,8 +67,6 @@ class InvestigatingBehavior(BaseBehavior):
 
         self._phase_timer += dt
 
-        print(f"-->{self._phase}")
-
         if self._phase == "approaching":
             if self._phase_timer >= self.approach_duration:
                 self._phase = "sniffing"
