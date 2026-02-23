@@ -35,6 +35,11 @@ class ObservingBehavior(BaseBehavior):
         self.lose_interest_duration = 1.5
 
     def next(self, context):
+        # Chatter if playful enough — stat-gated and probabilistic
+        if context and getattr(context, 'playfulness', 0) > 60:
+            if random.random() < 0.4:
+                from entities.behaviors.chattering import ChatteringBehavior
+                return ChatteringBehavior
         if random.random() < 0.5:
             from entities.behaviors.investigating import InvestigatingBehavior
             return InvestigatingBehavior
