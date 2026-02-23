@@ -19,7 +19,6 @@ class StretchingBehavior(BaseBehavior):
     TRIGGER_THRESHOLD = 40
     TRIGGER_BELOW = True
     PRIORITY = 50
-    COOLDOWN = 45.0
 
     # Stretching improves comfort and vigor
     STAT_EFFECTS = {"comfort": 1.5}

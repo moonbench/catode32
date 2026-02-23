@@ -3,6 +3,10 @@ from scene import Scene
 from environment import Environment, LAYER_BACKGROUND, LAYER_MIDGROUND, LAYER_FOREGROUND
 from entities.character import CharacterEntity
 from entities.butterfly import ButterflyEntity
+from entities.behaviors.affection import AffectionBehavior
+from entities.behaviors.attention import AttentionBehavior
+from entities.behaviors.snacking import SnackingBehavior
+from entities.behaviors.playing import PlayingBehavior
 from menu import Menu, MenuItem
 from assets.icons import TOYS_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS
 from assets.nature import PLANT1, PLANTER1, PLANT2
@@ -171,15 +175,14 @@ class OutsideScene(Scene):
             return
 
         action_type = action[0]
-        manager = self.character.behavior_manager
 
         if action_type == "pets":
-            manager.trigger("affection", variant="pets", context=self.context)
+            self.character.trigger(AffectionBehavior, variant="pets")
         elif action_type == "point_bird":
-            manager.trigger("attention", variant="point_bird", context=self.context)
+            self.character.trigger(AttentionBehavior, variant="point_bird")
         elif action_type == "throw_stick":
-            manager.trigger("playing", trigger="throw_stick", context=self.context)
+            self.character.trigger(PlayingBehavior, trigger="throw_stick")
         elif action_type == "treat":
-            manager.trigger("snacking", variant="treat", context=self.context)
+            self.character.trigger(SnackingBehavior, variant="treat")
         elif action_type == "toy":
-            manager.trigger("playing", trigger="toy", context=self.context)
+            self.character.trigger(PlayingBehavior, trigger="toy")

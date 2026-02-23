@@ -21,7 +21,6 @@ class SleepingBehavior(BaseBehavior):
     TRIGGER_THRESHOLD = 30
     TRIGGER_BELOW = True
     PRIORITY = 10  # High priority (low number)
-    COOLDOWN = 120.0  # 2 minutes between sleeps
 
     # Stat effects during sleep
     STAT_EFFECTS = {"energy": 2.0, "comfort": 0.2}
@@ -33,6 +32,10 @@ class SleepingBehavior(BaseBehavior):
         "sleeping.side.modest",
         "sleeping.side.crossed",
     ]
+
+    def next(self, context):
+        from entities.behaviors.stretching import StretchingBehavior
+        return StretchingBehavior
 
     def __init__(self, character):
         """Initialize the sleeping behavior.

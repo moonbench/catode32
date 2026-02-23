@@ -19,7 +19,6 @@ class InvestigatingBehavior(BaseBehavior):
     TRIGGER_THRESHOLD = 70
     TRIGGER_BELOW = False  # Trigger when ABOVE threshold
     PRIORITY = 40
-    COOLDOWN = 90.0
 
     # Investigating satisfies curiosity but adds stimulation
     STAT_EFFECTS = {"curiosity": -1.0}

@@ -33,7 +33,6 @@ class PlayingBehavior(BaseBehavior):
     TRIGGER_THRESHOLD = 70
     TRIGGER_BELOW = False  # Trigger when ABOVE threshold
     PRIORITY = 30
-    COOLDOWN = 60.0
 
     # Playing costs energy but satisfies playfulness
     STAT_EFFECTS = {"playfulness": -2.0, "energy": -0.5}
@@ -56,12 +55,11 @@ class PlayingBehavior(BaseBehavior):
         self._trigger_type = None
         self._bubble = None
 
-    def start(self, trigger=None, context=None, on_complete=None):
+    def start(self, trigger=None, on_complete=None):
         """Begin playing.
 
         Args:
             trigger: Optional trigger type ("toy" or "throw_stick") for instant stats/bubble.
-            context: GameContext to apply stats to (if trigger specified).
             on_complete: Optional callback when play finishes.
         """
         if self._active:
@@ -81,6 +79,7 @@ class PlayingBehavior(BaseBehavior):
             self._bubble = config["bubble"]
 
             # Apply instant stats
+            context = self._character.context
             if context:
                 for stat, delta in config.get("stats", {}).items():
                     current = getattr(context, stat, 0)

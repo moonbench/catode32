@@ -1,5 +1,4 @@
 from entities.entity import Entity
-from entities.behaviors.manager import BehaviorManager
 from assets.character import POSES
 
 
@@ -37,17 +36,37 @@ class CharacterEntity(Entity):
         super().__init__(x, y)
         self.pose_name = pose
         self._pose = get_pose(pose)
+        self.context = context
 
         self.anim_body = 0.0
         self.anim_head = 0.0
         self.anim_eyes = 0.0
         self.anim_tail = 0.0
 
-        # Behavior manager creates and owns all behaviors
-        # It also sets them as attributes on this character (e.g., self.eating)
-        self.behavior_manager = None
+        # The currently active behavior instance (always set when context exists)
+        self.current_behavior = None
         if context:
-            self.behavior_manager = BehaviorManager(self, context)
+            from entities.behaviors.idle import IdleBehavior
+            self.current_behavior = IdleBehavior(self)
+            self.current_behavior.start()
+
+    def trigger(self, behavior_cls, *args, **kwargs):
+        """Interrupt the current behavior and start a player-initiated one.
+
+        The interrupted behavior's stop(completed=False) fires so scene
+        callbacks (e.g., removing a food bowl) can clean up. The new
+        behavior then owns the transition chain from that point.
+
+        Args:
+            behavior_cls: The behavior class to instantiate and start.
+            *args, **kwargs: Passed through to the behavior's start() method.
+        """
+        if self.current_behavior and self.current_behavior.active:
+            self.current_behavior.stop(completed=False)
+
+        behavior = behavior_cls(self)
+        self.current_behavior = behavior
+        behavior.start(*args, **kwargs)
 
     def set_pose(self, pose_name):
         """Change the character's pose using dot notation (e.g., 'sitting.side.neutral')."""
@@ -85,7 +104,7 @@ class CharacterEntity(Entity):
         return index if index < frame_count else 0
 
     def update(self, dt):
-        """Update animation counters."""
+        """Update animation counters and the current behavior."""
         if self._pose is None:
             return
 
@@ -95,9 +114,11 @@ class CharacterEntity(Entity):
         self.anim_eyes = (self.anim_eyes + dt * pose["eyes"].get("speed", 1)) % self._get_total_frames(pose["eyes"])
         self.anim_tail = (self.anim_tail + dt * pose["tail"].get("speed", 1)) % self._get_total_frames(pose["tail"])
 
-        # Update behaviors via manager (handles all behaviors)
-        if self.behavior_manager:
-            self.behavior_manager.update(dt)
+        if self.current_behavior and self.context:
+            # Apply stat effects before update so stats are correct even if
+            # the behavior completes and chains during this tick.
+            self.current_behavior.apply_stat_effects(self.context, dt)
+            self.current_behavior.update(dt)
 
     def draw(self, renderer, mirror=False, camera_offset=0):
         """Draw the character at its position.
@@ -138,7 +159,6 @@ class CharacterEntity(Entity):
         tail_x = tail_root_x - self._get_anchor_x(tail, mirror)
         tail_y = tail_root_y - tail["anchor_y"]
 
-
         # Draw the parts
         renderer.draw_sprite_obj(tail, tail_x, tail_y, frame=tail_frame, mirror_h=mirror)
 
@@ -152,7 +172,5 @@ class CharacterEntity(Entity):
         renderer.draw_sprite_obj(eyes, eye_x, eye_y, frame=eye_frame, mirror_h=mirror)
 
         # Draw active behavior's visual effects (bubbles, etc.)
-        if self.behavior_manager:
-            active = self.behavior_manager.active_behavior
-            if active:
-                active.draw(renderer, x, y, mirror)
+        if self.current_behavior:
+            self.current_behavior.draw(renderer, x, y, mirror)

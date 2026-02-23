@@ -2,6 +2,11 @@ import config
 from scene import Scene
 from environment import Environment, LAYER_FOREGROUND
 from entities.character import CharacterEntity
+from entities.behaviors.eating import EatingBehavior
+from entities.behaviors.affection import AffectionBehavior
+from entities.behaviors.attention import AttentionBehavior
+from entities.behaviors.snacking import SnackingBehavior
+from entities.behaviors.playing import PlayingBehavior
 from menu import Menu, MenuItem
 from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS, SNACK_ICONS, FISH_ICON, CHICKEN_ICON, MEAL_ICON
 from assets.furniture import BOOKSHELF
@@ -87,13 +92,14 @@ class NormalScene(Scene):
         self.character.update(dt)
 
         # Sync food bowl with character's eating progress
-        if self.food_bowl_obj and self.character.eating.active:
-            bowl_x, bowl_y = self.character.eating.get_bowl_position(
+        if self.food_bowl_obj and isinstance(self.character.current_behavior, EatingBehavior):
+            eating = self.character.current_behavior
+            bowl_x, bowl_y = eating.get_bowl_position(
                 self.character.x, self.character.y, mirror=False
             )
             self.food_bowl_obj["x"] = bowl_x
             self.food_bowl_obj["y"] = bowl_y
-            self.food_bowl_obj["frame"] = self.character.eating.get_bowl_frame()
+            self.food_bowl_obj["frame"] = eating.get_bowl_frame()
 
         # Update fish rotation
         self.fish_angle = (self.fish_angle + (dt * 25)) % 360
@@ -178,20 +184,19 @@ class NormalScene(Scene):
             return
 
         action_type = action[0]
-        manager = self.character.behavior_manager
 
         if action_type == "meal":
             self._start_eating(action[1])
         elif action_type == "kiss":
-            manager.trigger("affection", variant="kiss", context=self.context)
+            self.character.trigger(AffectionBehavior, variant="kiss")
         elif action_type == "pets":
-            manager.trigger("affection", variant="pets", context=self.context)
+            self.character.trigger(AffectionBehavior, variant="pets")
         elif action_type == "psst":
-            manager.trigger("attention", variant="psst", context=self.context)
+            self.character.trigger(AttentionBehavior, variant="psst")
         elif action_type == "snack":
-            manager.trigger("snacking", variant="snack", context=self.context)
+            self.character.trigger(SnackingBehavior, variant="snack")
         elif action_type == "toy":
-            manager.trigger("playing", trigger="toy", context=self.context)
+            self.character.trigger(PlayingBehavior, trigger="toy")
 
     def _start_eating(self, meal_type):
         """Start the eating sequence.
@@ -199,11 +204,10 @@ class NormalScene(Scene):
         Args:
             meal_type: "chicken" or "fish"
         """
-        # Start eating first so bowl sprite is set
-        self.character.eating.start(FOOD_BOWL, meal_type, on_complete=self._on_eating_complete)
+        self.character.trigger(EatingBehavior, FOOD_BOWL, meal_type, on_complete=self._on_eating_complete)
 
         # Add food bowl to environment at character's calculated position
-        bowl_x, bowl_y = self.character.eating.get_bowl_position(
+        bowl_x, bowl_y = self.character.current_behavior.get_bowl_position(
             self.character.x, self.character.y, mirror=False
         )
         self.food_bowl_obj = {

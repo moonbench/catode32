@@ -19,7 +19,6 @@ class EatingBehavior(BaseBehavior):
     # Eating cannot be auto-triggered - requires explicit bowl/meal
     TRIGGER_STAT = None
     PRIORITY = 10  # High priority when manually triggered
-    COOLDOWN = 0.0
 
     # No per-frame stat effects - stats applied on completion
     STAT_EFFECTS = {}
@@ -59,10 +58,6 @@ class EatingBehavior(BaseBehavior):
         num_frames = len(self._bowl_sprite["frames"])
         return min(1.0, self._bowl_frame / num_frames)
 
-    def can_trigger(self, context, current_time):
-        """Eating cannot be auto-triggered - it requires explicit bowl/meal."""
-        return False
-
     def start(self, bowl_sprite=None, meal_type=None, on_complete=None):
         """Begin the eating animation sequence.
 
@@ -89,35 +84,27 @@ class EatingBehavior(BaseBehavior):
     def stop(self, completed=True):
         """End the eating state.
 
+        Applies meal stats if completed naturally, then delegates to the base
+        class which handles pose restoration, the scene callback, and chaining
+        to the next behavior.
+
         Args:
-            completed: If True, eating finished naturally. If False, it was
-                       interrupted (e.g., by another action changing the pose).
+            completed: If True, eating finished naturally.
         """
         if not self._active:
             return
 
-        self._active = False
-        self._phase = None
-        self._phase_timer = 0.0
         self._bowl_y_progress = 1.0  # Ensure bowl is at ground level
 
-        # Apply stat changes if eating completed naturally
         if completed:
             self._apply_meal_stats()
 
-        # Only restore previous pose if eating completed naturally
-        if self._pose_before and completed:
-            self._character.set_pose(self._pose_before)
-
-        self._pose_before = None
+        # Clear eating-specific state before super() fires the callback,
+        # so the scene can safely remove the bowl on cleanup.
         self._bowl_sprite = None
         self._meal_type = None
 
-        callback = self._on_complete
-        final_progress = self._progress
-        self._on_complete = None
-        if callback:
-            callback(completed, final_progress)
+        super().stop(completed=completed)
 
     def _apply_meal_stats(self):
         """Apply stat changes for the current meal type."""
