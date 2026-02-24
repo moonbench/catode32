@@ -8,6 +8,7 @@ from entities.behaviors.attention import AttentionBehavior
 from entities.behaviors.snacking import SnackingBehavior
 from entities.behaviors.playing import PlayingBehavior
 from entities.behaviors.being_groomed import BeingGroomedBehavior
+from entities.behaviors.training import TrainingBehavior
 from menu import Menu, MenuItem
 from assets.icons import TOYS_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS
 from assets.nature import PLANT1, PLANTER1, PLANT2
@@ -156,6 +157,7 @@ class OutsideScene(Scene):
         items = [
             MenuItem("Give pets", icon=HAND_ICON, action=("pets",)),
             MenuItem("Groom", icon=HAND_ICON, action=("groom",)),
+            MenuItem("Train", icon=HAND_ICON, action=("train",)),
             MenuItem("Point at bird", icon=HAND_ICON, action=("point_bird",)),
             MenuItem("Throw stick", icon=HAND_ICON, action=("throw_stick",)),
             MenuItem("Give treat", icon=KIBBLE_ICON, action=("treat",)),
@@ -188,5 +190,7 @@ class OutsideScene(Scene):
             self.character.trigger(SnackingBehavior, variant="treat")
         elif action_type == "groom":
             self.character.trigger(BeingGroomedBehavior)
+        elif action_type == "train":
+            self.character.trigger(TrainingBehavior)
         elif action_type == "toy":
             self.character.trigger(PlayingBehavior, trigger="toy")

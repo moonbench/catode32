@@ -8,6 +8,7 @@ from entities.behaviors.attention import AttentionBehavior
 from entities.behaviors.snacking import SnackingBehavior
 from entities.behaviors.playing import PlayingBehavior
 from entities.behaviors.being_groomed import BeingGroomedBehavior
+from entities.behaviors.training import TrainingBehavior
 from menu import Menu, MenuItem
 from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS, SNACK_ICONS, FISH_ICON, CHICKEN_ICON, MEAL_ICON
 from assets.furniture import BOOKSHELF
@@ -140,6 +141,7 @@ class NormalScene(Scene):
             MenuItem("Psst psst", icon=HEART_BUBBLE_ICON, action=("psst",)),
             MenuItem("Give kiss", icon=HEART_ICON, action=("kiss",)),
             MenuItem("Groom", icon=HAND_ICON, action=("groom",)),
+            MenuItem("Train", icon=HAND_ICON, action=("train",)),
         ]
 
         # Meals submenu
@@ -188,3 +190,5 @@ class NormalScene(Scene):
             self.character.trigger(PlayingBehavior, trigger="toy")
         elif action_type == "groom":
             self.character.trigger(BeingGroomedBehavior)
+        elif action_type == "train":
+            self.character.trigger(TrainingBehavior)
