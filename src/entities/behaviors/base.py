@@ -162,14 +162,19 @@ class BaseBehavior:
             if context:
                 self.apply_completion_bonus(context, final_progress)
 
-            next_cls = self.next(context)
+            next_result = self.next(context)
+            if isinstance(next_result, tuple):
+                next_cls, next_kwargs = next_result
+            else:
+                next_cls, next_kwargs = next_result, {}
+
             if next_cls is None:
                 from entities.behaviors.idle import IdleBehavior
                 next_cls = IdleBehavior
 
             next_behavior = next_cls(self._character)
             self._character.current_behavior = next_behavior
-            next_behavior.start()
+            next_behavior.start(**next_kwargs)
 
     def update(self, dt):
         """Update behavior state each frame.

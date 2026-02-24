@@ -74,6 +74,7 @@ class IdleBehavior(BaseBehavior):
         from entities.behaviors.playing import PlayingBehavior
         from entities.behaviors.zoomies import ZoomiesBehavior
         from entities.behaviors.vocalizing import VocalizingBehavior
+        from entities.behaviors.hunting import HuntingBehavior
         from entities.behaviors.investigating import InvestigatingBehavior
         from entities.behaviors.observing import ObservingBehavior
         from entities.behaviors.stretching import StretchingBehavior
@@ -81,7 +82,7 @@ class IdleBehavior(BaseBehavior):
         from entities.behaviors.lounging import LoungeingBehavior
 
         candidates = []
-        for cls in (SleepingBehavior, NappingBehavior, ZoomiesBehavior, VocalizingBehavior, PlayingBehavior, InvestigatingBehavior, ObservingBehavior, SelfGroomingBehavior, StretchingBehavior, LoungeingBehavior):
+        for cls in (SleepingBehavior, NappingBehavior, ZoomiesBehavior, VocalizingBehavior, HuntingBehavior, PlayingBehavior, InvestigatingBehavior, ObservingBehavior, SelfGroomingBehavior, StretchingBehavior, LoungeingBehavior):
             if cls.can_trigger(context):
                 candidates.append(cls)
 

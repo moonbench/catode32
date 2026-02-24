@@ -26,9 +26,6 @@ class NormalScene(Scene):
         # Reference to fish object for animation
         self.fish_obj = None
 
-        # Eating state
-        self.food_bowl_obj = None
-
     def load(self):
         super().load()
 
@@ -91,16 +88,6 @@ class NormalScene(Scene):
     def update(self, dt):
         # Update character
         self.character.update(dt)
-
-        # Sync food bowl with character's eating progress
-        if self.food_bowl_obj and isinstance(self.character.current_behavior, EatingBehavior):
-            eating = self.character.current_behavior
-            bowl_x, bowl_y = eating.get_bowl_position(
-                self.character.x, self.character.y, mirror=False
-            )
-            self.food_bowl_obj["x"] = bowl_x
-            self.food_bowl_obj["y"] = bowl_y
-            self.food_bowl_obj["frame"] = eating.get_bowl_frame()
 
         # Update fish rotation
         self.fish_angle = (self.fish_angle + (dt * 25)) % 360
@@ -188,7 +175,7 @@ class NormalScene(Scene):
         action_type = action[0]
 
         if action_type == "meal":
-            self._start_eating(action[1])
+            self.character.trigger(EatingBehavior, FOOD_BOWL, action[1])
         elif action_type == "kiss":
             self.character.trigger(AffectionBehavior, variant="kiss")
         elif action_type == "pets":
@@ -201,30 +188,3 @@ class NormalScene(Scene):
             self.character.trigger(PlayingBehavior, trigger="toy")
         elif action_type == "groom":
             self.character.trigger(BeingGroomedBehavior)
-
-    def _start_eating(self, meal_type):
-        """Start the eating sequence.
-
-        Args:
-            meal_type: "chicken" or "fish"
-        """
-        self.character.trigger(EatingBehavior, FOOD_BOWL, meal_type, on_complete=self._on_eating_complete)
-
-        # Add food bowl to environment at character's calculated position
-        bowl_x, bowl_y = self.character.current_behavior.get_bowl_position(
-            self.character.x, self.character.y, mirror=False
-        )
-        self.food_bowl_obj = {
-            "sprite": FOOD_BOWL,
-            "x": bowl_x,
-            "y": bowl_y,
-            "frame": 0,
-        }
-        self.environment.layers[LAYER_FOREGROUND].append(self.food_bowl_obj)
-
-    def _on_eating_complete(self, completed, progress):
-        """Called when eating finishes. Handles visual cleanup."""
-        # Remove food bowl from environment
-        if self.food_bowl_obj and self.food_bowl_obj in self.environment.layers[LAYER_FOREGROUND]:
-            self.environment.layers[LAYER_FOREGROUND].remove(self.food_bowl_obj)
-        self.food_bowl_obj = None
