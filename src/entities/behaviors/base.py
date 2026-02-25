@@ -210,3 +210,6 @@ class BaseBehavior:
             current = getattr(context, stat, 0)
             new_value = max(0, min(100, current + bonus * progress))
             setattr(context, stat, new_value)
+
+        print("Stats updated")
+        context.debug_print_stats()

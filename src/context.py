@@ -50,3 +50,20 @@ class GameContext:
 
         # Behavior override - set to behavior name to force that behavior next
         self.override_next_behavior = None
+    
+    def debug_print_stats(self):
+        print("Stats:")
+        print("Fullness:    %6.4f, Energy:       %6.4f, Comfort:         %6.4f" % (self.fullness, self.energy, self.comfort))
+        print("Playfulness: %6.4f, Focus:        %6.4f" % (self.playfulness, self.focus))
+        print("----------------------------------------------------------------")
+        print("Health:      %6.4f, Fulfillment:  %6.4f, Cleanliness:     %6.4f" % (self.health, self.fulfillment, self.cleanliness))
+        print("Curiosity:   %6.4f, Independence: %6.4f, Sociability:     %6.4f" % (self.curiosity, self.independence, self.sociability))
+        print("Routine:     %6.4f, Intelligence: %6.4f, Resilience:      %6.4f" % (self.routine, self.intelligence, self.resilience))
+        print("Maturity:    %6.4f, Grace:        %6.4f, Affection:       %6.4f" % (self.maturity, self.grace, self.affection))
+        print("----------------------------------------------------------------")
+        print("Fitness:     %6.4f, Appetite:     %6.4f, Patience:        %6.4f" % (self.fitness, self.appetite, self.patience))
+        print("Charisma:    %6.4f, Craftiness:   %6.4f, Serenity:        %6.4f" % (self.charisma, self.craftiness, self.serenity))
+        print("----------------------------------------------------------------")
+        print("Courage:     %6.4f, Loyalty:      %6.4f, Mischievousness: %6.4f" % (self.courage, self.loyalty, self.mischievousness))
+        print("Dignity:     %6.4f" % (self.dignity))
+        print("----------------------------------------------------------------")
