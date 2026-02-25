@@ -45,7 +45,7 @@ class LoungeingBehavior(BaseBehavior):
             return
         super().start(on_complete)
         self._phase = "settling"
-        self._character.set_pose("sleeping.side.sploot")
+        self._character.set_pose("sitting.side.looking_down")
 
     def update(self, dt):
         if not self._active:
@@ -56,12 +56,14 @@ class LoungeingBehavior(BaseBehavior):
         if self._phase == "settling":
             if self._phase_timer >= self.settle_duration:
                 self._phase = "lounging"
+                self._character.set_pose("laying.side.neutral")
                 self._phase_timer = 0.0
 
         elif self._phase == "lounging":
             self._progress = min(1.0, self._phase_timer / self.lounge_duration)
             if self._phase_timer >= self.lounge_duration:
                 self._phase = "rousing"
+                self._character.set_pose("leaning_forward.side.stretch")
                 self._phase_timer = 0.0
 
         elif self._phase == "rousing":
