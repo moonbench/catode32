@@ -5,7 +5,6 @@ from entities.character import CharacterEntity
 from entities.behaviors.eating import EatingBehavior
 from entities.behaviors.affection import AffectionBehavior
 from entities.behaviors.attention import AttentionBehavior
-from entities.behaviors.snacking import SnackingBehavior
 from entities.behaviors.playing import PlayingBehavior
 from entities.behaviors.being_groomed import BeingGroomedBehavior
 from entities.behaviors.training import TrainingBehavior
@@ -13,7 +12,7 @@ from menu import Menu, MenuItem
 from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS, SNACK_ICONS, FISH_ICON, CHICKEN_ICON, MEAL_ICON
 from assets.furniture import BOOKSHELF
 from assets.nature import PLANTER1, PLANT3
-from assets.items import FISH1, BOX_SMALL_1, PLANTER_SMALL_1, FOOD_BOWL
+from assets.items import FISH1, BOX_SMALL_1, PLANTER_SMALL_1, FOOD_BOWL, TREAT1
 
 
 class NormalScene(Scene):
@@ -185,7 +184,7 @@ class NormalScene(Scene):
         elif action_type == "psst":
             self.character.trigger(AttentionBehavior, variant="psst")
         elif action_type == "snack":
-            self.character.trigger(SnackingBehavior, variant="snack")
+            self.character.trigger(EatingBehavior, TREAT1, "treat")
         elif action_type == "toy":
             self.character.trigger(PlayingBehavior, trigger="toy")
         elif action_type == "groom":

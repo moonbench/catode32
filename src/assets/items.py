@@ -53,3 +53,10 @@ MOUSE_TOY = {
     ]
 }
 
+TREAT1 = {
+    "width": 7,
+    "height": 4,
+    "frames": [
+        bytearray([0x6c, 0x92, 0x82, 0x7c])
+    ]
+}

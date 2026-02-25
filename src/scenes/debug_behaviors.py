@@ -25,7 +25,6 @@ from entities.behaviors.training import TrainingBehavior
 from entities.behaviors.playing import PlayingBehavior
 from entities.behaviors.affection import AffectionBehavior
 from entities.behaviors.attention import AttentionBehavior
-from entities.behaviors.snacking import SnackingBehavior
 from entities.behaviors.eating import EatingBehavior
 from ui import Scrollbar
 
@@ -55,8 +54,8 @@ BEHAVIOR_ENTRIES = [
     ("playing",      "Playing",      PlayingBehavior,      {}),
     ("affection",    "Affection",    AffectionBehavior,    {"variant": "pets"}),
     ("attention",    "Attention",    AttentionBehavior,    {"variant": "psst"}),
-    ("snacking",     "Snacking",     SnackingBehavior,     {"variant": "snack"}),
-    ("eating",       "Eating",       EatingBehavior,       None),  # None = special case
+    ("eating",       "Eating",       EatingBehavior,       None),  # special case
+    ("eating_treat", "Eating (treat)", EatingBehavior,     None),  # special case
 ]
 
 
@@ -162,15 +161,18 @@ class DebugBehaviorsScene(Scene):
 
         key, name, cls, kwargs = BEHAVIOR_ENTRIES[self.selected_index]
 
-        if key == "eating":
-            self._trigger_eating()
+        if key in ("eating", "eating_treat"):
+            self._trigger_eating(key)
         else:
             self.character.trigger(cls, **(kwargs or {}))
 
-    def _trigger_eating(self):
-        """Trigger eating behavior with food bowl."""
+    def _trigger_eating(self, key="eating"):
+        """Trigger eating behavior with the appropriate food."""
         try:
-            from assets.items import FOOD_BOWL
-            self.character.trigger(EatingBehavior, FOOD_BOWL, "chicken")
+            from assets.items import FOOD_BOWL, TREAT1
+            if key == "eating_treat":
+                self.character.trigger(EatingBehavior, TREAT1, "treat")
+            else:
+                self.character.trigger(EatingBehavior, FOOD_BOWL, "chicken")
         except ImportError:
             pass

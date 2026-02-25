@@ -20,14 +20,15 @@ class EatingBehavior(BaseBehavior):
 
     # No per-frame stat effects - stats applied on completion
     STAT_EFFECTS = {}
-    COMPLETION_BONUS = {}  # Handled specially via MEAL_STATS
+    COMPLETION_BONUS = {}  # Handled specially via FOOD_CONFIG
 
-    # Stat effects for each meal type
-    MEAL_STATS = {
-        "chicken": {"fullness": 30, "energy": 10},
-        "fish": {"fullness": 25, "affection": 5},
+    # Config for each food type: stat effects and how fast it's eaten
+    FOOD_CONFIG = {
+        "chicken": {"stats": {"fullness": 30, "energy": 10}, "eating_speed": 0.4},
+        "fish":    {"stats": {"fullness": 25, "affection": 5}, "eating_speed": 0.35},
+        "treat":   {"stats": {"fullness": 5, "affection": 3}, "eating_speed": 2.0},
     }
-    DEFAULT_STATS = {"fullness": 20}
+    DEFAULT_FOOD_CONFIG = {"stats": {"fullness": 20}, "eating_speed": 0.4}
 
     FOOD_OFFSET_X = 30  # Horizontal offset of food from character anchor
 
@@ -37,9 +38,9 @@ class EatingBehavior(BaseBehavior):
         self._food_sprite = None
         self._food_frame = 0.0
         self._food_y_progress = 0.0  # 0 = above screen, 1 = ground level
-        self._meal_type = None
+        self._food_type = None
 
-        self.eating_speed = 0.4   # Food frames per second during eating phase
+        self.eating_speed = 0.4   # Food frames per second during eating phase (set per food)
         self.lower_duration = 0.5  # Time for food to lower
         self.pause_duration = 1.5  # Pre/post eating pause
 
@@ -51,7 +52,7 @@ class EatingBehavior(BaseBehavior):
         num_frames = len(self._food_sprite["frames"])
         return min(1.0, self._food_frame / num_frames)
 
-    def start(self, food_sprite=None, meal_type=None, on_complete=None):
+    def start(self, food_sprite=None, food_type=None, on_complete=None):
         if self._active:
             return
         super().start(on_complete)
@@ -59,7 +60,11 @@ class EatingBehavior(BaseBehavior):
         self._food_sprite = food_sprite
         self._food_frame = 0.0
         self._food_y_progress = 0.0
-        self._meal_type = meal_type
+        self._food_type = food_type
+
+        config = self.FOOD_CONFIG.get(food_type, self.DEFAULT_FOOD_CONFIG)
+        self.eating_speed = config["eating_speed"]
+
         self._character.set_pose("standing.side.happy")
 
     def stop(self, completed=True):
@@ -69,21 +74,21 @@ class EatingBehavior(BaseBehavior):
         self._food_y_progress = 1.0
 
         if completed:
-            self._apply_meal_stats()
+            self._apply_food_stats()
 
         self._food_sprite = None
-        self._meal_type = None
+        self._food_type = None
 
         super().stop(completed=completed)
 
-    def _apply_meal_stats(self):
-        """Apply stat changes for the current meal type."""
+    def _apply_food_stats(self):
+        """Apply stat changes for the current food type."""
         context = getattr(self._character, "context", None)
-        if not context or not self._meal_type:
+        if not context or not self._food_type:
             return
 
-        stats = self.MEAL_STATS.get(self._meal_type, self.DEFAULT_STATS)
-        for stat, delta in stats.items():
+        config = self.FOOD_CONFIG.get(self._food_type, self.DEFAULT_FOOD_CONFIG)
+        for stat, delta in config["stats"].items():
             current = getattr(context, stat, 0)
             new_value = max(0, min(100, current + delta))
             setattr(context, stat, new_value)
