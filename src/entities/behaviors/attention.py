@@ -1,5 +1,6 @@
 """Attention behavior for psst and point_bird interactions."""
 
+import random
 from entities.behaviors.base import BaseBehavior
 from ui import draw_bubble
 
@@ -29,7 +30,9 @@ class AttentionBehavior(BaseBehavior):
 
     NAME = "attention"
 
-    PRIORITY = 5
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(2, max(2, (100 - context.curiosity) * 0.1))
 
     def __init__(self, character):
         """Initialize the attention behavior.

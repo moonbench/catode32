@@ -19,14 +19,22 @@ class NappingBehavior(BaseBehavior):
 
     NAME = "napping"
 
-    PRIORITY = 20  # Lower priority than sleeping (10) — sleeping wins if energy is critical
-
     @classmethod
     def can_trigger(cls, context):
-        return context.energy < 45 and random.random() > 0.2
+        return context.energy < 40
+    
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(10, max(10, context.energy * 2))
 
-    STAT_EFFECTS = {"energy": 1.0, "focus": 0.5}
-    COMPLETION_BONUS = {"energy": 5, "focus": 5}
+    STAT_EFFECTS = {
+        "energy": 0.1,
+        "focus": 0.01
+    }
+    COMPLETION_BONUS = {
+        "energy": 3,
+        "focus": 1
+    }
 
     NAP_POSES = [
         "sleeping.side.modest",

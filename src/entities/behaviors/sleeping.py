@@ -16,15 +16,17 @@ class SleepingBehavior(BaseBehavior):
 
     NAME = "sleeping"
 
-    PRIORITY = 10  # High priority (low number)
-
     @classmethod
     def can_trigger(cls, context):
-        return context.energy < 30 and random.random() > 0.1
+        return context.energy < 40
+    
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(5, max(5, context.energy * 1.5))
 
     # Stat effects during sleep
-    STAT_EFFECTS = {"energy": 2.0, "comfort": 0.2}
-    COMPLETION_BONUS = {"energy": 15, "comfort": 10}
+    STAT_EFFECTS = {"energy": 0.2, "comfort": 0.2}
+    COMPLETION_BONUS = {"energy": 5, "comfort": 10}
 
     # Sleep pose options
     SLEEP_POSES = [

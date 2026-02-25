@@ -27,22 +27,23 @@ class PacingBehavior(BaseBehavior):
 
     NAME = "pacing"
 
-    PRIORITY = 55  # Below stretching (50), above lounging (90)
-
     STAT_EFFECTS = {
-        "comfort": 0.2,
-        "mischievousness": 0.3,
-        "patience": 0.1
+        "comfort": 0.1,
+        "charisma": -0.01,
+        "mischievousness": 0.03,
+        "patience": 0.07
     }
     COMPLETION_BONUS = {
-        "comfort": 5,
-        "mischievousness": 5,
+        "cleanliness": -2,
     }
 
     @classmethod
     def can_trigger(cls, context):
-        has_needs = getattr(context, 'comfort', 50) < 40 or getattr(context, 'patience', 50) < 50 or getattr(context, 'serenity', 50) < 50 
-        return has_needs and random.random() > 0.2
+        return context.comfort < 60 and context.patience < 60 and context.serenity < 60
+
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(15, max(15, min(context.comfort, context.patience, context.serenity) * 1.5))
 
     def __init__(self, character):
         super().__init__(character)
@@ -67,8 +68,8 @@ class PacingBehavior(BaseBehavior):
             return SulkingBehavior
 
         # Act out if the pet is immature, devious, and still has energy for it
-        if (getattr(context, 'mischievousness', 50) > 60 and
-                getattr(context, 'craftiness', 50) > 60 and
+        if (getattr(context, 'mischievousness', 50) > 30 and
+                getattr(context, 'craftiness', 50) > 40 and
                 getattr(context, 'maturity', 50) < 40 and
                 getattr(context, 'playfulness', 50) > 60 and
                 getattr(context, 'energy', 50) > 50 and
@@ -77,10 +78,10 @@ class PacingBehavior(BaseBehavior):
             return MischiefBehavior
 
         # Retreat if scared, depleted, and out of coping resources
-        if (getattr(context, 'courage', 50) < 40 and
-                getattr(context, 'affection', 50) < 40 and
-                getattr(context, 'resilience', 50) < 40 and
-                getattr(context, 'energy', 50) < 40 and
+        if (getattr(context, 'courage', 50) < 60 and
+                getattr(context, 'affection', 50) < 60 and
+                getattr(context, 'resilience', 50) < 60 and
+                getattr(context, 'energy', 50) < 60 and
                 random.random() < 0.4):
             from entities.behaviors.hiding import HidingBehavior
             return HidingBehavior

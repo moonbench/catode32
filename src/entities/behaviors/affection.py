@@ -1,5 +1,6 @@
 """Affection behavior for kiss and pets interactions."""
 
+import random
 from entities.behaviors.base import BaseBehavior
 from ui import draw_bubble
 
@@ -29,7 +30,9 @@ class AffectionBehavior(BaseBehavior):
 
     NAME = "affection"
 
-    PRIORITY = 5
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(2, max(2, (100 - context.affection) * 0.1))
 
     def __init__(self, character):
         """Initialize the affection behavior.

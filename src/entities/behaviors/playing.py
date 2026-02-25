@@ -1,5 +1,6 @@
 """Playing behavior for energetic fun."""
 
+import random
 from entities.behaviors.base import BaseBehavior
 from ui import draw_bubble
 
@@ -8,11 +9,11 @@ from ui import draw_bubble
 TRIGGERS = {
     "toy": {
         "bubble": "exclaim",
-        "stats": {"playfulness": 15, "energy": -5, "focus": -1},
+        "stats": {"playfulness": -2, "energy": -5, "focus": -1},
     },
     "throw_stick": {
         "bubble": "star",
-        "stats": {"playfulness": 15, "energy": -10, "focus": -1},
+        "stats": {"playfulness": -2, "energy": -10, "focus": -1},
     },
 }
 
@@ -28,15 +29,24 @@ class PlayingBehavior(BaseBehavior):
 
     NAME = "playing"
 
-    PRIORITY = 30
-
     @classmethod
     def can_trigger(cls, context):
-        return context.playfulness >= 70
+        return context.playfulness >= 40
+    
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(100 - context.playfulness, context.playfulness * 1.5)
 
     # Playing costs energy but satisfies playfulness
-    STAT_EFFECTS = {"playfulness": -2.0, "energy": -0.5}
-    COMPLETION_BONUS = {"playfulness": -25, "fulfillment": 10}
+    STAT_EFFECTS = {
+        "playfulness": -0.1,
+        "energy": -0.1
+    }
+    COMPLETION_BONUS = {
+        "playfulness": -5,
+        "fulfillment": 1,
+        "dignity": 0.2
+    }
 
     def __init__(self, character):
         """Initialize the playing behavior.

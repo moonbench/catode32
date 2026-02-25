@@ -15,8 +15,6 @@ class BaseBehavior:
 
     NAME = "base"
 
-    PRIORITY = 50             # Lower = higher priority (0-100)
-
     # Stat effects (override in subclasses)
     STAT_EFFECTS = {}         # e.g., {"energy": 0.5} = +0.5/sec during behavior
     COMPLETION_BONUS = {}     # e.g., {"energy": 10} = +10 on natural completion
@@ -77,7 +75,7 @@ class BaseBehavior:
         Returns:
             Numeric priority value.
         """
-        return cls.PRIORITY
+        return 100
 
     def next(self, context):
         """Return the behavior class to transition to after this one completes.
@@ -198,6 +196,7 @@ class BaseBehavior:
             current = getattr(context, stat, 0)
             new_value = max(0, min(100, current + rate * dt))
             setattr(context, stat, new_value)
+            print(f"  {stat}: {context.stat}")
 
     def apply_completion_bonus(self, context, progress=1.0):
         """Apply completion bonus stats, scaled by how much was completed.
@@ -210,6 +209,3 @@ class BaseBehavior:
             current = getattr(context, stat, 0)
             new_value = max(0, min(100, current + bonus * progress))
             setattr(context, stat, new_value)
-
-        print("Stats updated")
-        context.debug_print_stats()

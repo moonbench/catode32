@@ -15,15 +15,22 @@ class InvestigatingBehavior(BaseBehavior):
 
     NAME = "investigating"
 
-    PRIORITY = 40
-
     @classmethod
     def can_trigger(cls, context):
-        return context.curiosity >= 70 and random.random() > 0.2
+        return context.curiosity >= 70
+
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(10, max(10, 100 - context.curiosity))
 
     # Investigating satisfies curiosity but adds stimulation
-    STAT_EFFECTS = {"curiosity": -1.0}
-    COMPLETION_BONUS = {"curiosity": -20, "fulfillment": 5}
+    STAT_EFFECTS = {}
+    COMPLETION_BONUS = {
+        "curiosity": -5,
+        "fulfillment": 5,
+        "maturity": 2,
+        "dignity": 0.2
+    }
 
     def __init__(self, character):
         """Initialize the investigating behavior.

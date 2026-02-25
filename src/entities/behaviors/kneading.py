@@ -18,10 +18,20 @@ class KneadingBehavior(BaseBehavior):
 
     NAME = "kneading"
 
-    PRIORITY = 50
+    STAT_EFFECTS = {
+        "comfort": 0.2,
+        "cleanliness": 0.05,
+        "serenity": 0.01,
+    }
+    COMPLETION_BONUS = {
+        "focus": -1,
+        "comfort": 2,
+        "serenity": 0.1,
+    }
 
-    STAT_EFFECTS = {"serenity": 0.3, "comfort": 0.2, "cleanliness": 0.05}
-    COMPLETION_BONUS = {"serenity": 5, "comfort": 3}
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(20, max(20, 100 - context.serenity))
 
     def __init__(self, character):
         super().__init__(character)

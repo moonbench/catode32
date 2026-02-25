@@ -7,7 +7,7 @@ from entities.behaviors.base import BaseBehavior
 class IdleBehavior(BaseBehavior):
     """Default idle behavior — runs when nothing else is active.
 
-    Runs for CHECK_INTERVAL seconds, then completes naturally. On completion,
+    Runs for a while, then completes naturally. On completion,
     next() scans auto-triggerable behaviors and transitions to whichever one
     has the highest priority and a satisfied trigger condition. If nothing
     qualifies, next() returns None and the base class restarts a fresh
@@ -26,12 +26,19 @@ class IdleBehavior(BaseBehavior):
         "standing.side.happy",
     }
 
-    PRIORITY = 100  # Lowest priority — only used as fallback
-
-    STAT_EFFECTS = {"curiosity": 0.1, "energy": -0.1, "fullness": -0.1, "affection": -0.05, "cleanliness": 0.02}
-    COMPLETION_BONUS = {}
-
-    CHECK_INTERVAL = 15.0  # How long each idle cycle runs before checking next()
+    STAT_EFFECTS = {
+        "curiosity": 0.1,
+        "energy": -0.1,
+        "fullness": -0.1,
+        "cleanliness": -0.04,
+        "comfort": -0.02
+    }
+    COMPLETION_BONUS = {
+        "playfulness": 2,
+        "craftiness": -0.05,
+        "appetite": -0.002,
+        "affection": -0.05,
+    }
 
     def __init__(self, character):
         super().__init__(character)
@@ -39,6 +46,7 @@ class IdleBehavior(BaseBehavior):
         self.max_pose_duration = 60.0
         self._time_until_pose_change = 0.0
         self._current_idle_pose = None
+        self._idle_for = 30.0
 
     def start(self, on_complete=None):
         if self._active:
@@ -46,6 +54,7 @@ class IdleBehavior(BaseBehavior):
         super().start(on_complete)
         self._phase = "idling"
         self._pick_new_pose()
+        self._idle_for = random.uniform(self.min_pose_duration, self.max_pose_duration)
 
     def update(self, dt):
         if not self._active:
@@ -57,7 +66,7 @@ class IdleBehavior(BaseBehavior):
         if self._time_until_pose_change <= 0:
             self._pick_new_pose()
 
-        if self._phase_timer >= self.CHECK_INTERVAL:
+        if self._phase_timer >= self._idle_for:
             self.stop(completed=True)
 
     def next(self, context):
@@ -69,7 +78,7 @@ class IdleBehavior(BaseBehavior):
             return None
         
         # Sometimes, just stay idle
-        if random.random() < 0.3:
+        if random.uniform(0, context.serenity) > 50:
             print("Just staying idle")
             return None
 
@@ -95,12 +104,14 @@ class IdleBehavior(BaseBehavior):
         if not candidates:
             return None
 
-        print("Idle change priorities:")
-        for cls in sorted(candidates, key=lambda c: c.get_priority(context)):
-            print(f"  {cls.NAME}: priority={cls.get_priority(context)}")
+        priorities = {cls: cls.get_priority(context) for cls in candidates}
 
-        best_priority = min(cls.get_priority(context) for cls in candidates)
-        top = [cls for cls in candidates if cls.get_priority(context) == best_priority]
+        print("Idle change priorities:")
+        for cls in sorted(candidates, key=lambda c: priorities[c]):
+            print(f"  {cls.NAME}: priority={priorities[cls]}")
+
+        best_priority = min(priorities.values())
+        top = [cls for cls, p in priorities.items() if p == best_priority]
         return random.choice(top)
 
     def _pick_new_pose(self):

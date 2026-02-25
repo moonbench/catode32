@@ -22,33 +22,35 @@ class HuntingBehavior(BaseBehavior):
 
     NAME = "hunting"
 
-    PRIORITY = 35  # Between playing (30) and investigating (40)
-
     STAT_EFFECTS = {
-        "energy": -0.4,
-        "comfort": -0.3,
-        "playfulness": -0.5,
+        "energy": -0.1,
+        "comfort": -0.1,
+        "playfulness": -0.1,
+        "cleanliness": -0.1,
+        "charisma": -0.02,
+        "serenity": -0.03,
+        "patience": -0.04,
     }
     COMPLETION_BONUS = {
-        "fulfillment": 12,
+        "fulfillment": 5,
         "independence": 5,
         "intelligence": 5,
         "resilience": 5,
-        "fitness": 5,
-        "craftiness": 8,
-        "mischievousness": 5,
-        "energy": -10,
+        "fitness": 1,
+        "craftiness": 0.2,
+        "mischievousness": 0.2,
+        "energy": -5,
+        "cleanliness": -5,
     }
 
     @classmethod
     def can_trigger(cls, context):
-        return (
-            getattr(context, 'energy', 0) > 60 and
-            getattr(context, 'playfulness', 0) > 60 and
-            getattr(context, 'focus', 0) > 60 and
-            getattr(context, 'curiosity', 0) > 60 and
-            getattr(context, 'independence', 0) > 50
-        )
+        return context.energy > 60 and context.playfulness > 40 and context.curiosity > 40
+    
+    @classmethod
+    def get_priority(cls, context):
+        upper = max(20, (100 - context.energy) * 0.7 + (100 - context.playfulness) * 0.5)
+        return random.uniform(20, upper)
 
     def __init__(self, character):
         super().__init__(character)

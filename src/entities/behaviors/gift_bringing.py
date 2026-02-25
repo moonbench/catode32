@@ -1,5 +1,6 @@
 """Gift bringing behavior - pet proudly presents a found treasure."""
 
+import random
 from entities.behaviors.base import BaseBehavior
 
 
@@ -19,21 +20,22 @@ class GiftBringingBehavior(BaseBehavior):
 
     NAME = "gift_bringing"
 
-    PRIORITY = 20
-
     STAT_EFFECTS = {
-        "loyalty": 0.3,
         "sociability": 0.3,
         "playfulness": 0.2,
     }
     COMPLETION_BONUS = {
-        "loyalty": 10,
-        "sociability": 8,
-        "playfulness": 5,
-        "affection": 5,
+        "loyalty": 0.5,
+        "sociability": 2,
+        "playfulness": 2,
+        "affection": 2,
     }
 
     GIFT_OFFSET_X = 30
+
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(10, max(10, (200 - context.sociability - context.affection) * 0.3))
 
     def __init__(self, character):
         super().__init__(character)

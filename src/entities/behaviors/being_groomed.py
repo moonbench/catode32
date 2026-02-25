@@ -20,25 +20,26 @@ class BeingGroomedBehavior(BaseBehavior):
 
     NAME = "being_groomed"
 
-    PRIORITY = 5
-
     STAT_EFFECTS = {
         "cleanliness": 0.5,
         "affection": 0.3,
-        "patience": 0.2,
+        "patience": -0.5,
         "focus": -0.3,
         "independence": -0.2,
-        "mischievousness": -0.2,
+        "mischievousness": -0.02,
     }
     COMPLETION_BONUS = {
         "cleanliness": 15,
         "affection": 8,
-        "patience": 5,
         "grace": 5,
         "sociability": 3,
         "independence": -5,
-        "mischievousness": -5,
+        "mischievousness": -1,
     }
+
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(3, max(3, context.cleanliness * 0.1))
 
     def __init__(self, character):
         super().__init__(character)

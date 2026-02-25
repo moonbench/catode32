@@ -1,5 +1,6 @@
 """Sulking behavior - pet withdraws and broods after pacing doesn't help."""
 
+import random
 from entities.behaviors.base import BaseBehavior
 
 
@@ -20,18 +21,21 @@ class SulkingBehavior(BaseBehavior):
 
     NAME = "sulking"
 
-    PRIORITY = 55
-
     STAT_EFFECTS = {
-        "comfort": 0.2,
-        "independence": 0.2,
+        "comfort": 0.1,
+        "independence": 0.1,
         "curiosity": 0.1,
+        "courage": -0.01
     }
     COMPLETION_BONUS = {
-        "comfort": 5,
+        "comfort": 1,
         "independence": 5,
         "curiosity": 3,
     }
+
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(20, max(20, (context.fulfillment + context.affection) * 0.5))
 
     def __init__(self, character):
         super().__init__(character)

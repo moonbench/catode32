@@ -15,15 +15,21 @@ class StretchingBehavior(BaseBehavior):
 
     NAME = "stretching"
 
-    PRIORITY = 50
-
     @classmethod
     def can_trigger(cls, context):
         return context.comfort < 40
+    
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(10, max(10, context.comfort))
 
     # Stretching improves comfort and vigor
-    STAT_EFFECTS = {"comfort": 1.5}
-    COMPLETION_BONUS = {"comfort": 15}
+    STAT_EFFECTS = {
+        "comfort": 0.1
+    }
+    COMPLETION_BONUS = {
+        "comfort": 4
+    }
 
     def next(self, context):
         if random.random() < 0.2:

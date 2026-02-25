@@ -1,5 +1,6 @@
 """Chattering behavior - excited jaw-clicking at prey through the window."""
 
+import random
 from entities.behaviors.base import BaseBehavior
 
 
@@ -17,10 +18,12 @@ class ChatteringBehavior(BaseBehavior):
 
     NAME = "chattering"
 
-    PRIORITY = 40
-
     STAT_EFFECTS = {"curiosity": -0.5, "playfulness": 0.5}
     COMPLETION_BONUS = {"curiosity": -5, "playfulness": 5}
+
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(20, max(20, (200 - context.curiosity - context.playfulness) * 0.5))
 
     def __init__(self, character):
         super().__init__(character)

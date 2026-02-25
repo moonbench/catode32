@@ -1,5 +1,6 @@
 """Mischief behavior - pet acts out with chaotic, scheming energy."""
 
+import random
 from entities.behaviors.base import BaseBehavior
 
 
@@ -19,22 +20,23 @@ class MischiefBehavior(BaseBehavior):
 
     NAME = "mischief"
 
-    PRIORITY = 55
-
     STAT_EFFECTS = {
-        "mischievousness": 0.5,
+        "mischievousness": 0.05,
         "maturity": -0.1,
-        "dignity": -0.3,
-        "loyalty": -0.2,
+        "dignity": -0.03,
+        "loyalty": -0.01,
     }
     COMPLETION_BONUS = {
-        "mischievousness": 8,
-        "maturity": -5,
-        "dignity": -5,
-        "loyalty": -5,
-        "playfulness": -5,
+        "focus": -1,
+        "maturity": -0.5,
+        "loyalty": -0.05,
+        "playfulness": -2,
         "energy": -5,
     }
+
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(20, max(20, (200 - context.mischievousness - context.playfulness) * 0.5))
 
     def __init__(self, character):
         super().__init__(character)
@@ -44,7 +46,7 @@ class MischiefBehavior(BaseBehavior):
 
     def next(self, context):
         # Retreat if the pet's nerve broke and it's now depleted
-        if (getattr(context, 'courage', 50) < 40 and
+        if (getattr(context, 'courage', 50) < 60 and
                 getattr(context, 'affection', 50) < 40 and
                 getattr(context, 'resilience', 50) < 40 and
                 getattr(context, 'energy', 50) < 40 and

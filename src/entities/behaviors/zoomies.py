@@ -18,15 +18,26 @@ class ZoomiesBehavior(BaseBehavior):
 
     NAME = "zoomies"
 
-    PRIORITY = 25  # Higher priority than playing; fires when the pet is truly wound up
-
-    STAT_EFFECTS = {"energy": -2.0, "playfulness": -3.0}
-    COMPLETION_BONUS = {"energy": -10, "playfulness": -15}
+    STAT_EFFECTS = {
+        "fitness": 0.1,
+        "energy": -0.1,
+        "playfulness": -0.1,
+        "cleanliness": -0.1
+    }
+    COMPLETION_BONUS = {
+        "energy": -10,
+        "playfulness": -5,
+        "fitness": 1,
+        "cleanliness": -1
+    }
 
     @classmethod
     def can_trigger(cls, context):
-        return (getattr(context, 'energy', 0) > 70 and
-                getattr(context, 'playfulness', 0) > 70)
+        return context.energy > 40 and context.playfulness > 40
+    
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(100 - context.playfulness, context.playfulness * 1.5)
 
     def __init__(self, character):
         super().__init__(character)

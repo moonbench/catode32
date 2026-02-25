@@ -20,15 +20,24 @@ class VocalizingBehavior(BaseBehavior):
 
     NAME = "vocalizing"
 
-    PRIORITY = 25  # Same as zoomies — idle picks randomly between them
-
-    STAT_EFFECTS = {"energy": -1.0, "playfulness": -1.5}
-    COMPLETION_BONUS = {"energy": -5, "playfulness": -8}
+    STAT_EFFECTS = {
+        "energy": -0.1,
+        "playfulness": -0.1,
+        "serenity": -0.03
+    }
+    COMPLETION_BONUS = {
+        "energy": -5,
+        "playfulness": -1.5,
+        "serenity": -0.1
+    }
 
     @classmethod
     def can_trigger(cls, context):
-        return (getattr(context, 'energy', 0) > 70 and
-                getattr(context, 'playfulness', 0) > 70)
+        return context.energy > 50 and context.playfulness > 60
+
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(10, max(10, (200 - context.energy - context.playfulness) * 0.6))
 
     def __init__(self, character):
         super().__init__(character)

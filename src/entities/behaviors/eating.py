@@ -1,5 +1,6 @@
 """Eating behavior for the character entity."""
 
+import random
 from entities.behaviors.base import BaseBehavior
 
 
@@ -16,21 +17,23 @@ class EatingBehavior(BaseBehavior):
 
     NAME = "eating"
 
-    PRIORITY = 10  # High priority when manually triggered
-
     # No per-frame stat effects - stats applied on completion
     STAT_EFFECTS = {}
     COMPLETION_BONUS = {}  # Handled specially via FOOD_CONFIG
 
     # Config for each food type: stat effects and how fast it's eaten
     FOOD_CONFIG = {
-        "chicken": {"stats": {"fullness": 30, "energy": 10}, "eating_speed": 0.3},
-        "fish":    {"stats": {"fullness": 25, "affection": 5}, "eating_speed": 0.35},
-        "treat":   {"stats": {"fullness": 5, "affection": 3}, "eating_speed": 1.5},
+        "chicken": {"stats": {"fullness": 12, "energy": 5, "appetite": 0.1}, "eating_speed": 0.3},
+        "fish":    {"stats": {"fullness": 6, "affection": 3, "appetite": 0.1}, "eating_speed": 0.35},
+        "treat":   {"stats": {"fullness": 2, "affection": 1, "appetite": 0.1}, "eating_speed": 1.5},
     }
-    DEFAULT_FOOD_CONFIG = {"stats": {"fullness": 20}, "eating_speed": 0.4}
+    DEFAULT_FOOD_CONFIG = {"stats": {"fullness": 8}, "eating_speed": 0.4}
 
     FOOD_OFFSET_X = 30  # Horizontal offset of food from character anchor
+
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(5, max(5, context.fullness * 0.15))
 
     def __init__(self, character):
         super().__init__(character)

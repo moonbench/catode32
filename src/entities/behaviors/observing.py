@@ -19,14 +19,21 @@ class ObservingBehavior(BaseBehavior):
 
     NAME = "observing"
 
-    PRIORITY = 40  # Same as investigating — idle picks randomly between them
-
     @classmethod
     def can_trigger(cls, context):
-        return context.curiosity >= 60 and random.random() > 0.2
+        return context.curiosity >= 60
 
-    STAT_EFFECTS = {"curiosity": -0.5}  # Drains curiosity, but slower than investigating
-    COMPLETION_BONUS = {"curiosity": -10, "fulfillment": 3}
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(20, max(20, 100 - context.curiosity))
+
+    STAT_EFFECTS = {
+        "curiosity": -0.1
+    }
+    COMPLETION_BONUS = {
+        "curiosity": -2,
+        "fulfillment": 1
+    }
 
     def __init__(self, character):
         super().__init__(character)

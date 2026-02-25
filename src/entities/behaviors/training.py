@@ -18,32 +18,35 @@ class TrainingBehavior(BaseBehavior):
 
     NAME = "training"
 
-    PRIORITY = 5
-
     STAT_EFFECTS = {
         "intelligence": 0.2,
-        "fitness": 0.3,
+        "fitness": 0.01,
         "resilience": 0.2,
         "sociability": 0.1,
         "fulfillment": 0.2,
-        "patience": 0.2,
-        "loyalty": 0.2,
-        "courage": 0.2,
+        "patience": 0.02,
+        "loyalty": 0.02,
+        "courage": 0.02,
         "energy": -0.5,
-        "focus": -0.3,
+        "focus": -0.1,
     }
     COMPLETION_BONUS = {
         "intelligence": 8,
-        "fitness": 10,
+        "fitness": 1,
         "resilience": 8,
         "sociability": 5,
-        "fulfillment": 8,
-        "patience": 5,
-        "loyalty": 8,
-        "courage": 8,
+        "fulfillment": 3,
+        "patience": 1,
+        "loyalty": 0.5,
+        "courage": 0.5,
         "energy": -15,
-        "focus": -10,
+        "focus": -2,
+        "dignity": 1,
     }
+
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(3, max(3, context.energy * 0.08))
 
     def __init__(self, character):
         super().__init__(character)

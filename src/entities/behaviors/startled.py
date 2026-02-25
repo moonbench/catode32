@@ -24,16 +24,26 @@ class StartledBehavior(BaseBehavior):
 
     NAME = "startled"
 
-    PRIORITY = 35
-
     @classmethod
     def can_trigger(cls, context):
-        # Base ~8% chance per idle cycle, reduced by courage and resilience
-        p = 0.08 * (1 - context.courage / 200) * (1 - context.resilience / 200)
+        p = 0.15 * (1 - context.courage / 200) * (1 - context.resilience / 200)
         return random.random() < p
 
-    STAT_EFFECTS = {"energy": -1.0, "comfort": -1.5, "curiosity": 0.5}
-    COMPLETION_BONUS = {"curiosity": 5, "comfort": -5, "energy": -5}
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(20, max(20, (context.courage + context.resilience) * 0.6))
+
+    STAT_EFFECTS = {
+        "energy": -0.1,
+        "comfort": -0.1,
+        "curiosity": 0.1
+    }
+    COMPLETION_BONUS = {
+        "curiosity": 5,
+        "comfort": -5,
+        "energy": -5,
+        "courage": -0.2
+    }
 
     def __init__(self, character):
         super().__init__(character)

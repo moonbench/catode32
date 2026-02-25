@@ -18,16 +18,21 @@ class LoungeingBehavior(BaseBehavior):
 
     NAME = "lounging"
 
-    PRIORITY = 90  # Low priority — comfortable fallback
-
-    STAT_EFFECTS = {"comfort": -0.1, "energy": -0.05}
+    STAT_EFFECTS = {
+        "comfort": -0.1,
+        "energy": -0.05,
+        "patience": 0.05,
+        "fitness": -0.1
+    }
     COMPLETION_BONUS = {}
 
     @classmethod
     def can_trigger(cls, context):
-        if context.focus > 40 and context.serenity > 40 and random.random() > 0.15:
-            return True
-        return False
+        return context.focus > 40 and context.serenity > 30
+    
+    @classmethod
+    def get_priority(cls, context):
+        return 100 - random.uniform(0, context.serenity)
 
     def __init__(self, character):
         super().__init__(character)

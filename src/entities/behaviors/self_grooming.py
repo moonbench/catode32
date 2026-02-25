@@ -1,5 +1,6 @@
 """Self grooming behavior - pet cleans itself with focused attention."""
 
+import random
 from entities.behaviors.base import BaseBehavior
 
 
@@ -18,25 +19,27 @@ class SelfGroomingBehavior(BaseBehavior):
 
     NAME = "self_grooming"
 
-    PRIORITY = 45
-
     STAT_EFFECTS = {
         "cleanliness": 0.5,
-        "energy": -0.2,
+        "energy": -0.1,
         "comfort": -0.1,
-        "focus": -0.2,
+        "focus": -0.1,
+        "charisma": 0.04
     }
     COMPLETION_BONUS = {
-        "cleanliness": 15,
-        "fulfillment": 5,
+        "cleanliness": 5,
+        "fulfillment": 2,
         "grace": 3,
         "sociability": 2,
     }
 
     @classmethod
     def can_trigger(cls, context):
-        return (getattr(context, 'cleanliness', 100) < 40 and
-                getattr(context, 'energy', 0) > 30)
+        return context.cleanliness < 40 and context.energy > 30
+    
+    @classmethod
+    def get_priority(cls, context):
+        return random.uniform(0, context.cleanliness) + random.uniform(0, max(10, context.energy * 0.5))
 
     def __init__(self, character):
         super().__init__(character)
