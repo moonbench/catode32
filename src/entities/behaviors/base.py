@@ -196,7 +196,6 @@ class BaseBehavior:
             current = getattr(context, stat, 0)
             new_value = max(0, min(100, current + rate * dt))
             setattr(context, stat, new_value)
-            print(f"  {stat}: {new_value}")
 
     def apply_completion_bonus(self, context, progress=1.0):
         """Apply completion bonus stats, scaled by how much was completed.
@@ -209,3 +208,5 @@ class BaseBehavior:
             current = getattr(context, stat, 0)
             new_value = max(0, min(100, current + bonus * progress))
             setattr(context, stat, new_value)
+            print(f"  {stat}: {new_value}")
+
