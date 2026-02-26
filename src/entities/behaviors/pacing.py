@@ -129,7 +129,7 @@ class PacingBehavior(BaseBehavior):
             if self._phase_timer >= self.start_duration:
                 self._phase = "pacing"
                 self._phase_timer = 0.0
-                self._character.set_pose("standing.side.neutral")
+                self._character.set_pose("walking.side.neutral")
 
         elif self._phase == "pacing":
             context = self._character.context
