@@ -69,6 +69,7 @@ class NappingBehavior(BaseBehavior):
             return
         super().start(on_complete)
         self._nap_pose = random.choice(self.NAP_POSES)
+        self.nap_duration = random.randint(12, 45)
         self._phase = "settling"
         self._character.set_pose("sitting.side.looking_down")
 

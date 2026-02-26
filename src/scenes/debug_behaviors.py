@@ -27,6 +27,7 @@ from entities.behaviors.affection import AffectionBehavior
 from entities.behaviors.attention import AttentionBehavior
 from entities.behaviors.eating import EatingBehavior
 from entities.behaviors.startled import StartledBehavior
+from entities.behaviors.meandering import MeanderingBehavior
 from ui import Scrollbar
 
 
@@ -49,6 +50,7 @@ BEHAVIOR_ENTRIES = [
     ("hunting",      "Hunting",      HuntingBehavior,      {}),
     ("gift_bringing","Gift Bringing",GiftBringingBehavior, {}),
     ("pacing",       "Pacing",       PacingBehavior,       {}),
+    ("meandering",   "Meandering",   MeanderingBehavior,   {}),
     ("sulking",      "Sulking",      SulkingBehavior,      {}),
     ("mischief",     "Mischief",     MischiefBehavior,     {}),
     ("hiding",       "Hiding",       HidingBehavior,       {}),

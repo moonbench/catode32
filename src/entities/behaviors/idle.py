@@ -79,6 +79,11 @@ class IdleBehavior(BaseBehavior):
         """
         if not context:
             return None
+
+        from entities.behaviors.meandering import MeanderingBehavior
+        if MeanderingBehavior.can_trigger(context) and random.random() <= 0.2:
+            print("Randomly meandering....")
+            return MeanderingBehavior
         
         # High serenity makes the pet content to keep resting
         # At serenity=25: ~0%, serenity=50: ~17%, serenity=75: ~33%, serenity=100: ~50%

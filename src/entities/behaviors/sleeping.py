@@ -76,6 +76,7 @@ class SleepingBehavior(BaseBehavior):
             return
         super().start(on_complete)
         self._sleep_pose = random.choice(self.SLEEP_POSES)
+        self.sleep_duration = random.randint(40, 100)
         self._phase = "considering"
         self._character.set_pose("sitting.side.looking_down")
 

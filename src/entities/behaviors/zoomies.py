@@ -49,7 +49,7 @@ class ZoomiesBehavior(BaseBehavior):
         self.windup_duration = 1.0
         self.zoom_duration = 8.0
         self.collapse_duration = 2.0
-        self.zoom_speed = 30  # pixels per second
+        self.zoom_speed = 50  # pixels per second
 
         self._zoom_direction = 1
         self._dir_change_timer = 0.0
@@ -73,6 +73,7 @@ class ZoomiesBehavior(BaseBehavior):
         self._zoom_direction = random.choice([-1, 1])
         self._dir_change_timer = 0.0
         self._dir_change_interval = random.uniform(1.0, 3.0)
+        self.zoom_duration = random.randint(20, 45)
         self._apply_direction()
         self._character.set_pose("sitting.side.happy")
 
