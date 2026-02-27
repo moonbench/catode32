@@ -31,13 +31,13 @@ class IdleBehavior(BaseBehavior):
         "fulfillment": -1,
         "playfulness": 0.5,
         "craftiness": -0.05,
-        "appetite": -0.002,
+        "appetite": -0.1,
         "affection": -0.05,
         "curiosity": 0.75,
-        "energy": -0.75,
+        "energy": -0.5,
         "fullness": -0.75,
         "cleanliness": -0.75,
-        "comfort": -1.88,
+        "comfort": -0.2,
         "focus": -0.19,
     }
 

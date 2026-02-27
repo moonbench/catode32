@@ -20,10 +20,10 @@ class LoungeingBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         "fulfillment": -2,
-        "comfort": -3.4,
-        "energy": -1.7,
+        "comfort": -0.2,
+        "energy": -0.5,
         "patience": 1.7,
-        "fitness": -1.7,
+        "fitness": -0.5,
     }
 
     @classmethod

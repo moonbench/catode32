@@ -43,11 +43,16 @@ class AttentionBehavior(BaseBehavior):
         super().__init__(character)
         self._bubble = None
         self._duration = 2.0
+        self._variant = "psst"
+
+    def get_completion_bonus(self, context):
+        return dict(VARIANTS[self._variant].get("stats", {}))
 
     def start(self, variant=None, on_complete=None):
         if self._active:
             return
-        config = VARIANTS.get(variant, VARIANTS["psst"])
+        self._variant = variant if variant in VARIANTS else "psst"
+        config = VARIANTS[self._variant]
         super().start(on_complete)
         self._phase = "reacting"
         self._bubble = config["bubble"]
@@ -55,14 +60,6 @@ class AttentionBehavior(BaseBehavior):
 
         # Set reaction pose
         self._character.set_pose(config["pose"])
-
-        # Apply stats immediately
-        context = self._character.context
-        if context:
-            for stat, delta in config.get("stats", {}).items():
-                current = getattr(context, stat, 0)
-                new_value = max(0, min(100, current + delta))
-                setattr(context, stat, new_value)
 
     def update(self, dt):
         """Update the reaction.
