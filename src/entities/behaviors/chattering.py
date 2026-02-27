@@ -30,7 +30,7 @@ class ChatteringBehavior(BaseBehavior):
     def __init__(self, character):
         super().__init__(character)
 
-        self.chatter_duration = 4.0
+        self.chatter_duration = 10.0
         self.settle_duration = 1.0
 
     def next(self, context):
@@ -42,7 +42,7 @@ class ChatteringBehavior(BaseBehavior):
             return
         super().start(on_complete)
         self._phase = "chattering"
-        self._character.set_pose("sitting.forward.aloof")
+        self._character.set_pose("sitting_silly.side.annoyed")
 
     def update(self, dt):
         if not self._active:
@@ -60,3 +60,17 @@ class ChatteringBehavior(BaseBehavior):
         elif self._phase == "settling":
             if self._phase_timer >= self.settle_duration:
                 self.stop(completed=True)
+
+    def draw(self, renderer, char_x, char_y, mirror=False):
+        if not self._active or self._phase != "chattering":
+            return
+
+        cycle = 1.2
+        on_duration = 0.8
+        base_x = char_x + (36 if mirror else -36)
+        base_y = char_y - 10
+
+        for i in range(3):
+            age = (self._phase_timer - i * 0.3) % cycle
+            if age < on_duration:
+                renderer.draw_text("ek", int(base_x), int(base_y - i * 9))
