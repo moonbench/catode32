@@ -8,7 +8,9 @@ class MeanderingBehavior(BaseBehavior):
     NAME = "meandering"
 
     COMPLETION_BONUS = {
-        "energy": -1,
+        "energy": -0.5,
+        "fullness": -1,
+        "fitness": 0.1
     }
 
     @classmethod

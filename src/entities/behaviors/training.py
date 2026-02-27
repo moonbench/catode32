@@ -20,16 +20,17 @@ class TrainingBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         "intelligence": 10,
-        "fitness": 1,
+        "fitness": 0.5,
         "resilience": 10,
         "sociability": 5,
-        "fulfillment": 5,
+        "fulfillment": 2,
         "patience": 1,
         "loyalty": 0.7,
         "courage": 0.7,
-        "energy": -10,
+        "energy": -5,
         "focus": -3,
-        "dignity": 1,
+        "dignity": 0.5,
+        "mischievousness": -0.05,
     }
 
     @classmethod

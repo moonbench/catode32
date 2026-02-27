@@ -38,11 +38,11 @@ class PlayingBehavior(BaseBehavior):
         return random.uniform(100 - context.playfulness * 1.5, context.playfulness * 1.5)
 
     COMPLETION_BONUS = {
-        "playfulness": -5,
-        "fulfillment": 5,
-        "dignity": 0.2,
+        "playfulness": -3,
+        "fulfillment": 2,
         "energy": -2,
-        "fitness": 0.5,
+        "fitness": 0.25,
+        "comfort": -0.5,
     }
 
     def __init__(self, character):

@@ -11,13 +11,13 @@ VARIANTS = {
         "pose": "sitting.forward.aloof",
         "bubble": "question",
         "duration": 1.5,
-        "stats": {"curiosity": 3},
+        "stats": {"curiosity": 2},
     },
     "point_bird": {
         "pose": "sitting.side.aloof",
         "bubble": "exclaim",
         "duration": 2.0,
-        "stats": {"curiosity": 10},
+        "stats": {"curiosity": 3},
     },
 }
 

@@ -28,17 +28,24 @@ class IdleBehavior(BaseBehavior):
     }
 
     COMPLETION_BONUS = {
-        "fulfillment": -1,
-        "playfulness": 0.5,
-        "craftiness": -0.1,
-        "appetite": -0.1,
-        "affection": -0.05,
-        "curiosity": 0.75,
-        "energy": -0.5,
-        "fullness": -0.75,
-        "cleanliness": -0.75,
-        "comfort": -0.2,
+        # Rapid changers
+        "fullness": -0.2,
+        "energy": -0.3,
+        "comfort": -0.3,
+        "playfulness": 0.4,
         "focus": -0.2,
+
+        # Medium changers
+        "fulfillment": -0.1,
+        "affection": -0.1,
+        "curiosity": 0.2,
+        "cleanliness": -0.2,
+
+        # Slow changers
+        "fitness": -0.02,
+        "appetite": -0.02,
+        "craftiness": -0.01,
+        "serenity": 0.02,
     }
 
     def __init__(self, character):

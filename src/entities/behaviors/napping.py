@@ -34,10 +34,10 @@ class NappingBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         "energy": 30,
-        "focus": 5,
-        "playfulness": 4,
-        "curiosity": 1,
-        "fitness": 0.1,
+        "focus": 8,
+        "playfulness": 3,
+        "curiosity": 0.5,
+        "fitness": -0.05,
     }
 
     NAP_POSES = [

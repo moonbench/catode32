@@ -23,19 +23,20 @@ class HuntingBehavior(BaseBehavior):
     NAME = "hunting"
 
     COMPLETION_BONUS = {
-        "fulfillment": 2,
+        "fullness": -2,
+        "fulfillment": 1,
         "independence": 0.5,
         "intelligence": 0.5,
         "resilience": 0.5,
-        "fitness": 1,
+        "fitness": 0.3,
         "craftiness": 0.2,
-        "mischievousness": 0.2,
+        "mischievousness": 0.07,
         "energy": -5,
-        "cleanliness": -5,
+        "cleanliness": -2,
         "comfort": -2,
         "playfulness": -2,
         "charisma": -0.2,
-        "serenity": -0.5,
+        "serenity": -0.2,
         "patience": -0.5,
     }
 

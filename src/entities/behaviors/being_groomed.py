@@ -26,9 +26,10 @@ class BeingGroomedBehavior(BaseBehavior):
         "grace": 5,
         "sociability": 3,
         "independence": -5,
-        "mischievousness": -1,
+        "mischievousness": -0.1,
         "patience": -5.5,
         "focus": -3.3,
+        "maturity": -0.1,
     }
 
     @classmethod

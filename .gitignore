@@ -1,6 +1,12 @@
 *.bin
 old/*
+
 .DS_store
+
 build/
 __pycache__/
 *.pyc
+
+log.txt
+parse_stats.py
+stats.csv

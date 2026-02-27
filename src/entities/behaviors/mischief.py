@@ -25,9 +25,10 @@ class MischiefBehavior(BaseBehavior):
         "maturity": -1.5,
         "loyalty": -0.2,
         "playfulness": -2,
-        "energy": -5,
-        "mischievousness": 0.5,
-        "dignity": -0.2,
+        "energy": -4,
+        "mischievousness": 0.05,
+        "grace": -1,
+        "dignity": -0.05,
     }
 
     @classmethod

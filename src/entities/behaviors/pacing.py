@@ -28,12 +28,15 @@ class PacingBehavior(BaseBehavior):
     NAME = "pacing"
 
     COMPLETION_BONUS = {
-        "cleanliness": -2,
-        "fulfillment": -2,
-        "comfort": 2,
+        "cleanliness": -0.5,
+        "fulfillment": -0.1,
+        "comfort": 0.5,
         "charisma": -0.5,
-        "mischievousness": 0.5,
+        "mischievousness": 0.05,
         "patience": 1,
+        "affection": -1,
+        "fitness": 0.2,
+        "dignity": -0.05,
     }
 
     @classmethod

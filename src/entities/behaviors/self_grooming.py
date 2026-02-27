@@ -7,10 +7,6 @@ from entities.behaviors.base import BaseBehavior
 class SelfGroomingBehavior(BaseBehavior):
     """Pet settles in for a dedicated grooming session.
 
-    Triggered by low cleanliness when the pet has enough energy to bother.
-    Slowly restores cleanliness and builds grace and sociability over time.
-    Costs a little energy, comfort, and focus while the pet zones in.
-
     Phases:
     1. preparing  - Pet finds a good spot and settles
     2. grooming   - Focused licking and washing
@@ -20,13 +16,12 @@ class SelfGroomingBehavior(BaseBehavior):
     NAME = "self_grooming"
 
     COMPLETION_BONUS = {
-        "cleanliness": 15,
-        "fulfillment": 3,
+        "cleanliness": 5,
+        "fulfillment": 1,
         "grace": 1.5,
         "sociability": 0.3,
         "energy": -2,
         "comfort": 1,
-        "focus": -1,
         "charisma": 0.5,
     }
 

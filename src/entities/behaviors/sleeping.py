@@ -31,11 +31,11 @@ class SleepingBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         "energy": 45,
+        "focus": 15,
         "comfort": 5,
         "playfulness": 5,
-        "focus": 5,
-        "curiosity": 2,
-        "fitness": 0.1,
+        "curiosity": 1,
+        "fitness": -0.1,
     }
 
     # Sleep pose options

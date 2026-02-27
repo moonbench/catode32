@@ -24,8 +24,8 @@ class VocalizingBehavior(BaseBehavior):
     NEED_THRESHOLD = 35
 
     COMPLETION_BONUS = {
-        "energy": -5,
-        "serenity": -0.3,
+        "energy": -2,
+        "serenity": -0.1,
     }
 
     @classmethod

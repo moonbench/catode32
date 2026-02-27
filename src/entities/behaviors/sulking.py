@@ -24,8 +24,11 @@ class SulkingBehavior(BaseBehavior):
     COMPLETION_BONUS = {
         "comfort": 2,
         "independence": 5,
-        "curiosity": 4,
+        "curiosity": 0.5,
         "courage": -0.2,
+        "affection": -1,
+        "maturity": -0.2,
+        "dignity": -0.05,
     }
 
     @classmethod

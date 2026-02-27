@@ -33,8 +33,8 @@ class ObservingBehavior(BaseBehavior):
         return random.uniform(10, max(10, 100 - context.curiosity))
 
     COMPLETION_BONUS = {
-        "curiosity": -2,
-        "focus": 2,
+        "curiosity": -0.5,
+        "focus": 1,
     }
 
     def __init__(self, character):
