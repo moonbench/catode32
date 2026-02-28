@@ -76,10 +76,36 @@ CHAR_HEAD_SIDE_AIRPLANE = { # 3/4 Facing left, airplane ears
     ]
 }
 
+
+CHAR_HEAD_SIDE_AIRPLANE2 = { # 3/4 Facing left, airplane ears (neck further backwards)
+    "width": 30,
+    "height": 21,
+    "anchor_x": 21,
+    "anchor_y": 17,
+    "eye_x": 12,
+    "eye_y": 13,
+    "frames": [
+        bytearray([0x00, 0x00, 0x60, 0x00, 0x00, 0x03, 0xa0, 0x7c, 0x00, 0x1c, 0x4f, 0x84, 0x00, 0x60, 0x70, 0x08, 
+0x00, 0x80, 0x00, 0x88, 0x01, 0x00, 0x07, 0x10, 0x02, 0x00, 0x08, 0x10, 0x04, 0x00, 0x04, 0x20, 
+0x04, 0x00, 0x00, 0x20, 0x08, 0x00, 0x00, 0x40, 0x08, 0x00, 0x00, 0x40, 0x08, 0x00, 0x00, 0x40, 
+0x08, 0x00, 0x00, 0x38, 0x10, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 
+0xe0, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x78, 0x00, 0x00, 0x00, 0x06, 0x01, 0xfc, 0x00, 
+0x03, 0xfe, 0x00, 0x00, ])
+    ],
+    "fill_frames": [
+        bytearray([0x00, 0x00, 0x60, 0x00, 0x00, 0x03, 0xa0, 0x7c, 0x00, 0x1f, 0xcf, 0xfc, 0x00, 0x7f, 0xff, 0xf8, 
+0x00, 0xff, 0xff, 0xf8, 0x01, 0xff, 0xff, 0xf0, 0x03, 0xff, 0xff, 0xf0, 0x07, 0xff, 0xff, 0xe0, 
+0x07, 0xff, 0xff, 0xe0, 0x0f, 0xff, 0xff, 0xc0, 0x0f, 0xff, 0xff, 0xc0, 0x0f, 0xff, 0xff, 0xc0, 
+0x0f, 0xff, 0xff, 0xf8, 0x1f, 0xff, 0xff, 0xf0, 0x3f, 0xff, 0xff, 0xe0, 0x3f, 0xff, 0xff, 0xc0, 
+0xff, 0xff, 0xff, 0x80, 0x1f, 0xff, 0xff, 0x00, 0x7f, 0xff, 0xfe, 0x00, 0x07, 0xff, 0xfc, 0x00, 
+0x03, 0xfe, 0x00, 0x00])
+    ]
+}
+
 CHAR_HEAD_SIDE_NEUTRAL2 = { # 3/4 facing left, neutral
     "width": 30,
     "height": 24,
-    "anchor_x": 20,
+    "anchor_x": 19,
     "anchor_y": 23,
     "eye_x": 12,
     "eye_y": 16,
@@ -218,7 +244,7 @@ CHAR_HEAD_SIDE_SLEEP3 = {
 CHAR_HEAD_SIDE_NOM = { # 3/4 facing left, neutral
     "width": 30,
     "height": 24,
-    "anchor_x": 20,
+    "anchor_x": 19,
     "anchor_y": 23,
     "eye_x": 12,
     "eye_y": 16,
@@ -264,10 +290,10 @@ CHAR_HEAD_SIDE_NOM = { # 3/4 facing left, neutral
 CHAR_BODY_SIDE_SITTING = { # 3/4 facing left, sitting
     "width": 22,
     "height": 19,
-    "anchor_x": 10,
+    "anchor_x": 9,
     "anchor_y": 19,
-    "head_x": 9,
-    "head_y": 2,
+    "head_x": 10,
+    "head_y": 1,
     "tail_x": 23,
     "tail_y": 12,
     "frames": [
@@ -843,6 +869,31 @@ CHAR_BODY_SIDE_SITTING_LEGOUT = {
     ]
 }
 
+CHAR_BODY_SIDE_BEGGING = {
+    "width": 27,
+    "height": 19,
+    "anchor_x": 14,
+    "anchor_y": 19,
+    "head_x": 14,
+    "head_y": 1,
+    "tail_x": 27,
+    "tail_y": 12,
+    "frames": [
+        bytearray([0x00, 0x00, 0x10, 0x00, 0x00, 0x80, 0x08, 0x00, 0x00, 0x80, 0x04, 0x00, 0x3c, 0x80, 0x02, 0x00, 
+0x43, 0x80, 0x01, 0x00, 0x80, 0x80, 0x00, 0x80, 0x98, 0x80, 0x00, 0x80, 0x64, 0x40, 0x00, 0x40, 
+0x02, 0x40, 0x00, 0x40, 0x01, 0x40, 0x00, 0x20, 0x00, 0xc0, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 
+0x00, 0x40, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x88, 0x00, 0x20, 
+0x03, 0x08, 0x00, 0x40, 0x04, 0x18, 0x00, 0x40, 0x03, 0xe7, 0xff, 0x80])
+    ],
+    "fill_frames": [
+        bytearray([0x00, 0x03, 0xf0, 0x00, 0x00, 0xff, 0xf8, 0x00, 0x00, 0xff, 0xfc, 0x00, 0x3c, 0xff, 0xfe, 0x00, 
+0x7f, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x80, 0xff, 0xff, 0xff, 0x80, 0x67, 0xff, 0xff, 0xc0, 
+0x03, 0xff, 0xff, 0xc0, 0x01, 0xff, 0xff, 0xe0, 0x00, 0xff, 0xff, 0xe0, 0x00, 0x7f, 0xff, 0xe0, 
+0x00, 0x7f, 0xff, 0xe0, 0x00, 0xff, 0xff, 0xe0, 0x00, 0xff, 0xff, 0xe0, 0x00, 0xff, 0xff, 0xe0, 
+0x03, 0xff, 0xff, 0xc0, 0x07, 0xff, 0xff, 0xc0, 0x03, 0xe7, 0xff, 0x80, ])
+    ],
+}
+
 
 #
 # Eyes
@@ -1085,7 +1136,7 @@ CHAR_TAIL_NEUTRAL = { # Neutral
 CHAR_TAIL_NEUTRAL2 = { # Neutral
     "width": 13,
     "height": 23,
-    "anchor_x": 6,
+    "anchor_x": 7,
     "anchor_y": 19,
     "speed": 4,
     "frames": [
@@ -1125,7 +1176,7 @@ CHAR_TAIL_ANNOYED = {
     "width": 19,
     "height": 8,
     "anchor_x": 1,
-    "anchor_y": 3,
+    "anchor_y": 2,
     "speed": 12,
     "extra_frames": 12,
     "frames": [
@@ -1391,6 +1442,28 @@ POSES = {
             }
         }
     },
+    "begging": {
+        "side": {
+            "arm_up": {
+                "head": CHAR_HEAD_SIDE_NEUTRAL,
+                "body": CHAR_BODY_SIDE_BEGGING,
+                "eyes": CHAR_EYES_SIDE_HAPPY,
+                "tail": CHAR_TAIL_NEUTRAL,
+            },
+            "arm_up2": {
+                "head": CHAR_HEAD_SIDE_NEUTRAL2,
+                "body": CHAR_BODY_SIDE_BEGGING,
+                "eyes": CHAR_EYES_SIDE_DOWN,
+                "tail": CHAR_TAIL_NEUTRAL,
+            },
+            "demanding": {
+                "head": CHAR_HEAD_SIDE_NEUTRAL2,
+                "body": CHAR_BODY_SIDE_BEGGING,
+                "eyes": CHAR_EYES_SIDE_ANGRY,
+                "tail": CHAR_TAIL_ANNOYED,
+            },
+        }
+    },
     "laying": {
         "side": {
             "neutral": {
@@ -1410,6 +1483,7 @@ POSES = {
                 "body": CHAR_BODY_SIDE_LAYING,
                 "eyes": CHAR_EYES_SIDE_ANNOYED,
                 "tail": CHAR_TAIL_ANNOYED,
+                "head_first": True,
             },
             "happy": {
                 "head": CHAR_HEAD_SIDE_NEUTRAL,
@@ -1428,6 +1502,7 @@ POSES = {
                 "body": CHAR_BODY_SIDE_LAYING,
                 "eyes": CHAR_EYES_SIDE_ANGRY,
                 "tail": CHAR_TAIL_ANNOYED,
+                "head_first": True,
             },
             "bored": {
                 "head": CHAR_HEAD_SIDE_SLEEP1,
@@ -1474,7 +1549,7 @@ POSES = {
                 "tail": CHAR_TAIL_NEUTRAL,
             },
             "annoyed": {
-                "head": CHAR_HEAD_SIDE_AIRPLANE,
+                "head": CHAR_HEAD_SIDE_AIRPLANE2,
                 "body": CHAR_BODY_SIDE_STANDING,
                 "eyes": CHAR_EYES_SIDE_ANNOYED,
                 "tail": CHAR_TAIL_ANNOYED,
@@ -1492,7 +1567,7 @@ POSES = {
                 "tail": CHAR_TAIL_NEUTRAL,
             },
             "angry": {
-                "head": CHAR_HEAD_SIDE_AIRPLANE,
+                "head": CHAR_HEAD_SIDE_AIRPLANE2,
                 "body": CHAR_BODY_SIDE_STANDING,
                 "eyes": CHAR_EYES_SIDE_ANGRY,
                 "tail": CHAR_TAIL_ANNOYED,
@@ -1529,7 +1604,7 @@ POSES = {
                 "head_first": True,
             },
             "pounce": {
-                "head": CHAR_HEAD_SIDE_AIRPLANE,
+                "head": CHAR_HEAD_SIDE_AIRPLANE2,
                 "body": CHAR_BODY_SIDE_LEANING,
                 "eyes": CHAR_EYES_SIDE_ANGRY,
                 "tail": CHAR_TAIL_UP_NEUTRAL,
@@ -1554,7 +1629,7 @@ POSES = {
                 "head_first": True,
             },
             "angry": {
-                "head": CHAR_HEAD_SIDE_AIRPLANE,
+                "head": CHAR_HEAD_SIDE_AIRPLANE2,
                 "body": CHAR_BODY_SIDE_KNEADING,
                 "eyes": CHAR_EYES_SIDE_ANGRY,
                 "tail": CHAR_TAIL_UP_NEUTRAL2,

@@ -45,11 +45,21 @@ class TrainingBehavior(BaseBehavior):
     def get_priority(cls, context):
         return random.uniform(3, max(3, context.energy * 0.08))
 
+    BEGGING_POSES = [
+        "begging.side.arm_up",
+        "begging.side.arm_up2",
+        "begging.side.demanding",
+    ]
+
     def __init__(self, character):
         super().__init__(character)
         self.warmup_duration = 2.0
         self.train_duration = 12.0
         self.cooldown_duration = 2.0
+        self._begging_pair = []
+        self._begging_index = 0
+        self._pose_timer = 0.0
+        self._pose_duration = 0.0
 
     def next(self, context):
         if random.random() < 0.5:
@@ -62,6 +72,15 @@ class TrainingBehavior(BaseBehavior):
             return
         super().start(on_complete)
         self._phase = "warming_up"
+        idx = random.randint(0, 2)
+        offset = random.randint(1, 2)
+        self._begging_pair = [
+            self.BEGGING_POSES[idx],
+            self.BEGGING_POSES[(idx + offset) % 3],
+        ]
+        self._begging_index = 0
+        self._pose_timer = 0.0
+        self._pose_duration = random.uniform(1.5, 2.5)
         self._character.set_pose("standing.side.neutral")
 
     def update(self, dt):
@@ -74,14 +93,21 @@ class TrainingBehavior(BaseBehavior):
             if self._phase_timer >= self.warmup_duration:
                 self._phase = "training"
                 self._phase_timer = 0.0
-                self._character.set_pose("standing.side.happy")
+                self._character.set_pose(self._begging_pair[0])
 
         elif self._phase == "training":
+            self._pose_timer += dt
+            if self._pose_timer >= self._pose_duration:
+                self._begging_index = 1 - self._begging_index
+                self._pose_timer = 0.0
+                self._pose_duration = random.uniform(1.5, 2.5)
+                self._character.set_pose(self._begging_pair[self._begging_index])
+
             self._progress = min(1.0, self._phase_timer / self.train_duration)
             if self._phase_timer >= self.train_duration:
                 self._phase = "cooling_down"
                 self._phase_timer = 0.0
-                self._character.set_pose("sitting.side.neutral")
+                self._character.set_pose("sitting.side.looking_down")
 
         elif self._phase == "cooling_down":
             if self._phase_timer >= self.cooldown_duration:
