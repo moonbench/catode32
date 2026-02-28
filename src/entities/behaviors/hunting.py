@@ -39,13 +39,13 @@ class HuntingBehavior(BaseBehavior):
 
         # Slow changers
         "fitness": 0.1,
-        "craftiness": 0.2,
-        "serenity": -0.1,
+        "craftiness": 0.05,
+        "serenity": -0.05,
         "patience": -0.05,
         "charisma": -0.05,
 
         # Extra slow changers
-        "mischievousness": 0.07,
+        "mischievousness": 0.02,
     }
 
     @classmethod

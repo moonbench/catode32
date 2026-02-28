@@ -34,7 +34,7 @@ class ObservingBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "focus": -1,
+        "focus": -0.9,
 
         # Medium changers
         "curiosity": -0.25,

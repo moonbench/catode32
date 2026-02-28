@@ -32,10 +32,11 @@ class MischiefBehavior(BaseBehavior):
         "sociability": -0.2,
         "independence": -0.15,
         "resilience": -0.05,
+        "affection": -0.05,
 
         # Extra slow changers
         "dignity": -0.05,
-        "mischievousness": 0.05,
+        "mischievousness": 0.03,
         "loyalty": -0.2,
     }
 

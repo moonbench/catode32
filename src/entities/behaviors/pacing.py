@@ -41,9 +41,11 @@ class PacingBehavior(BaseBehavior):
         "patience": 0.5,
         "fitness": 0.1,
         "resilience": -0.1,
+        "affection": -0.05,
+        "loyalty": -0.03,
 
         # Extra slow changers
-        "mischievousness": 0.05,
+        "mischievousness": 0.025,
         "dignity": -0.05,
     }
 

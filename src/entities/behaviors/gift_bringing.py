@@ -26,11 +26,11 @@ class GiftBringingBehavior(BaseBehavior):
 
         # Medium changers
         "sociability": 0.5,
-        "affection": 1,
+        "affection": 0.5,
         "independence": -0.15,
 
         # Extra slow changers
-        "loyalty": 0.1,
+        "loyalty": 0.02,
     }
 
     GIFT_OFFSET_X = 30

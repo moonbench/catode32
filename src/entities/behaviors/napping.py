@@ -35,7 +35,7 @@ class NappingBehavior(BaseBehavior):
     COMPLETION_BONUS = {
         # Rapid changers
         "energy": 30,
-        "focus": 8,
+        "focus": 15,
         "playfulness": 3,
 
         # Medium changers

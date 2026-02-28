@@ -36,7 +36,7 @@ class InvestigatingBehavior(BaseBehavior):
         "fulfillment": 0.05,
 
         # Extra slow changers
-        "dignity": 0.05,
+        "dignity": 0.02,
     }
 
     def __init__(self, character):

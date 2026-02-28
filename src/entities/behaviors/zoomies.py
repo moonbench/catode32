@@ -31,6 +31,8 @@ class ZoomiesBehavior(BaseBehavior):
 
         # Slow changers
         "fitness": 0.15,
+        "dignity": -0.03,
+        
     }
 
     @classmethod

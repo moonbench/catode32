@@ -27,10 +27,13 @@ class HidingBehavior(BaseBehavior):
         "independence": -0.05,
         "sociability": -0.2,
         "resilience": -0.02,
+        "affection": -0.05,
 
         # Slow changers
         "patience": 0.75,
         "charisma": -0.2,
+        "craftiness": 0.01,
+        "craftiness": -0.02,
 
         # Extra slow changers
         "courage": -0.3,

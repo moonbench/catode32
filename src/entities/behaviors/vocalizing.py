@@ -31,7 +31,7 @@ class VocalizingBehavior(BaseBehavior):
         "independence": -0.05,
 
         # Slow changers
-        "serenity": -0.1,
+        "serenity": -0.025,
     }
 
     @classmethod
