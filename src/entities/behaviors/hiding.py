@@ -57,7 +57,7 @@ class HidingBehavior(BaseBehavior):
             return
         super().start(on_complete)
         self._phase = "finding_spot"
-        self._character.set_pose("sitting.side.neutral")
+        self._character.set_pose("laying.side.content")
 
     def update(self, dt):
         if not self._active:

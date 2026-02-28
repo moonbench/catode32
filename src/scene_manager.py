@@ -348,9 +348,9 @@ class SceneManager:
         items = [
             SettingItem(
                 "Speed", "time_speed",
-                min_val=0.1,
+                min_val=0.5,
                 max_val=20.0,
-                step=0.25,
+                step=0.5,
                 value=getattr(self.context, 'time_speed', 1.0)
             ),
         ]

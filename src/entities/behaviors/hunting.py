@@ -82,8 +82,8 @@ class HuntingBehavior(BaseBehavior):
         self.catch_duration = 2.0
 
     def next(self, context):
-        # Sigmoid centered at fullness=50: near-zero above 60, rapid rise through 60-50
-        eating_chance = 0.9 / (1 + math.exp(0.2 * (context.fullness - 50)))
+        # Sigmoid centered at fullness=30: near-zero above 40, rapid rise through 40-30
+        eating_chance = 0.9 / (1 + math.exp(0.2 * (context.fullness - 30)))
         roll = random.random()
         if roll < eating_chance:
             from entities.behaviors.eating import EatingBehavior

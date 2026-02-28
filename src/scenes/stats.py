@@ -10,7 +10,7 @@ STATS_CONFIG = [
     {"type": "stat", "name": "Fullness", "key": "fullness",
      "desc": "How full your pet's belly is. Feed treats and meals to keep it satisfied."},
     {"type": "stat", "name": "Energy", "key": "energy",
-     "desc": "Available energy for activities. Rest and sleep to restore."},
+     "desc": "Available energy for activities like training and hunting. Pet will nap and sleep to restore."},
 
     # Physical
     {"type": "header", "text": ""},
@@ -18,11 +18,11 @@ STATS_CONFIG = [
     {"type": "stat", "name": "Comfort", "key": "comfort",
      "desc": "Physical ease with temperature and surroundings. A clean, calm environment helps."},
     {"type": "stat", "name": "Cleanliness", "key": "cleanliness",
-     "desc": "How clean your pet is. Groom and bathe regularly."},
+     "desc": "How clean your pet is. Decreases over time and after some activities. Pet will clean themselves regularly. Groom them to help."},
     {"type": "stat", "name": "Fitness", "key": "fitness",
-     "desc": "Athletic conditioning and endurance. Maintained through regular exercise and play."},
+     "desc": "Athletic conditioning and endurance. Maintained through regular exercise and play. Decreases slowly over time."},
     {"type": "stat", "name": "Grace", "key": "grace",
-     "desc": "Physical elegance and coordination. Develops through active movement and practice."},
+     "desc": "Physical elegance and coordination. Develops through active movement and practice. Decreases with mischief."},
     {"type": "stat", "name": "Appetite", "key": "appetite",
      "desc": "Interest in trying different foods. A varied diet slowly broadens their palate."},
 
