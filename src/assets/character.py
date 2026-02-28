@@ -1459,6 +1459,13 @@ POSES = {
                 "tail": CHAR_TAIL_UP_NEUTRAL,
                 "head_first": True,
             },
+            "pounce": {
+                "head": CHAR_HEAD_SIDE_AIRPLANE,
+                "body": CHAR_BODY_SIDE_LEANING,
+                "eyes": CHAR_EYES_SIDE_ANGRY,
+                "tail": CHAR_TAIL_UP_NEUTRAL,
+                "head_first": True,
+            }
         }
     },
     "kneading": {
