@@ -87,8 +87,8 @@ class HuntingBehavior(BaseBehavior):
         roll = random.random()
         if roll < eating_chance:
             from entities.behaviors.eating import EatingBehavior
-            from assets.items import FISH1
-            return (EatingBehavior, {"food_sprite": FISH1, "food_type": "fish"})
+            from assets.items import MOUSE_TOY
+            return (EatingBehavior, {"food_sprite": MOUSE_TOY, "food_type": "caught_snack"})
         elif roll < eating_chance + 0.25:
             from entities.behaviors.gift_bringing import GiftBringingBehavior
             from assets.items import FISH1
