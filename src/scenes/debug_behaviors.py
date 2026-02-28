@@ -153,9 +153,6 @@ class DebugBehaviorsScene(Scene):
             self._trigger_selected()
 
         if self.input.was_just_pressed('b'):
-            if self.character and self.character.current_behavior:
-                self.character.current_behavior.stop(completed=False)
-                return None
             return ('change_scene', 'normal')
 
         return None

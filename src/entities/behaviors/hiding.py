@@ -57,7 +57,7 @@ class HidingBehavior(BaseBehavior):
             return
         super().start(on_complete)
         self._phase = "finding_spot"
-        self._character.set_pose("laying.side.content")
+        self._character.set_pose("laying.side.bored")
 
     def update(self, dt):
         if not self._active:
@@ -69,14 +69,14 @@ class HidingBehavior(BaseBehavior):
             if self._phase_timer >= self.find_duration:
                 self._phase = "hiding"
                 self._phase_timer = 0.0
-                self._character.set_pose("sitting.side.aloof")
+                self._character.set_pose("laying.side.content")
 
         elif self._phase == "hiding":
             self._progress = min(1.0, self._phase_timer / self.hide_duration)
             if self._phase_timer >= self.hide_duration:
                 self._phase = "emerging"
                 self._phase_timer = 0.0
-                self._character.set_pose("sitting.forward.neutral")
+                self._character.set_pose("laying.side.bored")
 
         elif self._phase == "emerging":
             if self._phase_timer >= self.emerge_duration:
