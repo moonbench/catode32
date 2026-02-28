@@ -47,7 +47,15 @@ class Game:
             self.scene_manager.update(delta_time / 1000.0 * self.context.time_speed)
             
             # Render frame
-            self.scene_manager.draw()
+            try:
+                self.scene_manager.draw()
+            except OSError as e:
+                if e.errno == 19:  # ENODEV - display disconnected
+                    print(f"==! Display disconnected, attempting reinit...")
+                    time.sleep_ms(500)
+                    self.renderer.reinit()
+                else:
+                    raise
             
             # Update timing
             self.last_frame_time = current_time

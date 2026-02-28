@@ -27,6 +27,12 @@ class Renderer:
         self.clear()
         self.show()
     
+    def reinit(self):
+        """Reinitialize the display (e.g. after an I2C disconnect)"""
+        self.display = ssd1306.SSD1306_I2C(config.DISPLAY_WIDTH,
+                                           config.DISPLAY_HEIGHT,
+                                           self.i2c)
+
     def clear(self):
         """Clear the display buffer"""
         self.display.fill(0)
