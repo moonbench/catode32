@@ -10,13 +10,13 @@ VARIANTS = {
     "kiss": {
         "pose": "sitting.side.happy",
         "bubble": "heart",
-        "duration": 2.5,
+        "duration": 6.5,
         "stats": {"affection": 10, "fulfillment": 2, "comfort": 2},
     },
     "pets": {
         "pose": "sitting_silly.side.happy",
         "bubble": "heart",
-        "duration": 2.0,
+        "duration": 6.0,
         "stats": {"affection": 5, "fulfillment": 1, "comfort": 1},
     },
 }

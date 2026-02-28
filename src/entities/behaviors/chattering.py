@@ -71,7 +71,7 @@ class ChatteringBehavior(BaseBehavior):
 
         cycle = 1.2
         on_duration = 0.8
-        base_x = char_x + (36 if mirror else -36)
+        base_x = char_x + (16 if mirror else -36)
         base_y = char_y - 10
 
         for i in range(3):

@@ -49,7 +49,7 @@ class InvestigatingBehavior(BaseBehavior):
 
         # Phase durations
         self.approach_duration = 1.0
-        self.sniff_duration = 3.0
+        self.sniff_duration = 13.0
         self.react_duration = 1.5
 
     def start(self, on_complete=None):

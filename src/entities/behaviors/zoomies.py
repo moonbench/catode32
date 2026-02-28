@@ -97,7 +97,7 @@ class ZoomiesBehavior(BaseBehavior):
             if self._phase_timer >= self.windup_duration:
                 self._phase = "zooming"
                 self._phase_timer = 0.0
-                self._character.set_pose("walking.side.determined")
+                self._character.set_pose("running.side.neutral")
 
         elif self._phase == "zooming":
             context = self._character.context

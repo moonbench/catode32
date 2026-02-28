@@ -10,13 +10,13 @@ VARIANTS = {
     "psst": {
         "pose": "sitting.forward.aloof",
         "bubble": "question",
-        "duration": 1.5,
+        "duration": 4.5,
         "stats": {"curiosity": 2},
     },
     "point_bird": {
         "pose": "sitting.side.aloof",
         "bubble": "exclaim",
-        "duration": 2.0,
+        "duration": 5.0,
         "stats": {"curiosity": 3},
     },
 }
@@ -47,6 +47,14 @@ class AttentionBehavior(BaseBehavior):
 
     def get_completion_bonus(self, context):
         return dict(VARIANTS[self._variant].get("stats", {}))
+
+    def next(self, context):
+        if self._variant == "point_bird" and context:
+            from entities.behaviors.chattering import ChatteringBehavior
+            chance = 0.25 * ((context.playfulness + context.curiosity) / 100)
+            if random.random() < chance:
+                return ChatteringBehavior
+        return None
 
     def start(self, variant=None, on_complete=None):
         if self._active:

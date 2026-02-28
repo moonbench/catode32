@@ -46,7 +46,7 @@ class SulkingBehavior(BaseBehavior):
 
     @classmethod
     def get_priority(cls, context):
-        return random.uniform(20, max(20, (context.fulfillment + context.affection) * 0.5))
+        return random.uniform(10, max(20, (context.fulfillment + context.affection) * 0.45))
 
     def __init__(self, character):
         super().__init__(character)
