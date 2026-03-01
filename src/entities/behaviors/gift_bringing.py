@@ -71,7 +71,7 @@ class GiftBringingBehavior(BaseBehavior):
             if self._phase_timer >= self.approach_duration:
                 self._phase = "presenting"
                 self._phase_timer = 0.0
-                self._character.set_pose("sitting.forward.happy")
+                self._character.set_pose("yelling.forward.lift_and_yell")
 
         elif self._phase == "presenting":
             self._progress = min(1.0, self._phase_timer / self.present_duration)
