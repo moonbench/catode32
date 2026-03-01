@@ -102,6 +102,7 @@ class VocalizingBehavior(BaseBehavior):
         self._phase = "winding_up"
         self._character.set_pose("sitting.forward.neutral")
         self._vocalize_icon = self._pick_icon(self._character.context)
+        self.vocalize_duration = random.randint(6, 15)
 
     def update(self, dt):
         if not self._active:
@@ -113,7 +114,7 @@ class VocalizingBehavior(BaseBehavior):
             if self._phase_timer >= self.windup_duration:
                 self._phase = "vocalizing"
                 self._phase_timer = 0.0
-                self._character.set_pose("sitting.forward.happy")
+                self._character.set_pose("yelling.forward.lift_and_yell")
 
         elif self._phase == "vocalizing":
             self._progress = min(1.0, self._phase_timer / self.vocalize_duration)
