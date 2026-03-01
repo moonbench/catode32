@@ -1,7 +1,9 @@
 """Being groomed behavior - player brushes or combs the pet."""
 
+import math
 import random
 from entities.behaviors.base import BaseBehavior
+from assets.items import HAIR_BRUSH
 from ui import draw_bubble
 
 
@@ -46,7 +48,7 @@ class BeingGroomedBehavior(BaseBehavior):
     def __init__(self, character):
         super().__init__(character)
         self.accept_duration = 1.5
-        self.enjoy_duration = 8.0
+        self.enjoy_duration = 16.0
         self.satisfy_duration = 1.5
 
     def next(self, context):
@@ -60,7 +62,8 @@ class BeingGroomedBehavior(BaseBehavior):
             return
         super().start(on_complete)
         self._phase = "accepting"
-        self._character.set_pose("sitting.side.neutral")
+        self._character.set_pose("leaning_forward.side.neutral")
+        self.enjoy_duration = random.randint(10, 30)
 
     def update(self, dt):
         if not self._active:
@@ -72,7 +75,7 @@ class BeingGroomedBehavior(BaseBehavior):
             if self._phase_timer >= self.accept_duration:
                 self._phase = "enjoying"
                 self._phase_timer = 0.0
-                self._character.set_pose("sitting.forward.aloof")
+                self._character.set_pose("laying.side.bliss")
 
         elif self._phase == "enjoying":
             self._progress = min(1.0, self._phase_timer / self.enjoy_duration)
@@ -87,5 +90,26 @@ class BeingGroomedBehavior(BaseBehavior):
                 self.stop(completed=True)
 
     def draw(self, renderer, char_x, char_y, mirror=False):
-        if self._active and self._phase == "enjoying":
-            draw_bubble(renderer, "heart", char_x, char_y, self._progress, mirror)
+        if not self._active or self._phase != "enjoying":
+            return
+
+        bubble_start = self.enjoy_duration / 2
+        bubble_end = bubble_start + 5.0
+        if bubble_start <= self._phase_timer < bubble_end:
+            bubble_progress = (self._phase_timer - bubble_start) / 5.0
+            draw_bubble(renderer, "heart", char_x, char_y, bubble_progress, mirror)
+
+        # Brush arc: triangle-wave sweep, parabolic arc lift at the peak
+        sweep_speed = 0.7  # sweeps per second
+        raw = (self._phase_timer * sweep_speed) % 2.0
+        t = raw if raw <= 1.0 else 2.0 - raw  # 0 -> 1 -> 0
+
+        arc_span = 32        # horizontal travel in pixels
+        base_height = 30     # pixels above char_y
+        arc_lift = 6         # extra rise at arc midpoint
+
+        offset = int(arc_span * (t - 0.5))
+        brush_x = int(char_x + offset if mirror else char_x - offset) - HAIR_BRUSH["width"] // 2
+        brush_y = int(char_y - base_height + arc_lift * math.sin(math.pi * t))
+
+        renderer.draw_sprite_obj(HAIR_BRUSH, brush_x, brush_y, mirror_h=mirror)

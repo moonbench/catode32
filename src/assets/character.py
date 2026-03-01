@@ -1576,7 +1576,13 @@ POSES = {
                 "body": CHAR_BODY_SIDE_LAYING,
                 "eyes": CHAR_EYES_FRONT_NEUTRAL,
                 "tail": CHAR_TAIL_NEUTRAL,
-            }
+            },
+            "bliss": {
+                "head": CHAR_HEAD_SIDE_SLEEP1,
+                "body": CHAR_BODY_SIDE_LAYING,
+                "eyes": CHAR_EYES_FRONT_HAPPY,
+                "tail": CHAR_TAIL_NEUTRAL,
+            },
         },
     },
     "sleeping": {
