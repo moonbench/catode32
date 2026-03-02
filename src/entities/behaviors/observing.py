@@ -75,7 +75,7 @@ class ObservingBehavior(BaseBehavior):
             if self._phase_timer >= self.notice_duration:
                 self._phase = "watching"
                 self._phase_timer = 0.0
-                self._character.set_pose("leaning_forward.side.angry")
+                self._character.set_pose("leaning_forward.side.neutral")
 
         elif self._phase == "watching":
             self._progress = min(1.0, self._phase_timer / self.watch_duration)

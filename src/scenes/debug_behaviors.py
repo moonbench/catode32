@@ -56,6 +56,7 @@ BEHAVIOR_ENTRIES = [
     ("hiding",       "Hiding",       HidingBehavior,       {}),
     ("training",     "Training",     TrainingBehavior,     {}),
     ("playing",      "Playing",      PlayingBehavior,      {}),
+    ("playing_ball", "Playing (ball)",PlayingBehavior,     {"variant": "ball"}),
     ("affection",    "Affection",    AffectionBehavior,    {"variant": "pets"}),
     ("attention",    "Attention",    AttentionBehavior,    {"variant": "psst"}),
     ("eating",       "Eating",       EatingBehavior,       None),  # special case

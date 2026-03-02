@@ -153,13 +153,16 @@ class CharacterEntity(Entity):
         if self.current_behavior and self.context:
             self.current_behavior.update(dt)
 
-    def draw(self, renderer, mirror=False, camera_offset=0):
+    def draw(self, renderer, mirror=False, camera_offset=0, eye_frame=None):
         """Draw the character at its position.
 
         Args:
             renderer: the renderer to draw with
             mirror: if True, flip the character horizontally
             camera_offset: horizontal camera offset to subtract from x position
+            eye_frame: optional int to override the eye animation frame index.
+                       If None, checks the current behavior's eye_frame_override,
+                       then falls back to the normal animation frame.
         """
         if not self.visible or self._pose is None:
             return
@@ -181,7 +184,13 @@ class CharacterEntity(Entity):
         head_y = head_root_y - head["anchor_y"]
 
         eyes = pose["eyes"]
-        eye_frame = self._get_frame_index(eyes, self.anim_eyes)
+        eye_frame_idx = self._get_frame_index(eyes, self.anim_eyes)
+        if eye_frame is None and self.current_behavior is not None:
+            beh_override = self.current_behavior.eye_frame_override
+            if beh_override is not None:
+                eye_frame_idx = beh_override
+        elif eye_frame is not None:
+            eye_frame_idx = eye_frame
         eye_x = head_x + self._get_point(head, "eye_x", head_frame, mirror) - self._get_anchor_x(eyes, mirror)
         eye_y = head_y + self._get_point(head, "eye_y", head_frame) - eyes["anchor_y"]
 
@@ -202,7 +211,7 @@ class CharacterEntity(Entity):
             renderer.draw_sprite_obj(body, body_x, body_y, frame=body_frame, mirror_h=mirror)
             renderer.draw_sprite_obj(head, head_x, head_y, frame=head_frame, mirror_h=mirror)
 
-        renderer.draw_sprite_obj(eyes, eye_x, eye_y, frame=eye_frame, mirror_h=mirror)
+        renderer.draw_sprite_obj(eyes, eye_x, eye_y, frame=eye_frame_idx, mirror_h=mirror)
 
         # Draw active behavior's visual effects (bubbles, etc.)
         if self.current_behavior:

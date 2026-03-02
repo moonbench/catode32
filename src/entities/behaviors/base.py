@@ -173,6 +173,16 @@ class BaseBehavior:
             return
         self._phase_timer += dt
 
+    @property
+    def eye_frame_override(self):
+        """Optional eye frame override for character rendering.
+
+        Return None to use the sprite's normal animation frame.
+        Return an int to force a specific eye frame index.
+        Override in subclasses that need to control eye direction (e.g., eye tracking).
+        """
+        return None
+
     def draw(self, renderer, char_x, char_y, mirror=False):
         """Draw behavior visual effects (bubbles, particles, etc.).
 
