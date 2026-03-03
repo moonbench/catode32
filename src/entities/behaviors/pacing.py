@@ -84,16 +84,14 @@ class PacingBehavior(BaseBehavior):
         sociability = getattr(context, 'sociability', 50) / 100.0
         p_vocalize = (1.0 - maturity) * sociability
         if random.random() < p_vocalize:
-            from entities.behaviors.vocalizing import VocalizingBehavior
-            return VocalizingBehavior
+            return 'vocalizing'
 
         # Sulk if emotionally depleted and luck doesn't favor recovery
         if (getattr(context, 'fulfillment', 50) < 40 and
                 getattr(context, 'resilience', 50) < 50 and
                 getattr(context, 'affection', 50) < 40 and
                 random.random() < 0.5):
-            from entities.behaviors.sulking import SulkingBehavior
-            return SulkingBehavior
+            return 'sulking'
 
         # Act out if the pet is immature, devious, and still has energy for it
         if (getattr(context, 'mischievousness', 50) > 30 and
@@ -102,8 +100,7 @@ class PacingBehavior(BaseBehavior):
                 getattr(context, 'playfulness', 50) > 60 and
                 getattr(context, 'energy', 50) > 50 and
                 random.random() < 0.5):
-            from entities.behaviors.mischief import MischiefBehavior
-            return MischiefBehavior
+            return 'mischief'
 
         # Retreat if scared, depleted, and out of coping resources
         if (getattr(context, 'courage', 50) < 60 and
@@ -111,10 +108,9 @@ class PacingBehavior(BaseBehavior):
                 getattr(context, 'resilience', 50) < 60 and
                 getattr(context, 'energy', 50) < 60 and
                 random.random() < 0.4):
-            from entities.behaviors.hiding import HidingBehavior
-            return HidingBehavior
+            return 'hiding'
 
-        return None  # -> idle
+        return None
 
     def _apply_direction(self):
         """Sync character mirror state with current pace direction."""

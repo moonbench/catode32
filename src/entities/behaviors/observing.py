@@ -51,12 +51,10 @@ class ObservingBehavior(BaseBehavior):
         # Chatter if playful enough — stat-gated and probabilistic
         if context and getattr(context, 'playfulness', 0) > 60:
             if random.random() < 0.4:
-                from entities.behaviors.chattering import ChatteringBehavior
-                return ChatteringBehavior
+                return 'chattering'
         if random.random() < 0.3:
-            from entities.behaviors.investigating import InvestigatingBehavior
-            return InvestigatingBehavior
-        return None  # -> idle
+            return 'investigating'
+        return None
 
     def start(self, on_complete=None):
         if self._active:

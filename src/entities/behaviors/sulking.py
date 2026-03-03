@@ -57,8 +57,7 @@ class SulkingBehavior(BaseBehavior):
         self._bubble_timer = None
 
     def next(self, context):
-        from entities.behaviors.pacing import PacingBehavior
-        return PacingBehavior  # -> back to pacing
+        return 'pacing'
 
     def start(self, on_complete=None):
         if self._active:

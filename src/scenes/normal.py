@@ -2,12 +2,6 @@ import config
 from scene import Scene
 from environment import Environment, LAYER_FOREGROUND
 from entities.character import CharacterEntity
-from entities.behaviors.eating import EatingBehavior
-from entities.behaviors.affection import AffectionBehavior
-from entities.behaviors.attention import AttentionBehavior
-from entities.behaviors.playing import PlayingBehavior
-from entities.behaviors.being_groomed import BeingGroomedBehavior
-from entities.behaviors.training import TrainingBehavior
 from menu import Menu, MenuItem
 from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS, SNACK_ICONS, FISH_ICON, CHICKEN_ICON, MEAL_ICON
 from assets.furniture import BOOKSHELF
@@ -86,10 +80,14 @@ class NormalScene(Scene):
         super().unload()
 
     def enter(self):
-        pass
+        # Restart idle if behavior was stopped when scene was cached
+        if self.character and not self.character.current_behavior.active:
+            self.character.behavior_manager.trigger('idle')
 
     def exit(self):
-        pass
+        # Stop active behavior so its module is unloaded while scene is cached
+        if self.character:
+            self.character.behavior_manager.stop_current()
 
     def update(self, dt):
         # Update character
@@ -199,18 +197,18 @@ class NormalScene(Scene):
         action_type = action[0]
 
         if action_type == "meal":
-            self.character.trigger(EatingBehavior, FOOD_BOWL, action[1])
+            self.character.trigger('eating', food_sprite=FOOD_BOWL, food_type=action[1])
         elif action_type == "kiss":
-            self.character.trigger(AffectionBehavior, variant="kiss")
+            self.character.trigger('affection', variant='kiss')
         elif action_type == "pets":
-            self.character.trigger(AffectionBehavior, variant="pets")
+            self.character.trigger('affection', variant='pets')
         elif action_type == "psst":
-            self.character.trigger(AttentionBehavior, variant="psst")
+            self.character.trigger('attention', variant='psst')
         elif action_type == "snack":
-            self.character.trigger(EatingBehavior, TREAT_PILE, "treat")
+            self.character.trigger('eating', food_sprite=TREAT_PILE, food_type='treat')
         elif action_type == "toy":
-            self.character.trigger(PlayingBehavior, variant=action[1]["variant"])
+            self.character.trigger('playing', variant=action[1]['variant'])
         elif action_type == "groom":
-            self.character.trigger(BeingGroomedBehavior)
+            self.character.trigger('being_groomed')
         elif action_type == "train":
-            self.character.trigger(TrainingBehavior)
+            self.character.trigger('training')

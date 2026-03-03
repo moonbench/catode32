@@ -43,15 +43,22 @@ class DebugMemoryScene(Scene):
         self.lines.append(f" Used: {alloc}")
         self.lines.append(f" Total: {total}")
         self.lines.append("")
+        print("Memory:")
+        print(f" Free: {free}")
+        print(f" Used: {alloc}")
+        print(f" Total: {total}")
 
         # List loaded modules
         self.lines.append("Modules loaded:")
+        print("Modules loaded:")
         modules = sorted(sys.modules.keys())
         for mod in modules:
             self.lines.append(f" {mod}")
+            print(f"- {mod}")
 
     def update(self, dt):
-        self._build_lines()
+        # self._build_lines()
+        return
 
     def draw(self):
         """Draw the memory info"""

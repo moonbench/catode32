@@ -98,14 +98,12 @@ class HuntingBehavior(BaseBehavior):
         eating_chance = 0.9 / (1 + math.exp(0.2 * (context.fullness - 30)))
         roll = random.random()
         if roll < eating_chance:
-            from entities.behaviors.eating import EatingBehavior
             from assets.items import MOUSE_TOY
-            return (EatingBehavior, {"food_sprite": MOUSE_TOY, "food_type": "caught_snack"})
+            return ('eating', {"food_sprite": MOUSE_TOY, "food_type": "caught_snack"})
         elif roll < eating_chance + 0.25:
-            from entities.behaviors.gift_bringing import GiftBringingBehavior
             from assets.items import FISH1
-            return (GiftBringingBehavior, {"gift_sprite": FISH1})
-        return None  # -> idle (prey escaped)
+            return ('gift_bringing', {"gift_sprite": FISH1})
+        return None
 
     def _get_scene_bounds(self):
         context = self._character.context

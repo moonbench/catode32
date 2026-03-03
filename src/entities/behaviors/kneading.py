@@ -42,10 +42,8 @@ class KneadingBehavior(BaseBehavior):
 
     def next(self, context):
         if random.random() < 0.5:
-            from entities.behaviors.stretching import StretchingBehavior
-            return StretchingBehavior
-        from entities.behaviors.lounging import LoungeingBehavior
-        return LoungeingBehavior
+            return 'stretching'
+        return 'lounging'
 
     def start(self, on_complete=None):
         if self._active:

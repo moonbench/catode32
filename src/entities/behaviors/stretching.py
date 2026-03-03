@@ -34,9 +34,8 @@ class StretchingBehavior(BaseBehavior):
 
     def next(self, context):
         if random.random() < 0.2:
-            from entities.behaviors.kneading import KneadingBehavior
-            return KneadingBehavior
-        return None  # -> idle
+            return 'kneading'
+        return None
 
     def __init__(self, character):
         """Initialize the stretching behavior.

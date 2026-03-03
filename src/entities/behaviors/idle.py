@@ -1,6 +1,5 @@
 """Idle behavior - default state when no other behavior is active."""
 
-import math
 import random
 from entities.behaviors.base import BaseBehavior
 
@@ -81,62 +80,8 @@ class IdleBehavior(BaseBehavior):
             self.stop(completed=True)
 
     def next(self, context):
-        """Scan auto-triggerable behaviors and return the highest priority one.
-
-        Returns a behavior class if something should trigger, or None to restart idle.
-        """
-        if not context:
-            return None
-
-        from entities.behaviors.meandering import MeanderingBehavior
-        if MeanderingBehavior.can_trigger(context) and random.random() <= 0.2:
-            print("Randomly meandering....")
-            return MeanderingBehavior
-        
-        # High serenity makes the pet content to keep resting
-        # At serenity=25: ~0%, serenity=50: ~17%, serenity=75: ~33%, serenity=100: ~50%
-        if context.serenity > 25 and random.random() < (context.serenity - 25) / 150:
-            print(f"Staying idle (serenity: {context.serenity:.1f})")
-            return None
-
-        from entities.behaviors.sleeping import SleepingBehavior
-        from entities.behaviors.napping import NappingBehavior
-        from entities.behaviors.playing import PlayingBehavior
-        from entities.behaviors.zoomies import ZoomiesBehavior
-        from entities.behaviors.vocalizing import VocalizingBehavior
-        from entities.behaviors.hunting import HuntingBehavior
-        from entities.behaviors.investigating import InvestigatingBehavior
-        from entities.behaviors.observing import ObservingBehavior
-        from entities.behaviors.stretching import StretchingBehavior
-        from entities.behaviors.self_grooming import SelfGroomingBehavior
-        from entities.behaviors.pacing import PacingBehavior
-        from entities.behaviors.lounging import LoungeingBehavior
-        from entities.behaviors.startled import StartledBehavior
-
-        print("--------------------------------------------------------------------------------")
-        context.debug_print_stats()
-
-        candidates = []
-        for cls in (SleepingBehavior, NappingBehavior, ZoomiesBehavior, VocalizingBehavior, HuntingBehavior, PlayingBehavior, InvestigatingBehavior, ObservingBehavior, SelfGroomingBehavior, StretchingBehavior, PacingBehavior, LoungeingBehavior, StartledBehavior):
-            if cls.can_trigger(context):
-                candidates.append(cls)
-
-        if not candidates:
-            return None
-
-        priorities = {cls: cls.get_priority(context) for cls in candidates}
-
-        for cls in sorted(candidates, key=lambda c: priorities[c]):
-            print(f">> {cls.NAME}: priority={priorities[cls]}")
-        print("--------------------------------------------------------------------------------")
-
-        binned = {cls: math.ceil(p / 10) * 10 for cls, p in priorities.items()}
-        best_bin = min(binned.values())
-        top = [cls for cls, b in binned.items() if b == best_bin]
-        chosen = random.choice(top)
-        if len(top) > 1:
-            print(f">> Selected: {chosen.NAME} (from bin tied at {best_bin}: {[c.NAME for c in top]})")
-        return chosen
+        # Auto-selection is handled by BehaviorManager._auto_select().
+        return None
 
     def _pick_new_pose(self):
         """Select a new random idle pose and reset the timer."""

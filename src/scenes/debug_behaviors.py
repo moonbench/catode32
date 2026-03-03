@@ -2,65 +2,39 @@
 
 from scene import Scene
 from entities.character import CharacterEntity
-from entities.behaviors.idle import IdleBehavior
-from entities.behaviors.sleeping import SleepingBehavior
-from entities.behaviors.napping import NappingBehavior
-from entities.behaviors.stretching import StretchingBehavior
-from entities.behaviors.kneading import KneadingBehavior
-from entities.behaviors.lounging import LoungeingBehavior
-from entities.behaviors.investigating import InvestigatingBehavior
-from entities.behaviors.observing import ObservingBehavior
-from entities.behaviors.chattering import ChatteringBehavior
-from entities.behaviors.zoomies import ZoomiesBehavior
-from entities.behaviors.vocalizing import VocalizingBehavior
-from entities.behaviors.self_grooming import SelfGroomingBehavior
-from entities.behaviors.being_groomed import BeingGroomedBehavior
-from entities.behaviors.hunting import HuntingBehavior
-from entities.behaviors.gift_bringing import GiftBringingBehavior
-from entities.behaviors.pacing import PacingBehavior
-from entities.behaviors.sulking import SulkingBehavior
-from entities.behaviors.mischief import MischiefBehavior
-from entities.behaviors.hiding import HidingBehavior
-from entities.behaviors.training import TrainingBehavior
-from entities.behaviors.playing import PlayingBehavior
-from entities.behaviors.affection import AffectionBehavior
-from entities.behaviors.attention import AttentionBehavior
-from entities.behaviors.eating import EatingBehavior
-from entities.behaviors.startled import StartledBehavior
-from entities.behaviors.meandering import MeanderingBehavior
 from ui import Scrollbar
 
 
-# All triggerable behaviors with their display name and any start() kwargs
+# All triggerable behaviors: (entry_key, display_name, trigger_name, start_kwargs)
 BEHAVIOR_ENTRIES = [
-    ("idle",         "Idle",         IdleBehavior,         {}),
-    ("sleeping",     "Sleeping",     SleepingBehavior,     {}),
-    ("napping",      "Napping",      NappingBehavior,      {}),
-    ("stretching",   "Stretching",   StretchingBehavior,   {}),
-    ("kneading",     "Kneading",     KneadingBehavior,     {}),
-    ("lounging",     "Lounging",     LoungeingBehavior,    {}),
-    ("investigating","Investigating", InvestigatingBehavior,{}),
-    ("startled",     "Startled",     StartledBehavior,     {}),
-    ("observing",    "Observing",    ObservingBehavior,    {}),
-    ("chattering",   "Chattering",   ChatteringBehavior,   {}),
-    ("zoomies",      "Zoomies",      ZoomiesBehavior,      {}),
-    ("vocalizing",   "Vocalizing",   VocalizingBehavior,   {}),
-    ("self_grooming","Self Grooming",SelfGroomingBehavior, {}),
-    ("being_groomed","Being Groomed",BeingGroomedBehavior, {}),
-    ("hunting",      "Hunting",      HuntingBehavior,      {}),
-    ("gift_bringing","Gift Bringing",GiftBringingBehavior, {}),
-    ("pacing",       "Pacing",       PacingBehavior,       {}),
-    ("meandering",   "Meandering",   MeanderingBehavior,   {}),
-    ("sulking",      "Sulking",      SulkingBehavior,      {}),
-    ("mischief",     "Mischief",     MischiefBehavior,     {}),
-    ("hiding",       "Hiding",       HidingBehavior,       {}),
-    ("training",     "Training",     TrainingBehavior,     {}),
-    ("playing",      "Playing",      PlayingBehavior,      {}),
-    ("playing_ball", "Playing (ball)",PlayingBehavior,     {"variant": "ball"}),
-    ("affection",    "Affection",    AffectionBehavior,    {"variant": "pets"}),
-    ("attention",    "Attention",    AttentionBehavior,    {"variant": "psst"}),
-    ("eating",       "Eating",       EatingBehavior,       None),  # special case
-    ("eating_treat", "Eating (treat)", EatingBehavior,     None),  # special case
+    ("idle",         "Idle",           "idle",          {}),
+    ("sleeping",     "Sleeping",       "sleeping",      {}),
+    ("napping",      "Napping",        "napping",       {}),
+    ("stretching",   "Stretching",     "stretching",    {}),
+    ("kneading",     "Kneading",       "kneading",      {}),
+    ("lounging",     "Lounging",       "lounging",      {}),
+    ("investigating","Investigating",  "investigating",  {}),
+    ("startled",     "Startled",       "startled",      {}),
+    ("observing",    "Observing",      "observing",     {}),
+    ("chattering",   "Chattering",     "chattering",    {}),
+    ("zoomies",      "Zoomies",        "zoomies",       {}),
+    ("vocalizing",   "Vocalizing",     "vocalizing",    {}),
+    ("self_grooming","Self Grooming",  "self_grooming", {}),
+    ("being_groomed","Being Groomed",  "being_groomed", {}),
+    ("hunting",      "Hunting",        "hunting",       {}),
+    ("gift_bringing","Gift Bringing",  "gift_bringing", {}),
+    ("pacing",       "Pacing",         "pacing",        {}),
+    ("meandering",   "Meandering",     "meandering",    {}),
+    ("sulking",      "Sulking",        "sulking",       {}),
+    ("mischief",     "Mischief",       "mischief",      {}),
+    ("hiding",       "Hiding",         "hiding",        {}),
+    ("training",     "Training",       "training",      {}),
+    ("playing",      "Playing",        "playing",       {}),
+    ("playing_ball", "Playing (ball)", "playing",       {"variant": "ball"}),
+    ("affection",    "Affection",      "affection",     {"variant": "pets"}),
+    ("attention",    "Attention",      "attention",     {"variant": "psst"}),
+    ("eating",       "Eating",         "eating",        None),  # special case
+    ("eating_treat", "Eating (treat)", "eating",        None),  # special case
 ]
 
 
@@ -91,8 +65,8 @@ class DebugBehaviorsScene(Scene):
         self.scroll_offset = 0
 
     def exit(self):
-        if self.character and self.character.current_behavior:
-            self.character.current_behavior.stop(completed=False)
+        if self.character:
+            self.character.behavior_manager.stop_current()
 
     def update(self, dt):
         if self.character:
@@ -115,11 +89,12 @@ class DebugBehaviorsScene(Scene):
         visible_end = min(self.scroll_offset + self.LINES_VISIBLE, len(BEHAVIOR_ENTRIES))
 
         for i in range(self.scroll_offset, visible_end):
-            key, name, cls, _ = BEHAVIOR_ENTRIES[i]
+            key, name, trigger_name, _ = BEHAVIOR_ENTRIES[i]
             line_y = y + (i - self.scroll_offset) * self.LINE_HEIGHT
             is_selected = i == self.selected_index
 
-            suffix = "*" if (self.character and isinstance(self.character.current_behavior, cls)) else ""
+            current = self.character.current_behavior if self.character else None
+            suffix = "*" if (current and current.NAME == trigger_name) else ""
 
             if is_selected:
                 self.renderer.draw_rect(0, line_y, 128, self.LINE_HEIGHT, filled=True, color=1)
@@ -163,20 +138,17 @@ class DebugBehaviorsScene(Scene):
         if not self.character:
             return
 
-        key, name, cls, kwargs = BEHAVIOR_ENTRIES[self.selected_index]
+        key, name, trigger_name, kwargs = BEHAVIOR_ENTRIES[self.selected_index]
 
         if key in ("eating", "eating_treat"):
             self._trigger_eating(key)
         else:
-            self.character.trigger(cls, **(kwargs or {}))
+            self.character.trigger(trigger_name, **(kwargs or {}))
 
     def _trigger_eating(self, key="eating"):
         """Trigger eating behavior with the appropriate food."""
-        try:
-            from assets.items import FOOD_BOWL, TREAT1
-            if key == "eating_treat":
-                self.character.trigger(EatingBehavior, TREAT1, "treat")
-            else:
-                self.character.trigger(EatingBehavior, FOOD_BOWL, "chicken")
-        except ImportError:
-            pass
+        from assets.items import FOOD_BOWL, TREAT1
+        if key == "eating_treat":
+            self.character.trigger('eating', food_sprite=TREAT1, food_type="treat")
+        else:
+            self.character.trigger('eating', food_sprite=FOOD_BOWL, food_type="chicken")

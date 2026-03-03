@@ -149,17 +149,16 @@ class BaseBehavior:
 
             next_result = self.next(context)
             if isinstance(next_result, tuple):
-                next_cls, next_kwargs = next_result
+                next_name, next_kwargs = next_result
             else:
-                next_cls, next_kwargs = next_result, {}
+                next_name, next_kwargs = next_result, {}
 
-            if next_cls is None:
-                from entities.behaviors.idle import IdleBehavior
-                next_cls = IdleBehavior
+            self._character.behavior_manager.advance(next_name, next_kwargs, context)
 
-            next_behavior = next_cls(self._character)
-            self._character.current_behavior = next_behavior
-            next_behavior.start(**next_kwargs)
+        # Unload own module now that the next behavior is started.
+        # Safe: the call stack keeps the code object alive until this function returns.
+        if completed:
+            self._character.behavior_manager._unload_module(type(self).__module__)
 
     def update(self, dt):
         """Update behavior state each frame.

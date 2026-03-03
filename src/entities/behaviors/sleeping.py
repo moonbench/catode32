@@ -52,8 +52,7 @@ class SleepingBehavior(BaseBehavior):
     ]
 
     def next(self, context):
-        from entities.behaviors.stretching import StretchingBehavior
-        return StretchingBehavior
+        return 'stretching'
 
     def get_completion_bonus(self, context):
         bonus = dict(super().get_completion_bonus(context))

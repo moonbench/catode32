@@ -103,6 +103,5 @@ class InvestigatingBehavior(BaseBehavior):
 
     def next(self, context):
         if random.random() < 0.3:
-            from entities.behaviors.observing import ObservingBehavior
-            return ObservingBehavior
-        return None  # -> idle
+            return 'observing'
+        return None

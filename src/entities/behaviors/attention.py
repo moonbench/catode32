@@ -54,10 +54,9 @@ class AttentionBehavior(BaseBehavior):
 
     def next(self, context):
         if self._variant == "point_bird" and context:
-            from entities.behaviors.chattering import ChatteringBehavior
             chance = 0.25 * ((context.playfulness + context.curiosity) / 100)
             if random.random() < chance:
-                return ChatteringBehavior
+                return 'chattering'
         return None
 
     def start(self, variant=None, on_complete=None):

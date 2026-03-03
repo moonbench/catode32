@@ -63,9 +63,8 @@ class TrainingBehavior(BaseBehavior):
 
     def next(self, context):
         if random.random() < 0.5:
-            from entities.behaviors.playing import PlayingBehavior
-            return PlayingBehavior
-        return None  # -> idle
+            return 'playing'
+        return None
 
     def start(self, on_complete=None):
         if self._active:

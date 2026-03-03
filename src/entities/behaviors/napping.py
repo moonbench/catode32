@@ -67,8 +67,7 @@ class NappingBehavior(BaseBehavior):
         self._nap_pose = None
 
     def next(self, context):
-        from entities.behaviors.stretching import StretchingBehavior
-        return StretchingBehavior
+        return 'stretching'
 
     def start(self, on_complete=None):
         if self._active:

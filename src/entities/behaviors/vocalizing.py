@@ -91,9 +91,8 @@ class VocalizingBehavior(BaseBehavior):
 
     def next(self, context):
         if random.random() < 0.2:
-            from entities.behaviors.zoomies import ZoomiesBehavior
-            return ZoomiesBehavior
-        return None  # -> idle
+            return 'zoomies'
+        return None
 
     def start(self, on_complete=None):
         if self._active:

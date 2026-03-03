@@ -122,6 +122,5 @@ class StartledBehavior(BaseBehavior):
         # Higher courage and curiosity both push toward investigating
         p_investigate = (context.curiosity + context.courage) / 200.0
         if random.random() < p_investigate:
-            from entities.behaviors.investigating import InvestigatingBehavior
-            return InvestigatingBehavior
-        return None  # -> idle
+            return 'investigating'
+        return None

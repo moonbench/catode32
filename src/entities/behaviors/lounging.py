@@ -67,14 +67,15 @@ class LoungeingBehavior(BaseBehavior):
         self._lounge_pose = random.choice(self.LOUNGE_POSES)
 
     def next(self, context):
-        from entities.behaviors.kneading import KneadingBehavior
-        from entities.behaviors.napping import NappingBehavior
-
-        if random.random() * 100 < KneadingBehavior.get_priority(context):
-            return KneadingBehavior
-        if random.random() * 100 < NappingBehavior.get_priority(context):
-            return NappingBehavior
-        return None  # -> idle
+        # Inline KneadingBehavior.get_priority: random.uniform(20, max(20, 100 - serenity))
+        kneading_p = random.uniform(20, max(20, 100 - context.serenity))
+        if random.random() * 100 < kneading_p:
+            return 'kneading'
+        # Inline NappingBehavior.get_priority: random.uniform(10, max(10, energy * 2))
+        napping_p = random.uniform(10, max(10, context.energy * 2))
+        if random.random() * 100 < napping_p:
+            return 'napping'
+        return None
 
     def start(self, on_complete=None):
         if self._active:

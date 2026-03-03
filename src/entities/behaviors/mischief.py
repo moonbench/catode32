@@ -65,10 +65,8 @@ class MischiefBehavior(BaseBehavior):
                 getattr(context, 'resilience', 50) < 40 and
                 getattr(context, 'energy', 50) < 40 and
                 random.random() < 0.4):
-            from entities.behaviors.hiding import HidingBehavior
-            return HidingBehavior
-        from entities.behaviors.pacing import PacingBehavior
-        return PacingBehavior  # -> back to pacing
+            return 'hiding'
+        return 'pacing'
 
     def _apply_direction(self):
         """Sync character mirror state with current run direction."""

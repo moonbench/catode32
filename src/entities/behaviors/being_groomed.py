@@ -52,10 +52,10 @@ class BeingGroomedBehavior(BaseBehavior):
         self.satisfy_duration = 1.5
 
     def next(self, context):
-        from entities.behaviors.self_grooming import SelfGroomingBehavior
-        if SelfGroomingBehavior.can_trigger(context) and random.random() < 0.4:
-            return SelfGroomingBehavior
-        return None  # -> idle
+        # Inline SelfGroomingBehavior.can_trigger: cleanliness < 70 and energy > 30
+        if context.cleanliness < 70 and context.energy > 30 and random.random() < 0.4:
+            return 'self_grooming'
+        return None
 
     def start(self, on_complete=None):
         if self._active:

@@ -48,16 +48,19 @@ class CharacterEntity(Entity):
         # The currently active behavior instance (always set when context exists)
         self.current_behavior = None
 
+        # Behavior manager — handles lazy loading and module lifecycle
+        self.behavior_manager = None
+
         # Burst sparkle effects (played via play_bursts())
         self._burst_sprite = None
         self._burst_timer = 0.0
         self._bursts = []
         if context:
-            from entities.behaviors.idle import IdleBehavior
-            self.current_behavior = IdleBehavior(self)
-            self.current_behavior.start()
+            from behavior_manager import BehaviorManager
+            self.behavior_manager = BehaviorManager(self)
+            self.behavior_manager.trigger('idle')
 
-    def trigger(self, behavior_cls, *args, **kwargs):
+    def trigger(self, name, **kwargs):
         """Interrupt the current behavior and start a player-initiated one.
 
         The interrupted behavior's stop(completed=False) fires so scene
@@ -65,15 +68,11 @@ class CharacterEntity(Entity):
         behavior then owns the transition chain from that point.
 
         Args:
-            behavior_cls: The behavior class to instantiate and start.
-            *args, **kwargs: Passed through to the behavior's start() method.
+            name: The behavior name string (key in BehaviorManager._REGISTRY).
+            **kwargs: Passed through to the behavior's start() method.
         """
-        if self.current_behavior and self.current_behavior.active:
-            self.current_behavior.stop(completed=False)
-
-        behavior = behavior_cls(self)
-        self.current_behavior = behavior
-        behavior.start(*args, **kwargs)
+        if self.behavior_manager:
+            self.behavior_manager.trigger(name, **kwargs)
 
     def set_pose(self, pose_name):
         """Change the character's pose using dot notation (e.g., 'sitting.side.neutral')."""

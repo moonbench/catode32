@@ -38,8 +38,7 @@ class ChatteringBehavior(BaseBehavior):
         self.settle_duration = 1.0
 
     def next(self, context):
-        from entities.behaviors.observing import ObservingBehavior
-        return ObservingBehavior
+        return 'observing'
 
     def start(self, on_complete=None):
         if self._active:

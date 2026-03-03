@@ -67,9 +67,8 @@ class ZoomiesBehavior(BaseBehavior):
 
     def next(self, context):
         if random.random() < 0.2:
-            from entities.behaviors.vocalizing import VocalizingBehavior
-            return VocalizingBehavior
-        return None  # -> idle (exhausted)
+            return 'vocalizing'
+        return None
 
     def _apply_direction(self):
         """Sync character mirror state with current zoom direction."""
