@@ -1,5 +1,5 @@
 class Scene:
-    ASSETS_TO_KEEP = []
+    MODULES_TO_KEEP = []
 
     def __init__(self, context, renderer, input_handler):
         self.context = context

@@ -10,7 +10,7 @@ from assets.items import FISH1, BOX_SMALL_1, PLANTER_SMALL_1, FOOD_BOWL, TREAT_P
 
 
 class NormalScene(Scene):
-    ASSETS_TO_KEEP = ['assets.furniture', 'assets.nature']
+    MODULES_TO_KEEP = ['assets.furniture', 'assets.nature']
 
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)

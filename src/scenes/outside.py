@@ -13,7 +13,7 @@ from sky import SkyRenderer
 class OutsideScene(Scene):
     """Outside scene with parallax scrolling environment"""
 
-    ASSETS_TO_KEEP = ['assets.nature']
+    MODULES_TO_KEEP = ['assets.nature', 'sky', 'entities.butterfly']
 
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)

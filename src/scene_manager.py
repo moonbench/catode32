@@ -12,9 +12,9 @@ from assets.icons import WRENCH_ICON, SUN_ICON, HOUSE_ICON, STATS_ICON, MINIGAME
 class SceneManager:
     """Manages scene loading, unloading, and transitions"""
 
-    # Asset modules always kept in memory regardless of which scenes are active.
+    # Modules always kept in memory regardless of which scenes are active.
     # These are imported by core modules (ui, scene_manager, entity behaviors).
-    _GLOBAL_ASSETS_TO_KEEP = {
+    _GLOBAL_MODULES_TO_KEEP = {
         'assets.icons',
         'assets.effects',
         'assets.character',
@@ -49,6 +49,11 @@ class SceneManager:
             duration=config.TRANSITION_DURATION
         )
         self.pending_scene_class = None
+
+        # Accumulates MODULES_TO_KEEP from every scene ever instantiated,
+        # so we know which modules are "scene-specific" and can purge them
+        # when no cached scene claims them.
+        self._known_scene_modules = set()
 
     def _build_scene_registry(self):
         """Build registry of scene names to (module_path, class_name) tuples.
@@ -149,6 +154,9 @@ class SceneManager:
             )
             self.current_scene.load()
 
+            # Track which modules this scene declares as scene-specific
+            self._known_scene_modules.update(scene_class.MODULES_TO_KEEP)
+
             # Add to cache and access order
             self.scene_cache[scene_name] = self.current_scene
             self.scene_access_order.append(scene_name)
@@ -178,20 +186,22 @@ class SceneManager:
             evicted = True
 
         if evicted:
-            self._purge_unused_asset_modules()
+            self._purge_unused_scene_modules()
 
-    def _purge_unused_asset_modules(self):
-        """Remove asset modules from sys.modules not needed by any cached scene."""
-        keep = set(self._GLOBAL_ASSETS_TO_KEEP)
+    def _purge_unused_scene_modules(self):
+        """Remove scene-specific modules from sys.modules not needed by any cached scene."""
+        keep = set(self._GLOBAL_MODULES_TO_KEEP)
         for scene in self.scene_cache.values():
-            keep.update(type(scene).ASSETS_TO_KEEP)
+            keep.update(type(scene).MODULES_TO_KEEP)
 
         to_remove = [
             mod for mod in sys.modules
-            if mod.startswith('assets.') and mod not in keep
+            if mod not in keep and (
+                mod.startswith('assets.') or mod in self._known_scene_modules
+            )
         ]
         for mod_name in to_remove:
-            print(f"Purging asset module: {mod_name}")
+            print(f"Purging module: {mod_name}")
             del sys.modules[mod_name]
         if to_remove:
             gc.collect()

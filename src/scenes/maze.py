@@ -12,7 +12,7 @@ from ui import Popup
 class MazeScene(Scene):
     """Maze minigame - guide cat to fish through a maze"""
 
-    ASSETS_TO_KEEP = ['assets.minigame_character']
+    MODULES_TO_KEEP = ['assets.minigame_character']
 
     # Grid constants
     GRID_WIDTH = 25

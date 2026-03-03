@@ -12,7 +12,7 @@ from ui import Popup
 class TicTacToeScene(Scene):
     """Tic-tac-toe minigame against the pet"""
 
-    ASSETS_TO_KEEP = ['assets.minigame_assets']
+    MODULES_TO_KEEP = ['assets.minigame_assets']
 
     # Board layout
     CELL_SIZE = 19

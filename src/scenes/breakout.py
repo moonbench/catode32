@@ -11,7 +11,7 @@ from assets.minigame_assets import PAW_SMALL1
 class BreakoutScene(Scene):
     """Breakout/brick breaker minigame"""
 
-    ASSETS_TO_KEEP = ['assets.minigame_character', 'assets.minigame_assets']
+    MODULES_TO_KEEP = ['assets.minigame_character', 'assets.minigame_assets']
 
     # Brick dimensions
     BRICK_WIDTH = 6
