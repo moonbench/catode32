@@ -31,9 +31,6 @@ class HidingBehavior(BaseBehavior):
 
         # Slow changers
         "patience": 0.05,
-        "charisma": -0.2,
-        "craftiness": 0.01,
-        "craftiness": -0.02,
 
         # Extra slow changers
         "courage": -0.3,

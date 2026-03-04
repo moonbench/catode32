@@ -34,7 +34,6 @@ class PacingBehavior(BaseBehavior):
         "affection": -0.5,
 
         # Slow changers
-        "charisma": -0.25,
         "patience": 0.1,
         "fitness": 0.1,
         "resilience": -0.1,
@@ -92,7 +91,6 @@ class PacingBehavior(BaseBehavior):
 
         # Act out if the pet is immature, devious, and still has energy for it
         if (getattr(context, 'mischievousness', 50) > 30 and
-                getattr(context, 'craftiness', 50) > 40 and
                 getattr(context, 'maturity', 50) < 40 and
                 getattr(context, 'playfulness', 50) > 60 and
                 getattr(context, 'energy', 50) > 50 and

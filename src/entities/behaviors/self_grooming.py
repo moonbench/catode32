@@ -26,9 +26,6 @@ class SelfGroomingBehavior(BaseBehavior):
         "fulfillment": 0.25,
         "sociability": 0.1,
         "independence": 0.075,
-
-        # Slow changers
-        "charisma": 0.15,
     }
 
     @classmethod

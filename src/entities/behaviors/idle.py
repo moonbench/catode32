@@ -42,8 +42,6 @@ class IdleBehavior(BaseBehavior):
 
         # Slow changers
         "fitness": -0.03,
-        "appetite": -0.01,
-        "craftiness": -0.01,
         "serenity": 0.01,
         "patience": -0.04,
     }

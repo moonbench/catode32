@@ -39,7 +39,6 @@ class TrainingBehavior(BaseBehavior):
         "loyalty": 0.7,
         "dignity": 0.5,
         "mischievousness": -0.05,
-        "craftiness": 0.1,
     }
 
     @classmethod

@@ -14,7 +14,6 @@ class GameContext:
         self.curiosity = 50         # Drive to explore/investigate
         self.independence = 50      # How happy it is to be solo (versus needing attention more)
         self.sociability = 50       # How interested the pet is in interacting
-        self.routine = 50           # How comfortable the pet is with established patterns
         self.intelligence = 50      # Problem-solving, learning new skills/tricks
         self.resilience = 50        # Ability to bounce back from stress
         self.maturity = 50          # Behavioral sophistication
@@ -22,10 +21,7 @@ class GameContext:
 
         # Even slower changing stats (change on more of a monthly basis)
         self.fitness = 50           # Athleticism
-        self.appetite = 50          # Interest in food variety (different than fullness)
         self.patience = 50          # Tolerance for waiting, being groomed
-        self.charisma = 50          # Attractiveness to other pets
-        self.craftiness = 50        # Cleverness in getting what they want
         self.serenity = 50          # Inner peace. Makes them less likely to be stressed
 
         # Slowest changing stats (basically traits with little or no change)
@@ -63,17 +59,17 @@ class GameContext:
     
     def debug_print_stats(self):
         print("Stats:")
-        print("Fullness:    %6.4f, Energy:       %6.4f, Comfort:         %6.4f" % (self.fullness, self.energy, self.comfort))
-        print("Playfulness: %6.4f, Focus:        %6.4f" % (self.playfulness, self.focus))
+        print("Fullness:     %6.4f, Energy:       %6.4f, Comfort:         %6.4f" % (self.fullness, self.energy, self.comfort))
+        print("Playfulness:  %6.4f, Focus:        %6.4f" % (self.playfulness, self.focus))
         print("----------------------------------------------------------------")
-        print("Health:      %6.4f, Fulfillment:  %6.4f, Cleanliness:     %6.4f" % (self.health, self.fulfillment, self.cleanliness))
-        print("Curiosity:   %6.4f, Independence: %6.4f, Sociability:     %6.4f" % (self.curiosity, self.independence, self.sociability))
-        print("Routine:     %6.4f, Intelligence: %6.4f, Resilience:      %6.4f" % (self.routine, self.intelligence, self.resilience))
-        print("Maturity:    %6.4f, Affection:    %6.4f" % (self.maturity, self.affection))
+        print("Health:       %6.4f, Fulfillment:  %6.4f, Cleanliness:     %6.4f" % (self.health, self.fulfillment, self.cleanliness))
+        print("Curiosity:    %6.4f, Independence: %6.4f, Sociability:     %6.4f" % (self.curiosity, self.independence, self.sociability))
+        print("Intelligence: %6.4f, Resilience:   %6.4f" % (self.intelligence, self.resilience))
+        print("Maturity:     %6.4f, Affection:    %6.4f" % (self.maturity, self.affection))
         print("----------------------------------------------------------------")
-        print("Fitness:     %6.4f, Appetite:     %6.4f, Patience:        %6.4f" % (self.fitness, self.appetite, self.patience))
-        print("Charisma:    %6.4f, Craftiness:   %6.4f, Serenity:        %6.4f" % (self.charisma, self.craftiness, self.serenity))
+        print("Fitness:      %6.4f, Patience:     %6.4f" % (self.fitness, self.patience))
+        print("Serenity:     %6.4f" % (self.serenity))
         print("----------------------------------------------------------------")
-        print("Courage:     %6.4f, Loyalty:      %6.4f, Mischievousness: %6.4f" % (self.courage, self.loyalty, self.mischievousness))
-        print("Dignity:     %6.4f" % (self.dignity))
+        print("Courage:      %6.4f, Loyalty:      %6.4f, Mischievousness: %6.4f" % (self.courage, self.loyalty, self.mischievousness))
+        print("Dignity:      %6.4f" % (self.dignity))
         print("----------------------------------------------------------------")

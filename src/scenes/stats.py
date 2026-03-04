@@ -21,8 +21,6 @@ STATS_CONFIG = [
      "desc": "How clean your pet is. Decreases over time and after some activities. Pet will clean themselves regularly. Groom them to help."},
     {"type": "stat", "name": "Fitness", "key": "fitness",
      "desc": "Athletic conditioning and endurance. Maintained through regular exercise and play. Decreases slowly over time."},
-    {"type": "stat", "name": "Appetite", "key": "appetite",
-     "desc": "Interest in trying different foods. A varied diet slowly broadens their palate."},
 
     # Mental
     {"type": "header", "text": ""},
@@ -57,8 +55,6 @@ STATS_CONFIG = [
      "desc": "Eagerness to interact with others. Social play and positive encounters keep this high."},
     {"type": "stat", "name": "Independence", "key": "independence",
      "desc": "Comfort with being alone. A confident pet is happy to entertain itself."},
-    {"type": "stat", "name": "Charisma", "key": "charisma",
-     "desc": "Appeal to other pets. Influenced by health, confidence, and social experience."},
 
     # Character
     {"type": "header", "text": ""},
@@ -73,10 +69,6 @@ STATS_CONFIG = [
      "desc": "How your pet carries themselves. A dignified pet bounces back from embarrassment."},
     {"type": "stat", "name": "Maturity", "key": "maturity",
      "desc": "Behavioral sophistication developed over time. Grows naturally with experience."},
-    {"type": "stat", "name": "Craftiness", "key": "craftiness",
-     "desc": "Cleverness in getting what they want. A crafty pet is hard to say no to."},
-    {"type": "stat", "name": "Routine", "key": "routine",
-     "desc": "Comfort with familiar patterns and schedules. Consistency in care helps this flourish."},
 ]
 
 
