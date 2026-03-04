@@ -306,10 +306,10 @@ class BehaviorManager:
     # ------------------------------------------------------------------
 
     def priority_sleeping(self, ctx):
-        return random.uniform(5, max(5, ctx.energy * 1.5))
+        return random.uniform(ctx.energy * 0.25, max(ctx.energy * 0.25, ctx.energy * 2))
 
     def priority_napping(self, ctx):
-        return random.uniform(10, max(10, ctx.energy * 2))
+        return random.uniform(ctx.energy * 0.3, max(ctx.energy * 0.5, ctx.energy * 2.5))
 
     def priority_zoomies(self, ctx):
         return random.uniform(100 - ctx.playfulness * 1.5, ctx.playfulness * 1.5)
@@ -344,7 +344,7 @@ class BehaviorManager:
         return random.uniform(10, max(10, 100 - ctx.curiosity))
 
     def priority_self_grooming(self, ctx):
-        return random.uniform(0, ctx.cleanliness * 0.5) + random.uniform(0, max(10, ctx.energy * 0.5))
+        return random.uniform(0, ctx.cleanliness * 1.5) + random.uniform(0, max(10, ctx.energy * 0.25))
 
     def priority_stretching(self, ctx):
         return random.uniform(10, max(10, ctx.comfort))

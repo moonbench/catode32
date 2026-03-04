@@ -10,7 +10,7 @@ from ui import draw_bubble
 class BeingGroomedBehavior(BaseBehavior):
     """Player-initiated grooming session — brushing, combing, or tidying up.
 
-    Builds cleanliness, affection, patience, grace, and sociability.
+    Builds cleanliness, affection, patience, and sociability.
     Softens independence, focus, and mischievousness while it's happening.
     May chain into self grooming if the pet is still feeling a little scruffy.
 
@@ -24,12 +24,13 @@ class BeingGroomedBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "focus": -3.3,
+        "focus": -1,
+        "playfulness": 2,
+        "comfort": 2,
 
         # Medium changers
-        "cleanliness": 20,
+        "cleanliness": 15,
         "affection": 2,
-        "grace": 1,
         "sociability": 2,
         "independence": -1,
         "maturity": -0.1,

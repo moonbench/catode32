@@ -18,7 +18,6 @@ class GameContext:
         self.intelligence = 50      # Problem-solving, learning new skills/tricks
         self.resilience = 50        # Ability to bounce back from stress
         self.maturity = 50          # Behavioral sophistication
-        self.grace = 50             # Physical elegance, landing movements well, etc
         self.affection = 50         # How much the pet feels loved
 
         # Even slower changing stats (change on more of a monthly basis)
@@ -70,7 +69,7 @@ class GameContext:
         print("Health:      %6.4f, Fulfillment:  %6.4f, Cleanliness:     %6.4f" % (self.health, self.fulfillment, self.cleanliness))
         print("Curiosity:   %6.4f, Independence: %6.4f, Sociability:     %6.4f" % (self.curiosity, self.independence, self.sociability))
         print("Routine:     %6.4f, Intelligence: %6.4f, Resilience:      %6.4f" % (self.routine, self.intelligence, self.resilience))
-        print("Maturity:    %6.4f, Grace:        %6.4f, Affection:       %6.4f" % (self.maturity, self.grace, self.affection))
+        print("Maturity:    %6.4f, Affection:    %6.4f" % (self.maturity, self.affection))
         print("----------------------------------------------------------------")
         print("Fitness:     %6.4f, Appetite:     %6.4f, Patience:        %6.4f" % (self.fitness, self.appetite, self.patience))
         print("Charisma:    %6.4f, Craftiness:   %6.4f, Serenity:        %6.4f" % (self.charisma, self.craftiness, self.serenity))

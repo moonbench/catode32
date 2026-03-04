@@ -45,7 +45,6 @@ class StartledBehavior(BaseBehavior):
 
         # Medium changers
         "curiosity": 1,
-        "grace": -1,
 
         # Extra slow changers
         "dignity": -0.05,

@@ -18,7 +18,6 @@ STATS = [
     ("Intelligence",  "intelligence"),
     ("Resilience",    "resilience"),
     ("Maturity",      "maturity"),
-    ("Grace",         "grace"),
     ("Affection",     "affection"),
     ("Fitness",       "fitness"),
     ("Appetite",      "appetite"),

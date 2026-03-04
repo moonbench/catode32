@@ -22,7 +22,7 @@ class GiftBringingBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "playfulness": 3,
+        "playfulness": 1.5,
 
         # Medium changers
         "sociability": 0.5,

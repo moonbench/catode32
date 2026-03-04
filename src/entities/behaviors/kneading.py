@@ -20,11 +20,11 @@ class KneadingBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "comfort": 2,
-        "focus": -0.5,
+        "comfort": 1,
+        "focus": -0.25,
 
         # Medium changers
-        "cleanliness": -1,
+        "cleanliness": -0.1,
 
         # Slow changers
         "serenity": 0.3,

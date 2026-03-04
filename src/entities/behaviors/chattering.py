@@ -20,7 +20,7 @@ class ChatteringBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "playfulness": 3,
+        "playfulness": 1.2,
 
         # Medium changers
         "curiosity": -0.1,

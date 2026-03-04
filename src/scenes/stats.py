@@ -21,8 +21,6 @@ STATS_CONFIG = [
      "desc": "How clean your pet is. Decreases over time and after some activities. Pet will clean themselves regularly. Groom them to help."},
     {"type": "stat", "name": "Fitness", "key": "fitness",
      "desc": "Athletic conditioning and endurance. Maintained through regular exercise and play. Decreases slowly over time."},
-    {"type": "stat", "name": "Grace", "key": "grace",
-     "desc": "Physical elegance and coordination. Develops through active movement and practice. Decreases with mischief."},
     {"type": "stat", "name": "Appetite", "key": "appetite",
      "desc": "Interest in trying different foods. A varied diet slowly broadens their palate."},
 

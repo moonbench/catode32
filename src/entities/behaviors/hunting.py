@@ -30,14 +30,14 @@ class HuntingBehavior(BaseBehavior):
         "fullness": -2,
         "energy": -3,
         "comfort": -1,
-        "playfulness": -2,
+        "playfulness": -0.75,
 
         # Medium changers
         "fulfillment": 0.25,
         "independence": 0.15,
-        "intelligence": 0.25,
-        "resilience": 0.5,
-        "cleanliness": -2,
+        "intelligence": 0.05,
+        "resilience": 0.1,
+        "cleanliness": -0.5,
 
         # Slow changers
         "fitness": 0.1,

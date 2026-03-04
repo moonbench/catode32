@@ -22,11 +22,10 @@ class ZoomiesBehavior(BaseBehavior):
         # Rapid changers
         "energy": -4,
         "fullness": -2,
-        "playfulness": -3,
+        "playfulness": -0.3,
 
         # Medium changers
-        "cleanliness": -1.5,
-        "grace": -0.5,
+        "cleanliness": -0.5,
         "maturity": -0.1,
 
         # Slow changers

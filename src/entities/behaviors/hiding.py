@@ -21,7 +21,7 @@ class HidingBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "comfort": 1,
+        "comfort": 0.2,
 
         # Medium changers
         "independence": -0.05,
@@ -30,7 +30,7 @@ class HidingBehavior(BaseBehavior):
         "affection": -0.1,
 
         # Slow changers
-        "patience": 0.75,
+        "patience": 0.05,
         "charisma": -0.2,
         "craftiness": 0.01,
         "craftiness": -0.02,

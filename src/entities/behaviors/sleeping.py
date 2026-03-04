@@ -32,9 +32,9 @@ class SleepingBehavior(BaseBehavior):
     COMPLETION_BONUS = {
         # Rapid changers
         "energy": 45,
-        "focus": 35,
-        "comfort": 5,
-        "playfulness": 5,
+        "focus": 10,
+        "comfort": 3,
+        "playfulness": 7,
         "fullness": -5,
 
         # Medium changers

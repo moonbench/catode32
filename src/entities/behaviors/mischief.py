@@ -24,11 +24,10 @@ class MischiefBehavior(BaseBehavior):
         # Rapid changers
         "energy": -2,
         "focus": -1,
-        "playfulness": -2,
+        "playfulness": -0.25,
 
         # Medium changers
         "maturity": -1.5,
-        "grace": -0.5,
         "sociability": -0.2,
         "independence": -0.15,
         "resilience": -0.05,

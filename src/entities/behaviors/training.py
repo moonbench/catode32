@@ -21,7 +21,8 @@ class TrainingBehavior(BaseBehavior):
     COMPLETION_BONUS = {
         # Rapid changers
         "energy": -5,
-        "focus": -3,
+        "focus": -2,
+        "playfulness": 2,
 
         # Medium changers
         "intelligence": 1,
@@ -32,7 +33,7 @@ class TrainingBehavior(BaseBehavior):
 
         # Slow changers
         "fitness": 0.5,
-        "patience": 1,
+        "patience": 0.5,
 
         # Extra slow changers
         "loyalty": 0.7,

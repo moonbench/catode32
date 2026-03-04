@@ -29,7 +29,7 @@ class StretchingBehavior(BaseBehavior):
         return random.uniform(10, max(10, context.comfort))
 
     COMPLETION_BONUS = {
-        "comfort": 5,
+        "comfort": 2,
     }
 
     def next(self, context):

@@ -19,11 +19,11 @@ class SelfGroomingBehavior(BaseBehavior):
         # Rapid changers
         "energy": -1,
         "comfort": 1,
+        "focus": -0.5,
 
         # Medium changers
-        "cleanliness": 5,
+        "cleanliness": 15,
         "fulfillment": 0.25,
-        "grace": 0.2,
         "sociability": 0.1,
         "independence": 0.075,
 

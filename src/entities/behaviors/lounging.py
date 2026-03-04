@@ -30,7 +30,7 @@ class LoungeingBehavior(BaseBehavior):
 
         # Slow changers
         "fitness": -0.2,
-        "patience": 1,
+        "patience": 0.2,
     }
 
     @classmethod
@@ -67,12 +67,12 @@ class LoungeingBehavior(BaseBehavior):
         self._lounge_pose = random.choice(self.LOUNGE_POSES)
 
     def next(self, context):
-        # Inline KneadingBehavior.get_priority: random.uniform(20, max(20, 100 - serenity))
-        kneading_p = random.uniform(20, max(20, 100 - context.serenity))
+        # Low serenity -> more likely to knead (restless, not fully settled)
+        kneading_p = (100 - context.serenity) * 0.35  # 0% at serenity=100, 15% at serenity=0
         if random.random() * 100 < kneading_p:
             return 'kneading'
-        # Inline NappingBehavior.get_priority: random.uniform(10, max(10, energy * 2))
-        napping_p = random.uniform(10, max(10, context.energy * 2))
+        # Low energy -> more likely to nap
+        napping_p = (100 - context.energy) * 0.45  # 0% at energy=100, 15% at energy=0
         if random.random() * 100 < napping_p:
             return 'napping'
         return None
