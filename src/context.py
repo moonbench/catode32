@@ -12,10 +12,8 @@ class GameContext:
         self.fulfillment = 50       # Feeling like the pet has purpose and things to do
         self.cleanliness = 50       # How clean the pet and its environment are
         self.curiosity = 50         # Drive to explore/investigate
-        self.independence = 50      # How happy it is to be solo (versus needing attention more)
         self.sociability = 50       # How interested the pet is in interacting
         self.intelligence = 50      # Problem-solving, learning new skills/tricks
-        self.resilience = 50        # Ability to bounce back from stress
         self.maturity = 50          # Behavioral sophistication
         self.affection = 50         # How much the pet feels loved
 
@@ -28,7 +26,6 @@ class GameContext:
         self.courage = 50           # Reaction to new/scary situations
         self.loyalty = 50           # Attachment strength
         self.mischievousness = 50   # Tendency towards trouble
-        self.dignity = 50           # How they carry themselves, respond to embarrassment
 
         # Inventory for menu testing
         self.inventory = {
@@ -63,13 +60,12 @@ class GameContext:
         print("Playfulness:  %6.4f, Focus:        %6.4f" % (self.playfulness, self.focus))
         print("----------------------------------------------------------------")
         print("Health:       %6.4f, Fulfillment:  %6.4f, Cleanliness:     %6.4f" % (self.health, self.fulfillment, self.cleanliness))
-        print("Curiosity:    %6.4f, Independence: %6.4f, Sociability:     %6.4f" % (self.curiosity, self.independence, self.sociability))
-        print("Intelligence: %6.4f, Resilience:   %6.4f" % (self.intelligence, self.resilience))
+        print("Curiosity:    %6.4f, Sociability:     %6.4f" % (self.curiosity, self.sociability))
+        print("Intelligence: %6.4f" % (self.intelligence))
         print("Maturity:     %6.4f, Affection:    %6.4f" % (self.maturity, self.affection))
         print("----------------------------------------------------------------")
         print("Fitness:      %6.4f, Patience:     %6.4f" % (self.fitness, self.patience))
         print("Serenity:     %6.4f" % (self.serenity))
         print("----------------------------------------------------------------")
         print("Courage:      %6.4f, Loyalty:      %6.4f, Mischievousness: %6.4f" % (self.courage, self.loyalty, self.mischievousness))
-        print("Dignity:      %6.4f" % (self.dignity))
         print("----------------------------------------------------------------")

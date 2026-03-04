@@ -36,7 +36,7 @@ class NappingBehavior(BaseBehavior):
         # Rapid changers
         "energy": 30,
         "focus": 5,
-        "playfulness": 3,
+        "playfulness": 13,
         "fullness": -1,
 
         # Medium changers

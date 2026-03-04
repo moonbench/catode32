@@ -41,8 +41,6 @@ STATS_CONFIG = [
      "desc": "How loved your pet feels. Pet, cuddle, and spend quality time together."},
     {"type": "stat", "name": "Fulfillment", "key": "fulfillment",
      "desc": "Life satisfaction. A happy, varied routine improves this."},
-    {"type": "stat", "name": "Resilience", "key": "resilience",
-     "desc": "Ability to bounce back from stress. A stable, supportive environment builds this."},
     {"type": "stat", "name": "Serenity", "key": "serenity",
      "desc": "Inner peace and calm. A low-stress routine keeps this steady over time."},
     {"type": "stat", "name": "Patience", "key": "patience",
@@ -53,8 +51,6 @@ STATS_CONFIG = [
     {"type": "header", "text": "Social"},
     {"type": "stat", "name": "Sociability", "key": "sociability",
      "desc": "Eagerness to interact with others. Social play and positive encounters keep this high."},
-    {"type": "stat", "name": "Independence", "key": "independence",
-     "desc": "Comfort with being alone. A confident pet is happy to entertain itself."},
 
     # Character
     {"type": "header", "text": ""},
@@ -65,8 +61,6 @@ STATS_CONFIG = [
      "desc": "Strength of attachment and devotion. Grows through consistent care and affection."},
     {"type": "stat", "name": "Mischievousness", "key": "mischievousness",
      "desc": "Tendency toward playful trouble. High energy and boredom can bring this out."},
-    {"type": "stat", "name": "Dignity", "key": "dignity",
-     "desc": "How your pet carries themselves. A dignified pet bounces back from embarrassment."},
     {"type": "stat", "name": "Maturity", "key": "maturity",
      "desc": "Behavioral sophistication developed over time. Grows naturally with experience."},
 ]

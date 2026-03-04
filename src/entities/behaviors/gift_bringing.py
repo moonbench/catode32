@@ -21,13 +21,9 @@ class GiftBringingBehavior(BaseBehavior):
     NAME = "gift_bringing"
 
     COMPLETION_BONUS = {
-        # Rapid changers
-        "playfulness": 1.5,
-
         # Medium changers
         "sociability": 0.5,
         "affection": 0.5,
-        "independence": -0.15,
 
         # Extra slow changers
         "loyalty": 0.02,

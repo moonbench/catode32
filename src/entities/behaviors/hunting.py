@@ -9,7 +9,7 @@ class HuntingBehavior(BaseBehavior):
     """Pet enters full predator mode — stalking, darting, pouncing, catching.
 
     Requires the full suite of hunter stats to be high: energy, playfulness,
-    focus, curiosity, and independence all need to be elevated at once. When
+    focus, and curiosity all need to be elevated at once. When
     everything lines up the pet spots something irresistible and goes for it.
 
     On completion the hunt either pays off (chains to eating with caught prey)
@@ -34,9 +34,7 @@ class HuntingBehavior(BaseBehavior):
 
         # Medium changers
         "fulfillment": 0.25,
-        "independence": 0.15,
         "intelligence": 0.05,
-        "resilience": 0.1,
         "cleanliness": -0.5,
 
         # Slow changers

@@ -12,10 +12,8 @@ STATS = [
     ("Fulfillment",   "fulfillment"),
     ("Cleanliness",   "cleanliness"),
     ("Curiosity",     "curiosity"),
-    ("Independence",  "independence"),
     ("Sociability",   "sociability"),
     ("Intelligence",  "intelligence"),
-    ("Resilience",    "resilience"),
     ("Maturity",      "maturity"),
     ("Affection",     "affection"),
     ("Fitness",       "fitness"),
@@ -24,7 +22,6 @@ STATS = [
     ("Courage",       "courage"),
     ("Loyalty",       "loyalty"),
     ("Mischief",      "mischievousness"),
-    ("Dignity",       "dignity"),
 ]
 
 

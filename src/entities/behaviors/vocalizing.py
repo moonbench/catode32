@@ -27,9 +27,6 @@ class VocalizingBehavior(BaseBehavior):
         # Rapid changers
         "energy": -1,
 
-        # Medium changers
-        "independence": -0.05,
-
         # Slow changers
         "serenity": -0.025,
     }

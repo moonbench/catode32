@@ -11,7 +11,7 @@ class BeingGroomedBehavior(BaseBehavior):
     """Player-initiated grooming session — brushing, combing, or tidying up.
 
     Builds cleanliness, affection, patience, and sociability.
-    Softens independence, focus, and mischievousness while it's happening.
+    Softens focus and mischievousness while it's happening.
     May chain into self grooming if the pet is still feeling a little scruffy.
 
     Phases:
@@ -32,7 +32,6 @@ class BeingGroomedBehavior(BaseBehavior):
         "cleanliness": 15,
         "affection": 2,
         "sociability": 2,
-        "independence": -1,
         "maturity": -0.1,
 
         # Slow changers

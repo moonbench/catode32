@@ -34,7 +34,7 @@ class SleepingBehavior(BaseBehavior):
         "energy": 45,
         "focus": 10,
         "comfort": 3,
-        "playfulness": 7,
+        "playfulness": 27,
         "fullness": -5,
 
         # Medium changers

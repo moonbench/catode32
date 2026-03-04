@@ -19,7 +19,7 @@ VARIANTS = {
     "psst": {
         "stats": {
             "curiosity": 2,
-            "playfulness": 1,
+            "playfulness": 0.5,
             "focus": 0.5,
             "curiosity": 0.5,
         },
@@ -27,9 +27,9 @@ VARIANTS = {
     "point_bird": {
         "stats": {
             "curiosity": 3,
-            "playfulness": 1,
+            "playfulness": 0.5,
             "focus": 0.5,
-            "curiosity": 1,
+            "curiosity": 0.5,
         },
     },
 }

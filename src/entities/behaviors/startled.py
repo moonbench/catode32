@@ -13,8 +13,8 @@ _EXCLAIM_ANGLES = (-5, 0, 5)
 class StartledBehavior(BaseBehavior):
     """Pet is suddenly startled by something.
 
-    Triggered randomly, with lower courage and resilience making it
-    more likely. After the shock wears off, the pet either retreats
+    Triggered randomly, with lower courage making it more likely.
+    After the shock wears off, the pet either retreats
     to idle or goes to investigate, depending on courage and curiosity.
 
     Phases:
@@ -26,17 +26,17 @@ class StartledBehavior(BaseBehavior):
 
     @classmethod
     def can_trigger(cls, context):
-        p = 0.15 * (1 - context.courage / 200) * (1 - context.resilience / 200)
+        p = 0.15 * (1 - context.courage / 100)
         trigger = random.random() < p
 
         if not trigger:
-            print("Skipping startled. p=%.3f, Courage %6.4f, Resilience %6.4f" % (p, context.courage, context.resilience))
-        
+            print("Skipping startled. p=%.3f, Courage %6.4f" % (p, context.courage))
+
         return trigger
 
     @classmethod
     def get_priority(cls, context):
-        return random.uniform(20, max(20, (context.courage + context.resilience) * 0.6))
+        return random.uniform(20, max(20, context.courage * 1.2))
 
     COMPLETION_BONUS = {
         # Rapid changers
@@ -47,7 +47,6 @@ class StartledBehavior(BaseBehavior):
         "curiosity": 1,
 
         # Extra slow changers
-        "dignity": -0.05,
         "courage": -0.2,
 
     }

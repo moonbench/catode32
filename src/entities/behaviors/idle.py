@@ -31,7 +31,7 @@ class IdleBehavior(BaseBehavior):
         "fullness": -0.15,
         "energy": -0.2,
         "comfort": -0.4,
-        "playfulness": 0.75,
+        "playfulness": -0.75,
         "focus": -0.25,
 
         # Medium changers

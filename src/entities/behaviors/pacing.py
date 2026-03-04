@@ -36,12 +36,10 @@ class PacingBehavior(BaseBehavior):
         # Slow changers
         "patience": 0.1,
         "fitness": 0.1,
-        "resilience": -0.1,
         "loyalty": -0.03,
 
         # Extra slow changers
         "mischievousness": 0.025,
-        "dignity": -0.05,
     }
 
     @classmethod
@@ -84,7 +82,6 @@ class PacingBehavior(BaseBehavior):
 
         # Sulk if emotionally depleted and luck doesn't favor recovery
         if (getattr(context, 'fulfillment', 50) < 40 and
-                getattr(context, 'resilience', 50) < 50 and
                 getattr(context, 'affection', 50) < 40 and
                 random.random() < 0.5):
             return 'sulking'
@@ -100,7 +97,6 @@ class PacingBehavior(BaseBehavior):
         # Retreat if scared, depleted, and out of coping resources
         if (getattr(context, 'courage', 50) < 60 and
                 getattr(context, 'affection', 50) < 60 and
-                getattr(context, 'resilience', 50) < 60 and
                 getattr(context, 'energy', 50) < 60 and
                 random.random() < 0.4):
             return 'hiding'

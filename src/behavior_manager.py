@@ -289,10 +289,10 @@ class BehaviorManager:
         return trigger
 
     def can_trigger_startled(self, ctx):
-        p = 0.15 * (1 - ctx.courage / 200) * (1 - ctx.resilience / 200)
+        p = 0.15 * (1 - ctx.courage / 100)
         trigger = random.random() < p
         if not trigger:
-            print("Skipping startled. p=%.3f, Courage %6.4f, Resilience %6.4f" % (p, ctx.courage, ctx.resilience))
+            print("Skipping startled. p=%.3f, Courage %6.4f" % (p, ctx.courage))
         return trigger
 
     def can_trigger_meandering(self, ctx):
@@ -357,4 +357,4 @@ class BehaviorManager:
         return 100 - random.uniform(ctx.serenity, ctx.serenity * 2.0)
 
     def priority_startled(self, ctx):
-        return random.uniform(20, max(20, (ctx.courage + ctx.resilience) * 0.6))
+        return random.uniform(20, max(20, ctx.courage * 1.2))

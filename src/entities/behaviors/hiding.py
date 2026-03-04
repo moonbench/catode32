@@ -8,8 +8,8 @@ class HidingBehavior(BaseBehavior):
     """Pet disappears to a safe spot to recover.
 
     Triggered from pacing or mischief when the pet is scared, depleted,
-    and out of energy to keep acting out. Time alone rebuilds comfort,
-    patience, and independence. Returns to idle when ready to rejoin the world.
+    and out of energy to keep acting out. Time alone rebuilds comfort
+    and patience. Returns to idle when ready to rejoin the world.
 
     Phases:
     1. finding_spot  - Pet looks around and retreats
@@ -24,9 +24,7 @@ class HidingBehavior(BaseBehavior):
         "comfort": 0.2,
 
         # Medium changers
-        "independence": -0.05,
         "sociability": -0.2,
-        "resilience": -0.02,
         "affection": -0.1,
 
         # Slow changers
@@ -38,7 +36,7 @@ class HidingBehavior(BaseBehavior):
 
     @classmethod
     def get_priority(cls, context):
-        return random.uniform(15, max(15, (context.courage + context.resilience) * 0.5))
+        return random.uniform(15, max(15, context.courage))
 
     def __init__(self, character):
         super().__init__(character)

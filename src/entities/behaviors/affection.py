@@ -32,7 +32,6 @@ VARIANTS = {
             "fulfillment": 1,
             "comfort": 2,
             "focus": 1,
-            "playfulness": 1,
             "fulfillment": 0.5,
             "sociability": 0.5,
             "serenity": 0.2,

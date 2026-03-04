@@ -29,12 +29,9 @@ class MischiefBehavior(BaseBehavior):
         # Medium changers
         "maturity": -1.5,
         "sociability": -0.2,
-        "independence": -0.15,
-        "resilience": -0.05,
         "affection": -0.05,
 
         # Extra slow changers
-        "dignity": -0.05,
         "mischievousness": 0.03,
         "loyalty": -0.2,
     }
@@ -61,7 +58,6 @@ class MischiefBehavior(BaseBehavior):
         # Retreat if the pet's nerve broke and it's now depleted
         if (getattr(context, 'courage', 50) < 60 and
                 getattr(context, 'affection', 50) < 40 and
-                getattr(context, 'resilience', 50) < 40 and
                 getattr(context, 'energy', 50) < 40 and
                 random.random() < 0.4):
             return 'hiding'

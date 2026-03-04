@@ -9,9 +9,9 @@ class SulkingBehavior(BaseBehavior):
     """Pet retreats into itself for a quiet, withdrawn sulk.
 
     Only reachable from pacing when the pet is emotionally depleted —
-    low fulfillment, affection, and resilience all at once. Sitting alone
-    and stewing provides a small comfort, builds independence quietly,
-    and lets curiosity drift in to fill the void. Goes back to pacing
+    low fulfillment and affection at once. Sitting alone and stewing
+    provides a small comfort, and lets curiosity drift in to fill the
+    void. Goes back to pacing
     when it's done.
 
     Phases:
@@ -29,18 +29,15 @@ class SulkingBehavior(BaseBehavior):
         "comfort": 0.25,
 
         # Medium changers
-        "independence": -0.05,
         "curiosity": 0.05,
         "affection": -1,
         "maturity": -0.2,
         "sociability": -0.2,
-        "resilience": -0.05,
 
         # Slow changers
         "loyalty": -0.05,
 
         # Extra slow changers
-        "dignity": -0.05,
         "courage": -0.2,
     }
 

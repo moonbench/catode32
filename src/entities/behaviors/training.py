@@ -22,11 +22,10 @@ class TrainingBehavior(BaseBehavior):
         # Rapid changers
         "energy": -5,
         "focus": -2,
-        "playfulness": 2,
+        "playfulness": -2,
 
         # Medium changers
         "intelligence": 1,
-        "resilience": 5,
         "sociability": 0.5,
         "fulfillment": 1,
         "courage": 0.7,
@@ -37,7 +36,6 @@ class TrainingBehavior(BaseBehavior):
 
         # Extra slow changers
         "loyalty": 0.7,
-        "dignity": 0.5,
         "mischievousness": -0.05,
     }
 
