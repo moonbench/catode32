@@ -22,7 +22,7 @@ class LoungeingBehavior(BaseBehavior):
         # Rapid changers
         "fullness": -0.1,
         "energy": -0.3,
-        "comfort": -0.25,
+        "comfort": -0.3,
         
         # Medium changers
         "fulfillment": -0.15,

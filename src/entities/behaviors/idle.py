@@ -30,8 +30,8 @@ class IdleBehavior(BaseBehavior):
         # Rapid changers
         "fullness": -0.15,
         "energy": -0.2,
-        "comfort": -0.4,
-        "playfulness": -0.75,
+        "comfort": -0.7,
+        "playfulness": -0.9,
         "focus": -0.4,
 
         # Medium changers

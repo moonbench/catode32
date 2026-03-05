@@ -35,13 +35,14 @@ class NappingBehavior(BaseBehavior):
     COMPLETION_BONUS = {
         # Rapid changers
         "energy": 30,
-        "focus": 5,
+        "focus": 6,
         "playfulness": 13,
         "fullness": -1,
         "comfort": 4,
 
         # Medium changers
         "curiosity": 0.1,
+        "cleanliness": -2,
 
         # Slow changers
         "fitness": -0.05,
@@ -55,7 +56,15 @@ class NappingBehavior(BaseBehavior):
     def get_completion_bonus(self, context):
         bonus = dict(super().get_completion_bonus(context))
         if context.fullness > 60:
-            bonus["energy"] = bonus.get("energy", 0) + 1
+            bonus["energy"] = bonus.get("energy", 0) + 4
+
+        if context.playfulness > 75:
+            bonus["playfulness"] = bonus.get("playfulness", 0) / 2
+        
+        if context.focus > 75:
+            bonus["focus"] = bonus.get("focus", 0) / 2
+        elif context.focus < 25:
+            bonus["focus"] = bonus.get("focus", 0) * 2.0
         return bonus
     
     def __init__(self, character):

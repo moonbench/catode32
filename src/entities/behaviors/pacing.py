@@ -32,6 +32,7 @@ class PacingBehavior(BaseBehavior):
         "cleanliness": -0.1,
         "fulfillment": -0.1,
         "affection": -0.5,
+        "comfort": -1.5,
 
         # Slow changers
         "patience": 0.1,
