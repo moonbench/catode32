@@ -40,7 +40,7 @@ class StartledBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "energy": -1,5,
+        "energy": -1.5,
         "comfort": -5,
 
         # Medium changers
@@ -48,7 +48,6 @@ class StartledBehavior(BaseBehavior):
 
         # Extra slow changers
         "courage": -0.2,
-
     }
 
     def __init__(self, character):
@@ -63,7 +62,6 @@ class StartledBehavior(BaseBehavior):
         if self._active:
             return
         super().start(on_complete)
-        self.startled_duration = random.uniform(5.0, 10.0)
         self._phase = "startled"
         self._character.set_pose("sitting.forward.shocked")
         self._exclaim_wobble_timer = 0.0
