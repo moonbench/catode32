@@ -9,7 +9,7 @@ class MeanderingBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "energy": -0.5,
+        "energy": -0.35,
         "fullness": -0.25,
         "playfulness": -0.8,
         "comfort": -1,
@@ -18,7 +18,7 @@ class MeanderingBehavior(BaseBehavior):
         "intelligence": -0.01,
 
         # Slow changers
-        "fitness": 0.1
+        "fitness": 0.025
     }
 
     @classmethod

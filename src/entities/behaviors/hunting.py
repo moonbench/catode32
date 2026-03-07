@@ -28,7 +28,7 @@ class HuntingBehavior(BaseBehavior):
     COMPLETION_BONUS = {
         # Rapid changers
         "fullness": -0.5,
-        "energy": -3,
+        "energy": -2,
         "comfort": -1,
         "playfulness": -0.75,
 
@@ -38,7 +38,7 @@ class HuntingBehavior(BaseBehavior):
         "cleanliness": -0.5,
 
         # Slow changers
-        "fitness": 0.1,
+        "fitness": 0.075,
         "serenity": -0.05,
         "patience": -0.05,
 

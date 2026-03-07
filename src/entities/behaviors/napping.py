@@ -34,7 +34,7 @@ class NappingBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "energy": 30,
+        "energy": 22,
         "focus": 6,
         "playfulness": 13,
         "fullness": -1,
@@ -45,7 +45,7 @@ class NappingBehavior(BaseBehavior):
         "cleanliness": -2,
 
         # Slow changers
-        "fitness": -0.05,
+        "fitness": -0.025,
     }
 
     NAP_POSES = [

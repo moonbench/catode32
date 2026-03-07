@@ -17,7 +17,7 @@ class SelfGroomingBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "energy": -1,
+        "energy": -0.75,
         "comfort": 0.5,
         "focus": -0.5,
 

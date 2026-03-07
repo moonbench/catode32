@@ -20,7 +20,7 @@ class TrainingBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "energy": -5,
+        "energy": -3.5,
         "focus": -2,
         "playfulness": -2,
 

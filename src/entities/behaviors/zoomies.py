@@ -20,7 +20,7 @@ class ZoomiesBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "energy": -4,
+        "energy": -3.5,
         "fullness": -0.5,
         "playfulness": -0.3,
 
@@ -30,7 +30,7 @@ class ZoomiesBehavior(BaseBehavior):
         "comfort": -0.2,
 
         # Slow changers
-        "fitness": 0.15,
+        "fitness": 0.075,
     }
 
     @classmethod

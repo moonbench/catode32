@@ -30,7 +30,7 @@ class SulkingBehavior(BaseBehavior):
 
         # Medium changers
         "curiosity": 0.05,
-        "affection": -1,
+        "affection": -0.25,
         "maturity": -0.2,
         "sociability": -0.2,
 

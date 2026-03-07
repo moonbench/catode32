@@ -22,14 +22,14 @@ class MischiefBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "energy": -2,
+        "energy": -1,
         "focus": -1,
         "playfulness": -0.25,
 
         # Medium changers
         "maturity": -1.5,
         "sociability": -0.2,
-        "affection": -0.05,
+        "affection": -0.025,
 
         # Extra slow changers
         "mischievousness": 0.03,

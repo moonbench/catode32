@@ -40,7 +40,7 @@ class StartledBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "energy": -2,
+        "energy": -1,5,
         "comfort": -5,
 
         # Medium changers

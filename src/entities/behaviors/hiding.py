@@ -25,7 +25,7 @@ class HidingBehavior(BaseBehavior):
 
         # Medium changers
         "sociability": -0.2,
-        "affection": -0.1,
+        "affection": -0.5,
 
         # Slow changers
         "patience": 0.05,

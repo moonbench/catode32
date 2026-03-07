@@ -29,19 +29,19 @@ class IdleBehavior(BaseBehavior):
     COMPLETION_BONUS = {
         # Rapid changers
         "fullness": -0.05,
-        "energy": -0.2,
+        "energy": -0.1,
         "comfort": -0.7,
         "playfulness": -0.9,
-        "focus": -0.4,
+        "focus": -0.5,
 
         # Medium changers
         "fulfillment": -0.1,
-        "affection": -0.05,
+        "affection": -0.025,
         "curiosity": 0.025,
         "cleanliness": -0.1,
 
         # Slow changers
-        "fitness": -0.03,
+        "fitness": -0.05,
         "serenity": 0.01,
         "patience": -0.04,
     }
