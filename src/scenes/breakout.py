@@ -36,7 +36,7 @@ class BreakoutScene(Scene):
     CAT_Y = config.DISPLAY_HEIGHT - CAT_AVATAR1["height"]  # 64 - 18 = 46
 
     # Ball physics
-    BALL_SPEED = 60  # Pixels per second
+    BALL_SPEED = 45  # Pixels per second
 
     # Brick grid layout
     BRICK_ROWS = 5
@@ -144,21 +144,19 @@ class BreakoutScene(Scene):
         if self.state != self.STATE_PLAYING:
             return
 
-        # Update ball position
-        self.ball_x += self.ball_vx * dt
-        self.ball_y += self.ball_vy * dt
+        # Sub-step physics to prevent tunneling at low framerates.
+        # Ball speed is constant so we can use BALL_SPEED directly.
+        max_step = self.BALL_SIZE - 1  # max pixels per sub-step (2px)
+        steps = max(1, int(self.BALL_SPEED * dt / max_step) + 1)
+        sub_dt = dt / steps
 
-        # Wall collisions
-        self._handle_wall_collisions()
-
-        # Cat avatar collision
-        self._handle_cat_collision()
-
-        # Paddle collision
-        self._handle_paddle_collision()
-
-        # Brick collisions
-        self._handle_brick_collisions()
+        for _ in range(steps):
+            self.ball_x += self.ball_vx * sub_dt
+            self.ball_y += self.ball_vy * sub_dt
+            self._handle_wall_collisions()
+            self._handle_cat_collision()
+            self._handle_paddle_collision()
+            self._handle_brick_collisions()
 
         # Update falling paws
         self._update_falling_paws(dt)
