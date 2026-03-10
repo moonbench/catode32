@@ -22,8 +22,7 @@ class SelfGroomingBehavior(BaseBehavior):
 
         # Medium changers
         "cleanliness": 15,
-        "fulfillment": 0.25,
-        "sociability": 0.1,
+        "fulfillment": 0.05,
     }
 
     def __init__(self, character):

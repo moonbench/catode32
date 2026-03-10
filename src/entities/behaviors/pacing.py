@@ -30,16 +30,16 @@ class PacingBehavior(BaseBehavior):
     COMPLETION_BONUS = {
         # Medium changers
         "cleanliness": -0.1,
-        "fulfillment": -0.1,
-        "affection": -0.25,
+        "fulfillment": -0.035,
+        "affection": -0.02,
         "comfort": -1.5,
 
         # Slow changers
-        "fitness": 0.05,
-        "loyalty": -0.03,
+        "fitness": 0.01,
+        "loyalty": -0.01,
 
         # Extra slow changers
-        "mischievousness": 0.025,
+        "mischievousness": 0.005,
     }
 
     def __init__(self, character):

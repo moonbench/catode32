@@ -30,19 +30,20 @@ class HuntingBehavior(BaseBehavior):
         "fullness": -0.5,
         "energy": -2,
         "comfort": -1,
-        "playfulness": -0.75,
+        "playfulness": -0.25,
 
         # Medium changers
-        "fulfillment": 0.25,
-        "intelligence": 0.05,
+        "fulfillment": 0.05,
+        "intelligence": 0.015,
         "cleanliness": -0.5,
 
         # Slow changers
-        "fitness": 0.075,
+        "fitness": 0.02,
         "serenity": -0.05,
 
         # Extra slow changers
         "mischievousness": 0.02,
+        "courage": 0.0075,
     }
 
     def __init__(self, character):

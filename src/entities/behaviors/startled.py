@@ -33,7 +33,7 @@ class StartledBehavior(BaseBehavior):
         "curiosity": 1,
 
         # Extra slow changers
-        "courage": -0.2,
+        "courage": -0.01,
     }
 
     def __init__(self, character):

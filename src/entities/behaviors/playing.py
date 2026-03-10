@@ -11,18 +11,18 @@ from assets.items import YARN_BALL
 VARIANTS = {
     "toy": {
         "bubble": "exclaim",
-        "stats": {"playfulness": -3, "energy": -3, "focus": -1},
+        "stats": {"playfulness": -8, "energy": -3, "focus": -1},
     },
     "throw_stick": {
         "bubble": "star",
-        "stats": {"playfulness": -4, "energy": -5, "focus": -1},
+        "stats": {"playfulness": -6, "energy": -5, "focus": -1},
     },
     "ball": {
-        "stats": {"playfulness": -3, "energy": -4, "focus": -1},
+        "stats": {"playfulness": -8, "energy": -4, "focus": -1},
         "passes": 4,  # number of half-passes (direction changes) before pouncing
     },
     "laser": {
-        "stats": {"playfulness": -4, "energy": -3, "focus": -1},
+        "stats": {"playfulness": -6, "energy": -3, "focus": -1},
         "passes": 4,
     },
 }

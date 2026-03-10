@@ -31,14 +31,14 @@ class InvestigatingBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "focus": -0.4,
+        "focus": -0.25,
         "comfort": -0.3,
-        "playfulness": -0.5,
-        "serenity": -0.25,
+        "playfulness": -0.25,
+        "serenity": -0.02,
 
         # Medium changers
         "curiosity": -0.05,
-        "maturity": 0.3,
+        "maturity": 0.025,
         "fulfillment": 0.05,
     }
 

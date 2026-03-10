@@ -18,18 +18,20 @@ _EXCLAIM_RISE_AMOUNT = 15     # pixels risen at peak
 VARIANTS = {
     "psst": {
         "stats": {
-            "curiosity": 2,
-            "playfulness": 0.5,
-            "focus": 1.5,
-            "curiosity": 0.5,
+            "curiosity": 3,
+            "playfulness": 1.5,
+            "focus": 3,
+            "courage": 0.05,
+            "intelligence": 0.5,
         },
     },
     "point_bird": {
         "stats": {
-            "curiosity": 3,
-            "playfulness": 0.5,
+            "curiosity": 5,
+            "playfulness": 2.5,
             "focus": 2,
-            "curiosity": 0.5,
+            "courage": 0.05,
+            "intelligence": 0.5,
         },
     },
 }

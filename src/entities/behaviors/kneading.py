@@ -21,13 +21,13 @@ class KneadingBehavior(BaseBehavior):
     COMPLETION_BONUS = {
         # Rapid changers
         "comfort": 2,
-        "focus": -0.4,
+        "focus": -0.25,
 
         # Medium changers
         "cleanliness": -0.1,
 
         # Slow changers
-        "serenity": 0.2,
+        "serenity": 0.05,
     }
 
     def __init__(self, character):

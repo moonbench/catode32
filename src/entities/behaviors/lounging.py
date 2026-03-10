@@ -23,15 +23,17 @@ class LoungeingBehavior(BaseBehavior):
         "fullness": -0.025,
         "energy": -0.2,
         "comfort": 1,
-        "focus": -1,
-        "playfulness": -0.5,
+        "focus": -0.05,
+        "playfulness": -0.05,
         
         # Medium changers
-        "fulfillment": -0.15,
-        "sociability": -0.05,
+        "fulfillment": -0.02,
+        "sociability": -0.025,
+        "intelligence": -0.005,
+        "maturity": 0.02,
 
         # Slow changers
-        "fitness": -0.05,
+        "fitness": -0.025,
     }
 
     LOUNGE_POSES = [

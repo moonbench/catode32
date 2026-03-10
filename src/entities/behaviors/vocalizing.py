@@ -29,7 +29,7 @@ class VocalizingBehavior(BaseBehavior):
         "comfort": -0.5,
 
         # Slow changers
-        "serenity": -0.25,
+        "serenity": -0.015,
     }
 
     @classmethod

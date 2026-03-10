@@ -25,17 +25,22 @@ class BeingGroomedBehavior(BaseBehavior):
     COMPLETION_BONUS = {
         # Rapid changers
         "focus": -1,
-        "playfulness": 2,
+        "playfulness": 2.5,
         "comfort": 2,
 
         # Medium changers
         "cleanliness": 15,
         "affection": 2,
-        "sociability": 2,
-        "maturity": -0.1,
+        "sociability": 2.5,
+        "fulfillment": 2.5,
+        "maturity": 0.25,
+
+        # Slow changers
+        "serenity": 1,
 
         # Extra slow changers
         "mischievousness": -0.1,
+        "courage": 0.15,
     }
 
     def __init__(self, character):

@@ -31,18 +31,18 @@ class IdleBehavior(BaseBehavior):
         "fullness": -0.05,
         "energy": -0.1,
         "comfort": -0.7,
-        "playfulness": -0.9,
-        "focus": -0.5,
+        "playfulness": -0.05,
+        "focus": -0.05,
 
         # Medium changers
-        "fulfillment": -0.1,
-        "affection": -0.025,
-        "curiosity": 0.025,
+        "fulfillment": -0.02,
+        "curiosity": 0.02,
         "cleanliness": -0.1,
+        "intelligence": -0.005,
 
         # Slow changers
-        "fitness": -0.05,
-        "serenity": 0.01,
+        "fitness": -0.025,
+        "serenity": 0.0075,
     }
 
     def __init__(self, character):

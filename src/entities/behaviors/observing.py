@@ -21,14 +21,15 @@ class ObservingBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "focus": -0.6,
-        "playfulness": -0.4,
+        "focus": -0.4,
+        "playfulness": -0.15,
     
         # Medium changers
-        "curiosity": -0.25,
+        "curiosity": -0.05,
+        "maturity": 0.025,
 
         # Slow changes
-        "serenity": -0.2,
+        "serenity": -0.02,
     }
 
     def __init__(self, character):

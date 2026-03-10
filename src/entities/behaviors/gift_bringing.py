@@ -22,10 +22,10 @@ class GiftBringingBehavior(BaseBehavior):
     COMPLETION_BONUS = {
         # Medium changers
         "sociability": 0.5,
-        "affection": 0.5,
+        "affection": 0.25,
 
         # Extra slow changers
-        "loyalty": 0.02,
+        "loyalty": 0.05,
     }
 
     GIFT_OFFSET_X = 30

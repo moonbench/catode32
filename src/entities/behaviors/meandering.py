@@ -11,14 +11,14 @@ class MeanderingBehavior(BaseBehavior):
         # Rapid changers
         "energy": -0.35,
         "fullness": -0.25,
-        "playfulness": -0.8,
+        "playfulness": -0.15,
         "comfort": -1,
 
         # Medium changes
-        "intelligence": -0.01,
+        "intelligence": -0.0015,
 
         # Slow changers
-        "fitness": 0.025
+        "fitness": 0.01
     }
 
     def __init__(self, character):

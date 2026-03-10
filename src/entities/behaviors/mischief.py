@@ -27,13 +27,13 @@ class MischiefBehavior(BaseBehavior):
         "playfulness": -0.25,
 
         # Medium changers
-        "maturity": -1.5,
-        "sociability": -0.2,
-        "affection": -0.025,
+        "maturity": -0.1,
+        "sociability": -0.25,
+        "affection": -0.02,
 
         # Extra slow changers
         "mischievousness": 0.03,
-        "loyalty": -0.2,
+        "loyalty": -0.1,
     }
 
     def __init__(self, character):

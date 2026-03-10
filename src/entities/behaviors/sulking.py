@@ -29,16 +29,15 @@ class SulkingBehavior(BaseBehavior):
         "comfort": 0.2,
 
         # Medium changers
-        "curiosity": 0.05,
-        "affection": -0.25,
-        "maturity": -0.2,
-        "sociability": -0.2,
+        "affection": -0.025,
+        "maturity": -0.025,
+        "sociability": -0.1,
 
         # Slow changers
-        "loyalty": -0.05,
+        "loyalty": -0.02,
 
         # Extra slow changers
-        "courage": -0.2,
+        "courage": -0.005,
     }
 
     def __init__(self, character):

@@ -23,11 +23,11 @@ class HidingBehavior(BaseBehavior):
         "comfort": 0.2,
 
         # Medium changers
-        "sociability": -0.2,
-        "affection": -0.5,
+        "sociability": -0.25,
+        "affection": -0.1,
 
         # Extra slow changers
-        "courage": -0.3,
+        "courage": -0.005,
     }
 
     def __init__(self, character):

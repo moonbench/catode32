@@ -28,9 +28,10 @@ class ZoomiesBehavior(BaseBehavior):
         "cleanliness": -0.5,
         "maturity": -0.1,
         "comfort": -0.2,
+        "intelligence": -0.005,
 
         # Slow changers
-        "fitness": 0.075,
+        "fitness": 0.02,
     }
 
     def __init__(self, character):

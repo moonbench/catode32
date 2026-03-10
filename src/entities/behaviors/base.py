@@ -241,3 +241,5 @@ class BaseBehavior:
             new_value = max(0, min(100, current + delta))
             setattr(context, stat, new_value)
 
+        context.recompute_health()
+

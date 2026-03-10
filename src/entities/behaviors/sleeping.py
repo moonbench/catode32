@@ -25,11 +25,12 @@ class SleepingBehavior(BaseBehavior):
         "fullness": -5,
 
         # Medium changers
-        "curiosity": 0.25,
+        "curiosity": 0.2,
         "cleanliness": -4,
+        "intelligence": -0.05,
 
         # Slow changers
-        "fitness": -0.05,
+        "fitness": -0.5,
     }
 
     # Sleep pose options

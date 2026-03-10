@@ -19,11 +19,11 @@ class ChatteringBehavior(BaseBehavior):
 
     COMPLETION_BONUS = {
         # Rapid changers
-        "focus": -0.5,
+        "focus": -0.15,
 
         # Medium changers
-        "curiosity": -0.1,
-        "intelligence": -0.02,
+        "curiosity": -0.05,
+        "intelligence": -0.0025,
     }
 
     def __init__(self, character):

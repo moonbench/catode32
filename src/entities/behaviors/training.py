@@ -22,20 +22,22 @@ class TrainingBehavior(BaseBehavior):
         # Rapid changers
         "energy": -3.5,
         "focus": -2,
-        "playfulness": -2,
+        "playfulness": -6,
 
         # Medium changers
-        "intelligence": 1,
-        "sociability": 0.5,
-        "fulfillment": 1,
-        "courage": 0.7,
+        "intelligence": 1.5,
+        "sociability": 2,
+        "fulfillment": 2.5,
+        "courage": 1.75,
+        "couriosity": 1,
+        "maturity": 0.5,
 
         # Slow changers
-        "fitness": 0.5,
+        "fitness": 1,
 
         # Extra slow changers
-        "loyalty": 0.7,
-        "mischievousness": -0.05,
+        "loyalty": 1.75,
+        "mischievousness": -0.5,
     }
 
     BEGGING_POSES = [
