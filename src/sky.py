@@ -526,8 +526,6 @@ class SkyRenderer:
                 environment.layers[layer].remove(obj)
         self._cloud_objs.clear()
 
-        # Note: custom draws are not easily removed, but they check show_stars
-
     def update(self, dt):
         """
         Update sky animations and cloud positions. Call once per frame.

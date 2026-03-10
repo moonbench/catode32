@@ -30,9 +30,6 @@ class OutsideScene(Scene):
         # Create environment with wider world for panning
         self.environment = Environment(world_width=256)
 
-        # Add grass drawing
-        self.environment.add_custom_draw(LAYER_FOREGROUND, self._draw_grass)
-
         # Add plants to foreground
         self.environment.add_object(
             LAYER_FOREGROUND, PLANTER1,
@@ -91,6 +88,9 @@ class OutsideScene(Scene):
         super().unload()
 
     def enter(self):
+        # Re-add all custom draws fresh (cleared on exit to prevent accumulation)
+        self.environment.add_custom_draw(LAYER_FOREGROUND, self._draw_grass)
+
         # Configure and add sky objects when entering scene
         env_settings = getattr(self.context, 'environment', {})
         self.sky.configure(env_settings, world_width=self.environment.world_width)
@@ -107,7 +107,9 @@ class OutsideScene(Scene):
         # Stop active behavior so its module is unloaded while scene is cached
         if self.character:
             self.character.behavior_manager.stop_current()
-        # Remove sky objects when leaving scene
+        # Clear all custom draws so closures don't accumulate across re-entries
+        self.environment.custom_draws.clear()
+        # Remove sky objects (celestial body, clouds) from environment layers
         self.sky.remove_from_environment(self.environment, LAYER_BACKGROUND)
 
     def update(self, dt):

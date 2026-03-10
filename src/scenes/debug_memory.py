@@ -1,5 +1,6 @@
 import gc
 import sys
+import micropython
 from scene import Scene
 from ui import Scrollbar
 
@@ -47,6 +48,8 @@ class DebugMemoryScene(Scene):
         print(f" Free: {free}")
         print(f" Used: {alloc}")
         print(f" Total: {total}")
+        print("Heap map:")
+        micropython.mem_info(1)
 
         # List loaded modules
         self.lines.append("Modules loaded:")

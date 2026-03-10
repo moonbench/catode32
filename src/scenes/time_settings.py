@@ -5,6 +5,8 @@ from settings import Settings, SettingItem
 class TimeSettingsScene(Scene):
     """Scene for editing time speed settings."""
 
+    MODULES_TO_KEEP = ['settings']
+
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)
         self.settings = Settings(renderer, input)

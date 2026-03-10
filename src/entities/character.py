@@ -40,7 +40,8 @@ class CharacterEntity(Entity):
         self.context = context
 
         self.mirror = False  # True = facing left, False = facing right
-        self._mirror_cache = {}  # id(sprite) -> {"frames": [...], "fill_frames": [...]}
+        self._mirror_cache = {}    # id(sprite) -> {"frames": [...], "inv_fill_frames": [...]}
+        self._inv_fill_cache = {}  # id(sprite) -> [inverted_fill_frame, ...]
 
         self.anim_body = 0.0
         self.anim_head = 0.0
@@ -82,7 +83,8 @@ class CharacterEntity(Entity):
         if pose is not None:
             self.pose_name = pose_name
             self._pose = pose
-            self._mirror_cache = {}  # Invalidate cached mirrored frames for new pose
+            self._mirror_cache = {}
+            self._inv_fill_cache = {}
         else:
             print(f"[character] Failed to set pose: '{pose_name}', keeping current pose")
 
@@ -156,23 +158,39 @@ class CharacterEntity(Entity):
             self.current_behavior.update(dt)
 
     def _ensure_mirrored(self, sprite):
-        """Return cached dict of pre-mirrored frame bytearrays for this sprite."""
+        """Return cached dict of pre-mirrored (and pre-inverted fill) bytearrays."""
         sid = id(sprite)
         if sid not in self._mirror_cache:
             w, h = sprite["width"], sprite["height"]
             entry = {"frames": [mirror_sprite_h(f, w, h) for f in sprite["frames"]]}
             if "fill_frames" in sprite:
-                entry["fill_frames"] = [mirror_sprite_h(f, w, h) for f in sprite["fill_frames"]]
+                mirrored_fills = [mirror_sprite_h(f, w, h) for f in sprite["fill_frames"]]
+                entry["inv_fill_frames"] = [bytearray(b ^ 0xFF for b in f) for f in mirrored_fills]
             self._mirror_cache[sid] = entry
         return self._mirror_cache[sid]
 
+    def _ensure_inv_fill(self, sprite):
+        """Return cached list of pre-inverted fill_frame bytearrays for this sprite."""
+        sid = id(sprite)
+        if sid not in self._inv_fill_cache:
+            self._inv_fill_cache[sid] = [bytearray(b ^ 0xFF for b in f) for f in sprite["fill_frames"]]
+        return self._inv_fill_cache[sid]
+
     def _draw_part_mirrored(self, renderer, sprite, x, y, frame):
-        """Draw a sprite part using cached pre-mirrored frames (no per-frame allocation)."""
+        """Draw a sprite part using cached pre-mirrored, pre-inverted frames."""
         cached = self._ensure_mirrored(sprite)
-        if "fill_frames" in sprite:
-            renderer.draw_sprite(cached["fill_frames"][frame], sprite["width"], sprite["height"],
-                                 x, y, transparent=True, invert=True, transparent_color=1)
+        if "inv_fill_frames" in cached:
+            renderer.draw_sprite(cached["inv_fill_frames"][frame], sprite["width"], sprite["height"],
+                                 x, y, transparent=True, transparent_color=1)
         renderer.draw_sprite(cached["frames"][frame], sprite["width"], sprite["height"], x, y)
+
+    def _draw_part(self, renderer, sprite, x, y, frame):
+        """Draw a sprite part using cached pre-inverted fill frames (no per-frame allocation)."""
+        if "fill_frames" in sprite:
+            inv_fills = self._ensure_inv_fill(sprite)
+            renderer.draw_sprite(inv_fills[frame], sprite["width"], sprite["height"],
+                                 x, y, transparent=True, transparent_color=1)
+        renderer.draw_sprite(sprite["frames"][frame], sprite["width"], sprite["height"], x, y)
 
     def draw(self, renderer, mirror=False, camera_offset=0, eye_frame=None):
         """Draw the character at its position.
@@ -233,14 +251,14 @@ class CharacterEntity(Entity):
                 self._draw_part_mirrored(renderer, head, head_x, head_y, head_frame)
             self._draw_part_mirrored(renderer, eyes, eye_x, eye_y, eye_frame_idx)
         else:
-            renderer.draw_sprite_obj(tail, tail_x, tail_y, frame=tail_frame)
+            self._draw_part(renderer, tail, tail_x, tail_y, tail_frame)
             if pose.get("head_first"):
-                renderer.draw_sprite_obj(head, head_x, head_y, frame=head_frame)
-                renderer.draw_sprite_obj(body, body_x, body_y, frame=body_frame)
+                self._draw_part(renderer, head, head_x, head_y, head_frame)
+                self._draw_part(renderer, body, body_x, body_y, body_frame)
             else:
-                renderer.draw_sprite_obj(body, body_x, body_y, frame=body_frame)
-                renderer.draw_sprite_obj(head, head_x, head_y, frame=head_frame)
-            renderer.draw_sprite_obj(eyes, eye_x, eye_y, frame=eye_frame_idx)
+                self._draw_part(renderer, body, body_x, body_y, body_frame)
+                self._draw_part(renderer, head, head_x, head_y, head_frame)
+            self._draw_part(renderer, eyes, eye_x, eye_y, eye_frame_idx)
 
         # Draw active behavior's visual effects (bubbles, etc.)
         if self.current_behavior:

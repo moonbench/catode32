@@ -44,8 +44,28 @@ class BehaviorManager:
         'meandering':    ('entities.behaviors.meandering',    'MeanderingBehavior'),
     }
 
+    # Ordered tuple of auto-selectable behavior names. Built once at class definition;
+    # can_trigger_<name> and priority_<name> are looked up via getattr at runtime.
+    _AUTO_SELECT_NAMES = (
+        'sleeping', 'napping', 'zoomies', 'vocalizing', 'hunting', 'playing',
+        'investigating', 'observing', 'self_grooming', 'stretching', 'pacing',
+        'sulking', 'mischief', 'hiding', 'lounging', 'startled',
+    )
+
+    # Size of the heap reservation kept between behavior loads.
+    # Freed immediately before __import__ to guarantee a contiguous block large
+    # enough for any behavior module; re-allocated right after so the slot is
+    # ready for the next load.  Tune upward if 'max new split' still shrinks
+    # after many behavior cycles (measure with micropython.mem_info(1)).
+    _RESERVATION_SIZE = 12288  # 12 KB
+
     def __init__(self, character):
         self._character = character
+        try:
+            self._reservation = bytearray(self._RESERVATION_SIZE)
+        except MemoryError:
+            print("[BehaviorManager] Warning: could not allocate reservation buffer")
+            self._reservation = None
 
     # ------------------------------------------------------------------
     # Public API
@@ -64,17 +84,17 @@ class BehaviorManager:
 
     def trigger(self, name, **kwargs):
         """Player-initiated behavior trigger — interrupts the current behavior."""
-        old_module = None
         if self._character.current_behavior and self._character.current_behavior.active:
             old_module = type(self._character.current_behavior).__module__
             self._character.current_behavior.stop(completed=False)
+            # Unload old module before loading new one: stop(completed=False) returns
+            # to behavior_manager.py, so the old module has no live stack frames.
+            # Running gc.collect() here gives the new module the best heap conditions.
+            new_module_path = self._REGISTRY.get(name, (old_module,))[0]
+            if old_module != new_module_path:
+                self._unload_module(old_module)
 
         self._load_and_start(name, **kwargs)
-
-        if old_module:
-            new_module = type(self._character.current_behavior).__module__
-            if old_module != new_module:
-                self._unload_module(old_module)
 
     def advance(self, name, kwargs, context):
         """Chain to the next behavior after natural completion.
@@ -100,11 +120,22 @@ class BehaviorManager:
             name = 'idle'
             kwargs = {}
         module_path, class_name = self._REGISTRY[name]
+
+        # Free reservation to guarantee a large contiguous block for __import__
+        self._reservation = None
+        gc.collect()
+
         mod = __import__(module_path, None, None, [class_name])
         cls = getattr(mod, class_name)
         behavior = cls(self._character)
         self._character.current_behavior = behavior
         behavior.start(**kwargs)
+
+        # Re-claim the reservation slot for the next load
+        try:
+            self._reservation = bytearray(self._RESERVATION_SIZE)
+        except MemoryError:
+            self._reservation = None
 
     def _unload_module(self, module_path):
         """Remove a behavior module from sys.modules and trigger GC.
@@ -142,32 +173,17 @@ class BehaviorManager:
         print("--------------------------------------------------------------------------------")
         context.debug_print_stats()
 
-        check_fns = [
-            ('sleeping',      self.can_trigger_sleeping,      self.priority_sleeping),
-            ('napping',       self.can_trigger_napping,       self.priority_napping),
-            ('zoomies',       self.can_trigger_zoomies,       self.priority_zoomies),
-            ('vocalizing',    self.can_trigger_vocalizing,    self.priority_vocalizing),
-            ('hunting',       self.can_trigger_hunting,       self.priority_hunting),
-            ('playing',       self.can_trigger_playing,       self.priority_playing),
-            ('investigating', self.can_trigger_investigating, self.priority_investigating),
-            ('observing',     self.can_trigger_observing,     self.priority_observing),
-            ('self_grooming', self.can_trigger_self_grooming, self.priority_self_grooming),
-            ('stretching',    self.can_trigger_stretching,    self.priority_stretching),
-            ('pacing',        self.can_trigger_pacing,        self.priority_pacing),
-            ('sulking',       self.can_trigger_sulking,       self.priority_sulking),
-            ('mischief',      self.can_trigger_mischief,      self.priority_mischief),
-            ('hiding',        self.can_trigger_hiding,        self.priority_hiding),
-            ('lounging',      self.can_trigger_lounging,      self.priority_lounging),
-            ('startled',      self.can_trigger_startled,      self.priority_startled),
-        ]
-
-        candidates = [name for name, can_fn, _ in check_fns if can_fn(context)]
+        candidates = []
+        for name in self._AUTO_SELECT_NAMES:
+            if getattr(self, 'can_trigger_' + name)(context):
+                candidates.append(name)
 
         if not candidates:
             return None, {}
 
-        priority_fns = {name: p_fn for name, _, p_fn in check_fns}
-        priorities = {name: max(0, priority_fns[name](context)) for name in candidates}
+        priorities = {}
+        for name in candidates:
+            priorities[name] = max(0, getattr(self, 'priority_' + name)(context))
 
         for name in sorted(candidates, key=lambda n: priorities[n]):
             print(f">> {name}: priority={priorities[name]}")
