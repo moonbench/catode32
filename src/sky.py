@@ -334,6 +334,9 @@ class SkyRenderer:
         self._lightning_timer = 0.0
         self._lightning_invert_state = False
 
+        # Screen-space clip rect for window rendering (x, y, w, h). None = full screen.
+        self._render_rect = None
+
     def configure(self, environment_settings, world_width=256, day_of_year=0):
         """
         Configure sky from environment settings dict.
@@ -752,6 +755,12 @@ class SkyRenderer:
             if screen_y < 0 or screen_y >= STAR_FIELD_HEIGHT:
                 continue
 
+            # Clip to window rect if set
+            if self._render_rect:
+                rx, ry, rw, rh = self._render_rect
+                if screen_x < rx or screen_x >= rx + rw or screen_y < ry or screen_y >= ry + rh:
+                    continue
+
             # Draw star with twinkle effect (each star has its own phase offset)
             if star[_STAR_TWINKLE]:
                 star_phase = (self.twinkle_phase + star[_STAR_PHASE]) % TWINKLE_CYCLE_LENGTH
@@ -827,6 +836,12 @@ class SkyRenderer:
             # Skip if off screen vertically
             if screen_y < -RAIN_STREAK_LENGTH or screen_y > config.DISPLAY_HEIGHT:
                 continue
+
+            # Clip to window rect if set
+            if self._render_rect:
+                rx, ry, rw, rh = self._render_rect
+                if screen_x < rx or screen_x >= rx + rw or screen_y < ry or screen_y >= ry + rh:
+                    continue
 
             if self.precipitation_type == "rain":
                 # Draw rain as a short vertical line (streak)

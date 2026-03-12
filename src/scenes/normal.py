@@ -1,32 +1,51 @@
 import config
 from scene import Scene
-from environment import Environment, LAYER_FOREGROUND
+from environment import Environment, LAYER_BACKGROUND, LAYER_MIDGROUND, LAYER_FOREGROUND
 from entities.character import CharacterEntity
 from menu import Menu, MenuItem
 from assets.icons import TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON, KIBBLE_ICON, TOY_ICONS, SNACK_ICONS, FISH_ICON, CHICKEN_ICON, MEAL_ICON
 from assets.furniture import BOOKSHELF
-from assets.nature import PLANTER1, PLANT3
+from assets.nature import PLANTER1, PLANT1, PLANT3
 from assets.items import FISH1, BOX_SMALL_1, PLANTER_SMALL_1, FOOD_BOWL, TREAT_PILE
+from sky import SkyRenderer
 
 
 class NormalScene(Scene):
-    MODULES_TO_KEEP = ['assets.furniture', 'assets.nature']
+    MODULES_TO_KEEP = ['assets.furniture', 'assets.nature', 'sky']
+
+    # Window position and size (world x, screen y, width, height)
+    WINDOW_WORLD_X = 100
+    WINDOW_Y = -10
+    WINDOW_W = 56
+    WINDOW_H = 36
 
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)
         self.menu_active = False
         self.environment = None
         self.character = None
-        self.fish_angle = 0
 
-        # Reference to fish object for animation
-        self.fish_obj = None
+        self.sky = SkyRenderer()
 
     def load(self):
         super().load()
 
         # Create environment - indoor room with some panning room
         self.environment = Environment(world_width=192)
+
+        # Plant on window sill
+        self.environment.add_object(
+            LAYER_MIDGROUND, PLANTER1,
+            x=110, y=26 - PLANTER1["height"] + 3
+        )
+        self.environment.add_object(
+            LAYER_MIDGROUND, PLANT1,
+            x=110, y=26 - PLANTER1["height"] + 3 - PLANT1["height"]
+        )
+        self.environment.add_object(
+            LAYER_MIDGROUND, PLANTER_SMALL_1,
+            x=130, y=26 - PLANTER_SMALL_1["height"] + 3
+        )
 
         # Add furniture to foreground layer
         self.environment.add_object(
@@ -38,23 +57,13 @@ class NormalScene(Scene):
             x=2, y=63 - BOOKSHELF["height"] - BOX_SMALL_1["height"]
         )
         self.environment.add_object(
-            LAYER_FOREGROUND, PLANTER_SMALL_1,
-            x=14, y=63 - BOOKSHELF["height"] - PLANTER_SMALL_1["height"]
-        )
-
-        # Plants in the middle
-        self.environment.add_object(
             LAYER_FOREGROUND, PLANTER1,
-            x=42, y=63 - PLANTER1["height"]
+            x=15, y=63 - BOOKSHELF["height"] - PLANTER1["height"]
         )
         self.environment.add_object(
             LAYER_FOREGROUND, PLANT3,
-            x=43, y=63 - PLANTER1["height"] - PLANT3["height"]
+            x=16, y=63 - BOOKSHELF["height"] - PLANTER1["height"] - PLANT3["height"]
         )
-
-        # Fish - store reference for rotation animation
-        self.fish_obj = {"sprite": FISH1, "x": 160, "y": 20, "rotate": 0}
-        self.environment.layers[LAYER_FOREGROUND].append(self.fish_obj)
 
         # Add more furniture on the right side (visible when panned)
         self.environment.add_object(
@@ -71,7 +80,7 @@ class NormalScene(Scene):
         self.context.scene_x_max = 182
 
         # Create character with context for behavior management
-        self.character = CharacterEntity(100, 64, context=self.context)
+        self.character = CharacterEntity(64, 63, context=self.context)
         self.character.set_pose("sitting.forward.neutral")
 
         self.menu = Menu(self.renderer, self.input)
@@ -80,6 +89,12 @@ class NormalScene(Scene):
         super().unload()
 
     def enter(self):
+        env_settings = getattr(self.context, 'environment', {})
+        self.sky.configure(env_settings, world_width=self.environment.world_width)
+        self.sky.add_to_environment(self.environment, LAYER_BACKGROUND)
+        self.environment.add_custom_draw(LAYER_MIDGROUND, self.sky.make_precipitation_drawer(0.3, 0))
+        self.environment.add_custom_draw(LAYER_MIDGROUND, self._draw_window)
+
         # Restart idle if behavior was stopped when scene was cached
         if self.character and not self.character.current_behavior.active:
             self.character.behavior_manager.trigger('idle')
@@ -88,14 +103,38 @@ class NormalScene(Scene):
         # Stop active behavior so its module is unloaded while scene is cached
         if self.character:
             self.character.behavior_manager.stop_current()
+        self.environment.custom_draws.clear()
+        self.sky.remove_from_environment(self.environment, LAYER_BACKGROUND)
 
     def update(self, dt):
+        self.sky.update(dt)
+
         # Update character
         self.character.update(dt)
 
-        # Update fish rotation
-        self.fish_angle = (self.fish_angle + (dt * 25)) % 360
-        self.fish_obj["rotate"] = self.fish_angle
+    def _draw_window(self, renderer, camera_x, parallax):
+        """Draw window mask and frame on the midground layer (0.6x parallax)."""
+        win_sx = self.WINDOW_WORLD_X - int(camera_x * parallax)
+        wall_bottom = self.WINDOW_Y + self.WINDOW_H
+        screen_left = max(0, win_sx)
+        screen_right = min(config.DISPLAY_WIDTH, win_sx + self.WINDOW_W)
+
+        # Mask everything outside the window opening. Full DISPLAY_HEIGHT on the sides
+        # so tall sprites (balloon, plane) that extend below the window bottom are covered.
+        # Foreground furniture draws on top of these rects afterward.
+        if screen_left > 0:
+            renderer.draw_rect(0, 0, screen_left, config.DISPLAY_HEIGHT, filled=True, color=0)
+        if screen_right < config.DISPLAY_WIDTH:
+            renderer.draw_rect(screen_right, 0, config.DISPLAY_WIDTH - screen_right, config.DISPLAY_HEIGHT, filled=True, color=0)
+        if self.WINDOW_Y > 0:
+            renderer.draw_rect(screen_left, 0, screen_right - screen_left, self.WINDOW_Y, filled=True, color=0)
+        if wall_bottom < config.DISPLAY_HEIGHT and screen_right > screen_left:
+            renderer.draw_rect(screen_left, wall_bottom, screen_right - screen_left, config.DISPLAY_HEIGHT - wall_bottom, filled=True, color=0)
+
+        # Window frame and sill
+        renderer.draw_rect(win_sx, self.WINDOW_Y, self.WINDOW_W, self.WINDOW_H)
+        renderer.draw_rect(win_sx - 4, self.WINDOW_Y - 4, self.WINDOW_W + 8, self.WINDOW_H + 8)
+        renderer.draw_rect(win_sx - 6, self.WINDOW_Y + self.WINDOW_H + 4, self.WINDOW_W + 12, 3, filled=True)
 
     def draw(self):
         """Draw the scene"""
@@ -103,14 +142,24 @@ class NormalScene(Scene):
             self.menu.draw()
             return
 
+        # Sky render rect must match the window's midground position (0.6x parallax)
+        # so the clip region aligns with the frame when environment.draw() runs.
+        win_sx = self.WINDOW_WORLD_X - int(self.environment.camera_x * 0.6)
+        self.sky._render_rect = (win_sx, self.WINDOW_Y, self.WINDOW_W, self.WINDOW_H)
+
         self.renderer.clear()
 
-        # Draw environment with all layers
+        # Background: sky (clipped to window rect)
+        # Midground: window mask + frame (_draw_window)
+        # Foreground: furniture
         self.environment.draw(self.renderer)
 
         # Draw character (with foreground parallax)
         camera_offset = int(self.environment.camera_x)
         self.character.draw(self.renderer, mirror=self.character.mirror, camera_offset=camera_offset)
+
+        # Lightning outside flashes the whole room
+        self.renderer.invert(self.sky.get_lightning_invert_state())
 
     def handle_input(self):
         """Process input - can also return scene change instructions"""
