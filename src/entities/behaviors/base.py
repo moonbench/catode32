@@ -99,7 +99,7 @@ class BaseBehavior:
         if self._active:
             return
 
-        print(f"[Behavior started] {self.NAME}")
+        print(f"[\033[32mBehavior started\033[0m] {self.NAME}")
 
         self._active = True
         self._phase_timer = 0.0

@@ -104,7 +104,7 @@ class BehaviorManager:
     def _load_and_start(self, name, **kwargs):
         """Load a behavior module, instantiate it, and start it."""
         if name not in self._REGISTRY:
-            print(f"Unknown behavior: {name}, falling back to idle")
+            print(f"\033[31mUnknown behavior: {name}, falling back to idle\033[0m")
             name = 'idle'
             kwargs = {}
         module_path, class_name = self._REGISTRY[name]
@@ -139,12 +139,12 @@ class BehaviorManager:
 
         # Random meander (special case — checked before main selection)
         if self.can_trigger_meandering(context) and random.random() <= 0.2:
-            print("Randomly meandering....")
+            print("\033[32mRandomly meandering....\033[0m")
             return 'meandering', {}
 
         # High serenity makes the pet content to keep resting
         if context.serenity > 25 and random.random() < (context.serenity - 25) / 150:
-            print(f"Staying idle (serenity: {context.serenity:.1f})")
+            print(f"\033[32mStaying idle (serenity: {context.serenity:.1f})\033[0m")
             return None, {}
 
         print("--------------------------------------------------------------------------------")
@@ -163,7 +163,7 @@ class BehaviorManager:
             priorities[name] = max(0, getattr(self, 'priority_' + name)(context))
 
         for name in sorted(candidates, key=lambda n: priorities[n]):
-            print(f">> {name}: priority={priorities[name]}")
+            print(f">> {name}: priority= {priorities[name]}")
         print("--------------------------------------------------------------------------------")
 
         binned = {name: math.ceil(p / 10) * 10 for name, p in priorities.items()}
