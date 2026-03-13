@@ -18,6 +18,25 @@ DAYTIME_TIMES = ("Morning", "Noon", "Afternoon")
 NIGHTTIME_TIMES = ("Night", "Late Night")
 TRANSITION_TIMES = ("Dawn", "Dusk", "Evening")
 
+# Hour-to-category mapping boundaries (hour >= threshold => category)
+_TIME_CATEGORY_THRESHOLDS = (
+    (21, "Night"),
+    (19, "Evening"),
+    (17, "Dusk"),
+    (14, "Afternoon"),
+    (12, "Noon"),
+    (7,  "Morning"),
+    (5,  "Dawn"),
+    (0,  "Late Night"),
+)
+
+def hours_to_time_category(hours):
+    """Convert 0-23 hour to a named time-of-day category"""
+    for threshold, name in _TIME_CATEGORY_THRESHOLDS:
+        if hours >= threshold:
+            return name
+    return "Late Night"
+
 # Moon phase to frame index mapping
 # MOON sprite has 7 frames (0-6), New moon uses None (just fill for star occlusion)
 MOON_PHASE_FRAMES = {
@@ -31,21 +50,35 @@ MOON_PHASE_FRAMES = {
     "Wan Cres": 6,
 }
 
-# Sky position for celestial bodies based on time of day
-# Returns (x, y) in world coordinates for background layer
-# x ranges across the sky, y is height (lower = higher in sky)
-CELESTIAL_POSITIONS = {
-    # Sun positions (moves left to right)
-    "Dawn": (20, 12),      # Sun low on left horizon
-    "Morning": (50, 6),    # Sun rising
-    "Noon": (80, 2),       # Sun high in sky
-    "Afternoon": (110, 6), # Sun descending
-    # Moon positions (also moves left to right, like on Earth)
-    "Dusk": (30, 12),       # Moon low on left (rising)
-    "Evening": (60, 7),   # Moon rising
-    "Night": (90, 4),      # Moon high in sky
-    "Late Night": (110, 7), # Moon descending
-}
+# Celestial arc constants (world coordinates, background layer, 0.3x parallax)
+# x = -20 is safely off-screen left; x = 180 is safely off-screen right
+# (background offset at max camera pan = 128 * 0.3 = 38; 180 - 38 = 142 > 128)
+_SUN_RISE  = 5.0   # hour sun enters from left
+_SUN_SET   = 19.0  # hour sun exits to right
+_SUN_X_START, _SUN_X_END   = -20, 180
+_SUN_Y_HORIZON, _SUN_Y_PEAK = 14, 2
+
+_MOON_RISE = 17.0  # hour moon enters from left
+_MOON_SET  = 29.0  # = 5:00 next day
+_MOON_X_START, _MOON_X_END   = -20, 180
+_MOON_Y_HORIZON, _MOON_Y_PEAK = 14, 3
+
+
+def _calc_sun_position(hours_f):
+    """Return (x, y) world position for the sun at fractional hour."""
+    t = (hours_f - _SUN_RISE) / (_SUN_SET - _SUN_RISE)
+    x = _SUN_X_START + t * (_SUN_X_END - _SUN_X_START)
+    y = _SUN_Y_HORIZON - (_SUN_Y_HORIZON - _SUN_Y_PEAK) * 4 * t * (1 - t)
+    return (int(x), int(y))
+
+
+def _calc_moon_position(hours_f):
+    """Return (x, y) world position for the moon at fractional hour."""
+    mh = hours_f if hours_f >= _MOON_RISE else hours_f + 24
+    t = (mh - _MOON_RISE) / (_MOON_SET - _MOON_RISE)
+    x = _MOON_X_START + t * (_MOON_X_END - _MOON_X_START)
+    y = _MOON_Y_HORIZON - (_MOON_Y_HORIZON - _MOON_Y_PEAK) * 4 * t * (1 - t)
+    return (int(x), int(y))
 
 # Weather to cloud configuration
 # Returns (min_clouds, max_clouds, speed_multiplier)
@@ -296,10 +329,6 @@ class SkyRenderer:
         # Derived state
         self.show_stars = False
         self.star_brightness = 1.0
-        self.celestial_sprite = None
-        self.celestial_frame = 0
-        self.celestial_x = 80
-        self.celestial_y = 5
         self.cloud_count = 2
         self.cloud_speed_mult = 1.0
         self.precipitation_type = None
@@ -310,13 +339,17 @@ class SkyRenderer:
         self.day_of_year = 0
         self.twinkle_timer = 0.0
         self.twinkle_phase = 0
-        self.celestial_anim_timer = 0.0
-        self.celestial_anim_frame = 0
+        self._sun_anim_timer = 0.0
+        self._sun_anim_frame = 0
         self.shooting_star = None
         self.sky_event = None  # Daytime events (balloon, plane, etc.)
 
+        # Current fractional hours (set by configure/set_time)
+        self._hours_f = 12.0
+
         # Managed objects (added to environment layer)
-        self._celestial_obj = None
+        self._sun_obj = None
+        self._moon_obj = None
         self._cloud_objs = []  # List of {"obj": dict, "base_speed": float}
 
         # Cached sprites
@@ -337,6 +370,25 @@ class SkyRenderer:
         # Screen-space clip rect for window rendering (x, y, w, h). None = full screen.
         self._render_rect = None
 
+    def set_time(self, hours, minutes=0):
+        """Update celestial positions. Only updates star visibility on category change."""
+        self._hours_f = hours + minutes / 60.0
+
+        sx, sy = _calc_sun_position(self._hours_f)
+        if self._sun_obj:
+            self._sun_obj["x"] = sx
+            self._sun_obj["y"] = sy
+
+        mx, my = _calc_moon_position(self._hours_f)
+        if self._moon_obj:
+            self._moon_obj["x"] = mx
+            self._moon_obj["y"] = my
+
+        new_category = hours_to_time_category(hours)
+        if new_category != self.time_of_day:
+            self.time_of_day = new_category
+            self._update_star_visibility()
+
     def configure(self, environment_settings, world_width=256, day_of_year=0):
         """
         Configure sky from environment settings dict.
@@ -346,34 +398,20 @@ class SkyRenderer:
             world_width: Width of the world for cloud wrapping
             day_of_year: day number 0-365 for seasonal star drift
         """
-        self.time_of_day = environment_settings.get("time_of_day", "Noon")
+        time_hours = environment_settings.get("time_hours", 12)
+        time_minutes = environment_settings.get("time_minutes", 0)
+        self._hours_f = time_hours + time_minutes / 60.0
+        self.time_of_day = hours_to_time_category(time_hours)
         self.moon_phase = environment_settings.get("moon_phase", "Full")
         self.weather = environment_settings.get("weather", "Clear")
         self.season = environment_settings.get("season", "Summer")
         self.world_width = world_width
         self.day_of_year = day_of_year
 
-        self._update_celestial_body()
         self._update_star_visibility()
         self._update_cloud_config()
         self._update_precipitation()
         self._init_precipitation_particles()
-
-    def _update_celestial_body(self):
-        """Update celestial body sprite, frame, and position"""
-        pos = CELESTIAL_POSITIONS.get(self.time_of_day, (80, 5))
-        self.celestial_x = pos[0]
-        self.celestial_y = pos[1]
-
-        if self.time_of_day in DAYTIME_TIMES:
-            self.celestial_sprite = SUN
-            self.celestial_frame = 0
-        elif self.time_of_day in NIGHTTIME_TIMES or self.time_of_day in ("Dusk", "Evening"):
-            self.celestial_sprite = MOON
-            self.celestial_frame = MOON_PHASE_FRAMES.get(self.moon_phase)
-        else:  # Dawn
-            self.celestial_sprite = SUN
-            self.celestial_frame = 0
 
     def _update_star_visibility(self):
         """Update star visibility based on time of day"""
@@ -476,20 +514,20 @@ class SkyRenderer:
         environment.add_custom_draw(layer, self._draw_stars)
         environment.add_custom_draw(layer, self._draw_sky_events)
 
-        # Add celestial body
-        if self.celestial_sprite:
-            sprite = self.celestial_sprite
-            frame = self.celestial_frame
-            if sprite == MOON and frame is not None:
-                sprite = self._get_moon_sprite()
+        # Add sun and moon (both always present; one or both may be off-screen)
+        sx, sy = _calc_sun_position(self._hours_f)
+        self._sun_obj = {"sprite": SUN, "x": sx, "y": sy, "frame": self._sun_anim_frame}
+        environment.layers[layer].append(self._sun_obj)
 
-            self._celestial_obj = {
-                "sprite": sprite,
-                "x": self.celestial_x,
-                "y": self.celestial_y,
-                "frame": frame if frame is not None else 0,
-            }
-            environment.layers[layer].append(self._celestial_obj)
+        moon_sprite = self._get_moon_sprite()
+        moon_frame = MOON_PHASE_FRAMES.get(self.moon_phase)
+        mx, my = _calc_moon_position(self._hours_f)
+        self._moon_obj = {
+            "sprite": moon_sprite,
+            "x": mx, "y": my,
+            "frame": moon_frame if moon_frame is not None else 0,
+        }
+        environment.layers[layer].append(self._moon_obj)
 
         # Add clouds
         self._cloud_objs.clear()
@@ -517,10 +555,13 @@ class SkyRenderer:
             environment: Environment instance
             layer: Layer constant
         """
-        # Remove celestial body
-        if self._celestial_obj and self._celestial_obj in environment.layers[layer]:
-            environment.layers[layer].remove(self._celestial_obj)
-        self._celestial_obj = None
+        # Remove sun and moon
+        if self._sun_obj and self._sun_obj in environment.layers[layer]:
+            environment.layers[layer].remove(self._sun_obj)
+        self._sun_obj = None
+        if self._moon_obj and self._moon_obj in environment.layers[layer]:
+            environment.layers[layer].remove(self._moon_obj)
+        self._moon_obj = None
 
         # Remove clouds
         for cloud_data in self._cloud_objs:
@@ -544,17 +585,13 @@ class SkyRenderer:
             self.twinkle_timer = 0
             self.twinkle_phase = (self.twinkle_phase + 1) % TWINKLE_CYCLE_LENGTH
 
-        # Celestial body animation (sun rays)
-        if self.celestial_sprite == SUN:
-            self.celestial_anim_timer += dt
-            if self.celestial_anim_timer > 0.5:
-                self.celestial_anim_timer = 0
-                num_frames = len(SUN["frames"])
-                self.celestial_anim_frame = (self.celestial_anim_frame + 1) % num_frames
-
-            # Update the object in the layer
-            if self._celestial_obj:
-                self._celestial_obj["frame"] = self.celestial_anim_frame
+        # Sun ray animation
+        self._sun_anim_timer += dt
+        if self._sun_anim_timer > 0.5:
+            self._sun_anim_timer = 0
+            self._sun_anim_frame = (self._sun_anim_frame + 1) % len(SUN["frames"])
+        if self._sun_obj:
+            self._sun_obj["frame"] = self._sun_anim_frame
 
         # Shooting star
         if self.shooting_star:

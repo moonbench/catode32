@@ -15,9 +15,14 @@ class EnvironmentSettingsScene(Scene):
         env = getattr(self.context, 'environment', {})
         items = [
             SettingItem(
-                "Time", "time_of_day",
-                options=["Dawn", "Morning", "Noon", "Afternoon", "Dusk", "Evening", "Night", "Late Night"],
-                value=env.get('time_of_day', "Noon")
+                "Hour", "time_hours",
+                min_val=0, max_val=23, step=1,
+                value=env.get('time_hours', 12)
+            ),
+            SettingItem(
+                "Min", "time_minutes",
+                min_val=0, max_val=55, step=5,
+                value=env.get('time_minutes', 0)
             ),
             SettingItem(
                 "Season", "season",

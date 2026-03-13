@@ -32,6 +32,9 @@ class Game:
 
         # Prepare to start rendering
         self.last_frame_time = time.ticks_ms()
+        self._time_accumulator = 0.0
+        # Simulated time rate: game minutes per real second (full day = 24 real minutes)
+        self._game_minutes_per_second = 1.0
     
     def run(self):
         print("==> Starting game loop...")
@@ -44,8 +47,11 @@ class Game:
             # Handle inputs
             self.scene_manager.handle_input()
             
+            dt = delta_time / 1000.0 * self.context.time_speed
+            self._advance_time(dt)
+
             # Update game logic
-            self.scene_manager.update(delta_time / 1000.0 * self.context.time_speed)
+            self.scene_manager.update(dt)
             
             # Render frame
             try:
@@ -65,6 +71,17 @@ class Game:
             frame_time = time.ticks_diff(time.ticks_ms(), current_time)
             if frame_time < config.FRAME_TIME_MS:
                 time.sleep_ms(config.FRAME_TIME_MS - frame_time)
+
+    def _advance_time(self, dt):
+        """Advance simulated time of day. Replace body with RTC read when hardware is available."""
+        self._time_accumulator += dt * self._game_minutes_per_second
+        if self._time_accumulator >= 1.0:
+            mins = int(self._time_accumulator)
+            self._time_accumulator -= mins
+            env = self.context.environment
+            total_minutes = env.get('time_minutes', 0) + mins
+            env['time_hours'] = (env.get('time_hours', 12) + total_minutes // 60) % 24
+            env['time_minutes'] = total_minutes % 60
 
     def _show_boot_screen(self):
         self.renderer.clear()

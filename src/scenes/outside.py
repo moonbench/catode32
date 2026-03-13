@@ -113,7 +113,8 @@ class OutsideScene(Scene):
         self.sky.remove_from_environment(self.environment, LAYER_BACKGROUND)
 
     def update(self, dt):
-        # Update sky (stars, clouds, celestial animation)
+        env = self.context.environment
+        self.sky.set_time(env.get('time_hours', 12), env.get('time_minutes', 0))
         self.sky.update(dt)
 
         # Update character
