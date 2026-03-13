@@ -63,8 +63,8 @@ class HuntingBehavior(BaseBehavior):
         self._max_misses = 0
 
     def next(self, context):
-        # Sigmoid centered at fullness=30: near-zero above 40, rapid rise through 40-30
-        eating_chance = 0.9 / (1 + math.exp(0.2 * (context.fullness - 30)))
+        # Sigmoid centered at fullness=30: >90% above 15 fullness, ~50% at 30, <12% above 40
+        eating_chance = 0.95 / (1 + math.exp(0.2 * (context.fullness - 30)))
         roll = random.random()
         if roll < eating_chance:
             from assets.items import MOUSE_TOY

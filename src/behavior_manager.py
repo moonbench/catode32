@@ -90,6 +90,11 @@ class BehaviorManager:
         Called from base.stop(completed=True). If name is None, auto-selects
         based on context stats.
         """
+        if context:
+            cb = self._character.current_behavior
+            if cb and hasattr(cb, '_behavior_name'):
+                context.record_behavior(cb._behavior_name)
+
         if name is None:
             name, kwargs = self._auto_select(context)
         if name is None:
@@ -112,6 +117,7 @@ class BehaviorManager:
         mod = __import__(module_path, None, None, [class_name])
         cls = getattr(mod, class_name)
         behavior = cls(self._character)
+        behavior._behavior_name = name
         self._character.current_behavior = behavior
         behavior.start(**kwargs)
 
@@ -162,8 +168,18 @@ class BehaviorManager:
         for name in candidates:
             priorities[name] = max(0, getattr(self, 'priority_' + name)(context))
 
+        # Penalize recently completed behaviors to prevent loops.
+        # Most recent (index 0) gets +50, next +40, down to +10 at index 4.
+        for i, recent in enumerate(context.recent_behaviors):
+            if recent in priorities:
+                priorities[recent] += 50 - i * 10
+
         for name in sorted(candidates, key=lambda n: priorities[n]):
-            print(f">> {name}: priority= {priorities[name]}")
+            recent_marker = ""
+            if name in context.recent_behaviors:
+                idx = context.recent_behaviors.index(name)
+                recent_marker = f" (+{50 - idx * 10} recency)"
+            print(f">> {name}: priority= {priorities[name]}{recent_marker}")
         print("--------------------------------------------------------------------------------")
 
         binned = {name: math.ceil(p / 10) * 10 for name, p in priorities.items()}
@@ -202,16 +218,17 @@ class BehaviorManager:
         return trigger
 
     def can_trigger_vocalizing(self, ctx):
-        _NEED = 35
-        happy = ctx.energy > 35 and ctx.playfulness > 35
+        _NEED = 40
+        happy = ctx.energy > 35 and ctx.playfulness > 40
         needs_unmet = (ctx.fullness < _NEED or ctx.comfort < _NEED
-                       or ctx.fulfillment < _NEED or ctx.affection < _NEED)
+                       or ctx.fulfillment < _NEED or ctx.affection < _NEED
+                       or ctx.sociability < _NEED)
         trigger = happy or needs_unmet
         if not trigger:
             failures = []
             if ctx.energy <= 35:
                 failures.append("Energy: %6.4f" % ctx.energy)
-            if ctx.playfulness <= 35:
+            if ctx.playfulness <= 40:
                 failures.append("Playfulness: %6.4f" % ctx.playfulness)
             print("Skipping vocalizing. " + ", ".join(failures))
         return trigger
@@ -329,24 +346,31 @@ class BehaviorManager:
         return random.uniform(100 - ctx.playfulness * 1.5, ctx.playfulness * 1.5)
 
     def priority_vocalizing(self, ctx):
-        _NEED = 35
-        urgency = max(
-            _NEED - ctx.fullness,
-            _NEED - ctx.comfort,
-            _NEED - ctx.fulfillment,
-            _NEED - ctx.affection,
-            0,
-        )
+        # How urgently each need demands communication
+        _NEED = 40
+        hunger_deficit    = max(0, _NEED - ctx.fullness)    # hungry → vocalize before hunting
+        loneliness        = max(0, _NEED - ctx.sociability)  # lonely
+        affection_deficit = max(0, _NEED - ctx.affection)    # wants affection
+        comfort_deficit   = max(0, _NEED - ctx.comfort)
+        play_deficit      = max(0, _NEED - ctx.playfulness)  # wants to play
+
+        urgency = max(hunger_deficit, loneliness, affection_deficit,
+                      comfort_deficit, play_deficit)
+
         if urgency > 0:
-            return max(10, 65 - urgency * 2)
-        return random.uniform(10, max(10, (200 - ctx.energy - ctx.playfulness) * 0.6))
+            # urgency=40 (stat=0) → priority 5; urgency=17 (fullness=23) → priority 14
+            return max(5, 65 - urgency * 3)
+        # Happy and energetic: chatty but not urgent
+        return random.uniform(25, max(25, (200 - ctx.energy - ctx.playfulness) * 0.5))
 
     def priority_hunting(self, ctx):
-        if ctx.fullness < 15 and ctx.energy > 20:
-            return random.uniform(5, 15)
-        upper = max(20, (100 - ctx.energy) * 0.7 + (100 - ctx.playfulness) * 0.5)
-        hunger_bonus = (100 - ctx.fullness) * 0.3
-        return random.uniform(10, max(10, upper - hunger_bonus * 0.5))
+        hunger_pull = 100 - ctx.fullness   # hungry → high pull (eat-motivated)
+        play_pull = ctx.playfulness         # playful → high pull (fun/gift-motivated)
+        # Both pulls lower the ceiling (more competitive hunting); hunger additionally
+        # raises the floor so vocalizing can still win first when needs are unmet.
+        ceiling = max(25, 85 - play_pull * 0.5 - hunger_pull * 0.3)
+        floor = max(10, 25 + hunger_pull * 0.15 - play_pull * 0.1)
+        return random.uniform(floor, max(floor + 5, ceiling))
 
     def priority_playing(self, ctx):
         return random.uniform(100 - ctx.playfulness * 1.5, ctx.playfulness * 1.5)
@@ -361,7 +385,7 @@ class BehaviorManager:
         return random.uniform(ctx.cleanliness * 0.5, ctx.cleanliness * 1.5) + random.uniform(0, max(10, ctx.energy * 0.25))
 
     def priority_stretching(self, ctx):
-        return random.uniform(10, max(10, ctx.comfort))
+        return random.uniform(ctx.comfort * 0.4, max(10, ctx.comfort))
 
     def priority_pacing(self, ctx):
         worst = min(ctx.comfort, ctx.serenity)

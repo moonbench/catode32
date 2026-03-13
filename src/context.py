@@ -69,6 +69,9 @@ class GameContext:
 
         # Time of last save in ticks_ms; None = never saved this session
         self.last_save_time = None
+
+        # Recent completed behavior names for loop prevention (most recent first, not persisted)
+        self.recent_behaviors = []
     
     def recompute_health(self):
         """Recompute health as a weighted average of contributing stats.
@@ -171,6 +174,7 @@ class GameContext:
         self.environment = {}
         self.time_speed = 1.0
         self.last_save_time = None
+        self.recent_behaviors = []
         try:
             import uos
             uos.remove(_SAVE_PATH)
@@ -178,6 +182,12 @@ class GameContext:
         except:
             pass
         print("[Context] Reset to defaults")
+
+    def record_behavior(self, name):
+        """Prepend a completed behavior name; keeps the 5 most recent."""
+        self.recent_behaviors.insert(0, name)
+        if len(self.recent_behaviors) > 5:
+            self.recent_behaviors.pop()
 
     def save_if_needed(self):
         """Save if more than 59 minutes have passed since the last save."""
