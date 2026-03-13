@@ -9,6 +9,11 @@ from assets.minigame_character import RUNCAT1, SITCAT1, SMALL_BIRD1
 from assets.nature import SMALLTREE1, PLANT1, PLANT2, PLANT6, CLOUD1, CLOUD2, CLOUD3
 from ui import Popup
 
+# Ground decor type constants (int for fast comparison)
+DECOR_DOT = 0
+DECOR_LINE = 1
+DECOR_BUMP = 2
+
 
 class ZoomiesScene(Scene):
     """Endless runner minigame inspired by Chrome dino"""
@@ -83,8 +88,7 @@ class ZoomiesScene(Scene):
 
     def _add_decor_at(self, x):
         """Add a decoration element at the given x position"""
-        decor_type = random.choice(["dot", "line", "bump"])
-        self.ground_decor.append({"x": float(x), "type": decor_type})
+        self.ground_decor.append([float(x), random.randint(0, 2)])
 
     def _init_ground_bumps(self):
         """Initialize ground bumps on the ground line"""
@@ -103,9 +107,8 @@ class ZoomiesScene(Scene):
     def _add_cloud_at(self, x):
         """Add a cloud at the given x position"""
         sprite = random.choice([CLOUD1, CLOUD2, CLOUD3])
-        # Random y position in upper portion of screen
         y = random.randint(-10, 10)
-        self.clouds.append({"sprite": sprite, "x": float(x), "y": y})
+        self.clouds.append([sprite, float(x), y])
 
     def load(self):
         super().load()
@@ -154,15 +157,17 @@ class ZoomiesScene(Scene):
             if self.run_anim >= len(RUNCAT1["frames"]):
                 self.run_anim -= len(RUNCAT1["frames"])
 
-        # Update obstacles
-        for obstacle in self.obstacles:
-            obstacle["x"] -= self.current_speed * dt
-            # Animate birds
-            if "anim" in obstacle:
-                obstacle["anim"] += dt * 8  # 8 fps animation
-
-        # Remove off-screen obstacles
-        self.obstacles = [o for o in self.obstacles if o["x"] > -20]
+        # Update obstacles: move, animate, filter off-screen in one pass
+        speed_dt = self.current_speed * dt
+        anim_dt = dt * 8
+        keep = []
+        for obs in self.obstacles:
+            obs[1] -= speed_dt
+            if obs[3] >= 0:
+                obs[3] += anim_dt
+            if obs[1] > -20:
+                keep.append(obs)
+        self.obstacles = keep
 
         # Spawn new obstacles
         self.spawn_timer -= dt
@@ -173,94 +178,79 @@ class ZoomiesScene(Scene):
             else:
                 self.spawn_timer = random.uniform(self.SPAWN_MIN * 0.6, self.SPAWN_MAX * 0.8)
 
-        # Update ground decorations
+        # Update ground decorations: move and filter in one pass
+        keep = []
         for decor in self.ground_decor:
-            decor["x"] -= self.current_speed * dt
+            decor[0] -= speed_dt
+            if decor[0] > -10:
+                keep.append(decor)
+        self.ground_decor = keep
+        rightmost = self.ground_decor[-1][0] if self.ground_decor else 0
+        if rightmost < config.DISPLAY_WIDTH:
+            self._add_decor_at(rightmost + random.randint(12, 20))
 
-        # Remove off-screen decorations and add new ones
-        self.ground_decor = [d for d in self.ground_decor if d["x"] > -10]
-        # Add new decorations on the right
-        if len(self.ground_decor) == 0 or self.ground_decor[-1]["x"] < config.DISPLAY_WIDTH:
-            rightmost = max((d["x"] for d in self.ground_decor), default=0)
-            if rightmost < config.DISPLAY_WIDTH + 10:
-                self._add_decor_at(rightmost + random.randint(12, 20))
-
-        # Update ground bumps
-        for i in range(len(self.ground_bumps)):
-            self.ground_bumps[i] -= self.current_speed * dt
-
-        # Remove off-screen bumps and add new ones
-        self.ground_bumps = [b for b in self.ground_bumps if b > -10]
-        if len(self.ground_bumps) == 0 or max(self.ground_bumps) < config.DISPLAY_WIDTH:
-            rightmost = max(self.ground_bumps, default=0)
+        # Update ground bumps: move and filter in one pass
+        keep = []
+        for b in self.ground_bumps:
+            b -= speed_dt
+            if b > -10:
+                keep.append(b)
+        self.ground_bumps = keep
+        rightmost = self.ground_bumps[-1] if self.ground_bumps else 0
+        if rightmost < config.DISPLAY_WIDTH:
             self.ground_bumps.append(rightmost + 32)
 
-        # Update clouds (slower parallax)
+        # Update clouds: move and filter in one pass
+        cloud_speed_dt = cloud_speed * dt
+        keep = []
         for cloud in self.clouds:
-            cloud["x"] -= cloud_speed * dt
-
-        # Remove off-screen clouds and add new ones
-        self.clouds = [c for c in self.clouds if c["x"] > -70]
-        if len(self.clouds) == 0 or max(c["x"] for c in self.clouds) < config.DISPLAY_WIDTH:
-            rightmost = max((c["x"] for c in self.clouds), default=0)
+            cloud[1] -= cloud_speed_dt
+            if cloud[1] > -70:
+                keep.append(cloud)
+        self.clouds = keep
+        rightmost = self.clouds[-1][1] if self.clouds else 0
+        if rightmost < config.DISPLAY_WIDTH:
             self._add_cloud_at(rightmost + random.randint(60, 100))
 
         # Check collisions
         self._check_collisions()
 
     def _spawn_obstacle(self):
-        """Spawn a new obstacle on the right side"""
+        """Spawn a new obstacle on the right side.
+        List format: [sprite, x, y, anim]  y=-1 = ground level, anim=-1 = no animation"""
         if random.random() < self.BIRD_CHANCE:
-            # Spawn a bird at random height
-            y = random.choice([self.BIRD_Y_LOW, self.BIRD_Y_HIGH])
-            self.obstacles.append({
-                "sprite": SMALL_BIRD1,
-                "x": float(config.DISPLAY_WIDTH + 5),
-                "y": y,
-                "anim": 0.0  # Bird animation counter
-            })
+            y = float(random.choice([self.BIRD_Y_LOW, self.BIRD_Y_HIGH]))
+            self.obstacles.append([SMALL_BIRD1, float(config.DISPLAY_WIDTH + 5), y, 0.0])
         else:
-            # Spawn a ground obstacle
             options = [SMALLTREE1, PLANT1, PLANT2]
             if self.current_speed > 110:
                 options.append(PLANT6)
-            sprite = random.choice(options)
-            self.obstacles.append({
-                "sprite": sprite,
-                "x": float(config.DISPLAY_WIDTH + 5),
-                "y": None  # None means ground level
-            })
+            self.obstacles.append([random.choice(options), float(config.DISPLAY_WIDTH + 5), -1.0, -1.0])
 
     def _check_collisions(self):
         """Check for collisions between player and obstacles"""
-        # Player hitbox (slightly smaller than sprite for fairness)
         player_left = self.PLAYER_X + 4
         player_right = self.PLAYER_X + RUNCAT1["width"] - 4
         player_top = int(self.player_y) + 2
         player_bottom = int(self.player_y) + RUNCAT1["height"]
+        ground_y = self.GROUND_Y
 
-        for obstacle in self.obstacles:
-            obs_sprite = obstacle["sprite"]
-            obs_x = int(obstacle["x"])
-            # Use custom y if set, otherwise ground level
-            if obstacle["y"] is not None:
-                obs_y = obstacle["y"]
-            else:
-                obs_y = self.GROUND_Y - obs_sprite["height"]
+        for obs in self.obstacles:
+            obs_sprite = obs[0]
+            obs_x = int(obs[1])
+            y = obs[2]
+            obs_y = ground_y - obs_sprite["height"] if y < 0 else int(y)
 
-            # Obstacle hitbox
             obs_left = obs_x + 2
             obs_right = obs_x + obs_sprite["width"] - 2
             obs_top = obs_y + 2
             obs_bottom = obs_y + obs_sprite["height"]
 
-            # AABB collision
             if (player_right > obs_left and
-                player_left < obs_right and
-                player_bottom > obs_top and
-                player_top < obs_bottom):
+                    player_left < obs_right and
+                    player_bottom > obs_top and
+                    player_top < obs_bottom):
                 self.is_hit = True
-                # Update high score
                 if self.score > self.context.zoomies_high_score:
                     self.context.zoomies_high_score = self.score
                     self.is_new_best = True
@@ -281,19 +271,17 @@ class ZoomiesScene(Scene):
         self._draw_ground_decor()
 
         # Draw obstacles
-        for obstacle in self.obstacles:
-            sprite = obstacle["sprite"]
-            x = int(obstacle["x"])
-            # Use custom y if set, otherwise ground level
-            if obstacle["y"] is not None:
-                y = obstacle["y"]
-            else:
-                y = self.GROUND_Y - sprite["height"]
-            # Get animation frame for birds
+        ground_y = self.GROUND_Y
+        for obs in self.obstacles:
+            sprite = obs[0]
+            x = int(obs[1])
+            y = obs[2]
+            if y < 0:
+                y = ground_y - sprite["height"]
             frame = 0
-            if "anim" in obstacle:
-                frame = int(obstacle["anim"]) % len(sprite["frames"])
-            self.renderer.draw_sprite_obj(sprite, x, y, frame=frame, transparent=True)
+            if obs[3] >= 0:
+                frame = int(obs[3]) % len(sprite["frames"])
+            self.renderer.draw_sprite_obj(sprite, x, int(y), frame=frame, transparent=True)
 
         # Draw player
         self._draw_player()
@@ -333,26 +321,24 @@ class ZoomiesScene(Scene):
 
     def _draw_ground_decor(self):
         """Draw scrolling ground decorations below the ground line"""
+        ground_y = self.GROUND_Y
         for decor in self.ground_decor:
-            x = int(decor["x"])
+            x = int(decor[0])
             if x < 0 or x >= config.DISPLAY_WIDTH:
                 continue
-
-            if decor["type"] == "dot":
-                self.renderer.draw_pixel(x, self.GROUND_Y + 3)
-            elif decor["type"] == "line":
-                self.renderer.draw_line(x, self.GROUND_Y + 4, x + 3, self.GROUND_Y + 4)
-            elif decor["type"] == "bump":
-                self.renderer.draw_pixel(x, self.GROUND_Y + 2)
-                self.renderer.draw_pixel(x + 1, self.GROUND_Y + 3)
+            decor_type = decor[1]
+            if decor_type == DECOR_DOT:
+                self.renderer.draw_pixel(x, ground_y + 3)
+            elif decor_type == DECOR_LINE:
+                self.renderer.draw_line(x, ground_y + 4, x + 3, ground_y + 4)
+            else:  # DECOR_BUMP
+                self.renderer.draw_pixel(x, ground_y + 2)
+                self.renderer.draw_pixel(x + 1, ground_y + 3)
 
     def _draw_clouds(self):
         """Draw background clouds"""
         for cloud in self.clouds:
-            x = int(cloud["x"])
-            y = cloud["y"]
-            sprite = cloud["sprite"]
-            self.renderer.draw_sprite_obj(sprite, x, y, frame=0, transparent=True)
+            self.renderer.draw_sprite_obj(cloud[0], int(cloud[1]), cloud[2], frame=0, transparent=True)
 
     def _draw_player(self):
         """Draw the player sprite based on state"""

@@ -8,6 +8,12 @@ from assets.minigame_character import SITCAT1
 from assets.items import FISH1
 from ui import Popup
 
+# Wall bitmask constants (int for fast bitwise checks)
+WALL_N = 1
+WALL_S = 2
+WALL_E = 4
+WALL_W = 8
+
 
 class MazeScene(Scene):
     """Maze minigame - guide cat to fish through a maze"""
@@ -45,6 +51,24 @@ class MazeScene(Scene):
         # Generate maze with reserved open areas for sprites
         self.maze = self.generate_maze()
 
+        # Precompute flat draw list: (px, py, walls_bitmask) per cell, row-major
+        self._maze_draw_data = []
+        for cy in range(self.GRID_HEIGHT):
+            for cx in range(self.GRID_WIDTH):
+                px = self.GRID_OFFSET_X + cx * self.CELL_WIDTH
+                py = self.GRID_OFFSET_Y + cy * self.CELL_HEIGHT
+                self._maze_draw_data.append((px, py, self.maze[cy][cx]))
+
+        # Precompute cell center pixel coords (flat, row-major) for path/indicator
+        cx_base = self.GRID_OFFSET_X + self.CELL_WIDTH // 2
+        cy_base = self.GRID_OFFSET_Y + self.CELL_HEIGHT // 2
+        gw = self.GRID_WIDTH
+        self._cell_centers = [
+            (cx_base + (i % gw) * self.CELL_WIDTH,
+             cy_base + (i // gw) * self.CELL_HEIGHT)
+            for i in range(gw * self.GRID_HEIGHT)
+        ]
+
         # Player state (bottom-left)
         self.player_x = 4
         self.player_y = self.GRID_HEIGHT - 1
@@ -66,10 +90,9 @@ class MazeScene(Scene):
 
     def generate_maze(self):
         """Generate a perfect maze using Prim's algorithm (more branching, harder mazes)"""
-        # Initialize grid with all walls
-        maze = [[{'N': True, 'S': True, 'E': True, 'W': True}
-                 for _ in range(self.GRID_WIDTH)]
-                for _ in range(self.GRID_HEIGHT)]
+        # Initialize grid: each cell is a bitmask of present walls (all walls = 15)
+        all_walls = WALL_N | WALL_S | WALL_E | WALL_W
+        maze = [[all_walls] * self.GRID_WIDTH for _ in range(self.GRID_HEIGHT)]
 
         visited = [[False] * self.GRID_WIDTH for _ in range(self.GRID_HEIGHT)]
 
@@ -88,66 +111,56 @@ class MazeScene(Scene):
             for ay in range(area['y'], area['y'] + area['h']):
                 for ax in range(area['x'], area['x'] + area['w']):
                     visited[ay][ax] = True
-                    # Clear internal walls within the area
                     if ay > area['y']:
-                        maze[ay][ax]['N'] = False
-                        maze[ay - 1][ax]['S'] = False
+                        maze[ay][ax] &= ~WALL_N
+                        maze[ay - 1][ax] &= ~WALL_S
                     if ax > area['x']:
-                        maze[ay][ax]['W'] = False
-                        maze[ay][ax - 1]['E'] = False
+                        maze[ay][ax] &= ~WALL_W
+                        maze[ay][ax - 1] &= ~WALL_E
 
         directions = [
-            (0, -1, 'N', 'S'),  # North
-            (0, 1, 'S', 'N'),   # South
-            (1, 0, 'E', 'W'),   # East
-            (-1, 0, 'W', 'E'),  # West
+            (0, -1, WALL_N, WALL_S),
+            (0, 1,  WALL_S, WALL_N),
+            (1, 0,  WALL_E, WALL_W),
+            (-1, 0, WALL_W, WALL_E),
         ]
 
         # Prim's algorithm: maintain a frontier of walls to potentially remove
-        # Start from the cell adjacent to the start area
         start_gen_x = self.START_CLEAR_WIDTH
         start_gen_y = self.GRID_HEIGHT - 1
         visited[start_gen_y][start_gen_x] = True
 
         # Connect the start area to the maze
-        maze[start_gen_y][start_gen_x]['W'] = False
-        maze[start_gen_y][start_gen_x - 1]['E'] = False
+        maze[start_gen_y][start_gen_x] &= ~WALL_W
+        maze[start_gen_y][start_gen_x - 1] &= ~WALL_E
 
-        # Frontier: list of (x, y, nx, ny, wall, opposite) - walls between visited and unvisited
+        # Frontier: list of (x, y, nx, ny, wall, opposite)
         frontier = []
 
         def add_frontier(x, y):
-            """Add all walls of cell (x,y) that border unvisited cells to frontier"""
             for dx, dy, wall, opposite in directions:
                 nx, ny = x + dx, y + dy
                 if 0 <= nx < self.GRID_WIDTH and 0 <= ny < self.GRID_HEIGHT:
                     if not visited[ny][nx]:
                         frontier.append((x, y, nx, ny, wall, opposite))
 
-        # Add initial cell's frontier
         add_frontier(start_gen_x, start_gen_y)
 
         while frontier:
-            # Pick a random wall from the frontier
             idx = random.randint(0, len(frontier) - 1)
             x, y, nx, ny, wall, opposite = frontier.pop(idx)
 
-            # If the cell on the other side is still unvisited, carve passage
             if not visited[ny][nx]:
-                # Remove walls between cells
-                maze[y][x][wall] = False
-                maze[ny][nx][opposite] = False
-
+                maze[y][x] &= ~wall
+                maze[ny][nx] &= ~opposite
                 visited[ny][nx] = True
-
-                # Add new cell's frontier walls
                 add_frontier(nx, ny)
 
         # Connect goal area to the maze (open wall on left side of goal area)
         goal_entry_x = goal_area['x'] - 1
-        goal_entry_y = goal_area['y'] + goal_area['h'] - 1  # Bottom of goal area
-        maze[goal_entry_y][goal_entry_x]['E'] = False
-        maze[goal_entry_y][goal_entry_x + 1]['W'] = False
+        goal_entry_y = goal_area['y'] + goal_area['h'] - 1
+        maze[goal_entry_y][goal_entry_x] &= ~WALL_E
+        maze[goal_entry_y][goal_entry_x + 1] &= ~WALL_W
 
         return maze
 
@@ -161,13 +174,13 @@ class MazeScene(Scene):
         """Check if player can move in given direction"""
         cell = self.maze[self.player_y][self.player_x]
         if dx == 1:
-            return not cell['E']
+            return not (cell & WALL_E)
         elif dx == -1:
-            return not cell['W']
+            return not (cell & WALL_W)
         elif dy == -1:
-            return not cell['N']
+            return not (cell & WALL_N)
         elif dy == 1:
-            return not cell['S']
+            return not (cell & WALL_S)
         return False
 
     def move_player(self, dx, dy):
@@ -249,45 +262,34 @@ class MazeScene(Scene):
             self.draw_win_message()
 
     def draw_maze(self):
-        """Draw maze walls - 1px walls at cell edges (2px when adjacent cells both have walls)"""
-        for y in range(self.GRID_HEIGHT):
-            for x in range(self.GRID_WIDTH):
-                cell = self.maze[y][x]
-                px, py = self.cell_to_pixel(x, y)
-
-                # Draw 1px walls at the actual edge of this cell
-                # Adjacent cells with walls create 2px thickness naturally
-                if cell['N']:
-                    self.renderer.draw_line(px, py, px + self.CELL_WIDTH - 1, py)
-                if cell['S']:
-                    self.renderer.draw_line(
-                        px, py + self.CELL_HEIGHT - 1,
-                        px + self.CELL_WIDTH - 1, py + self.CELL_HEIGHT - 1
-                    )
-                if cell['E']:
-                    self.renderer.draw_line(
-                        px + self.CELL_WIDTH - 1, py,
-                        px + self.CELL_WIDTH - 1, py + self.CELL_HEIGHT - 1
-                    )
-                if cell['W']:
-                    self.renderer.draw_line(px, py, px, py + self.CELL_HEIGHT - 1)
+        """Draw maze walls using precomputed draw data"""
+        draw_line = self.renderer.draw_line
+        cw1 = self.CELL_WIDTH - 1
+        ch1 = self.CELL_HEIGHT - 1
+        for px, py, walls in self._maze_draw_data:
+            if walls & WALL_N:
+                draw_line(px, py, px + cw1, py)
+            if walls & WALL_S:
+                draw_line(px, py + ch1, px + cw1, py + ch1)
+            if walls & WALL_E:
+                draw_line(px + cw1, py, px + cw1, py + ch1)
+            if walls & WALL_W:
+                draw_line(px, py, px, py + ch1)
 
     def draw_path(self):
         """Draw breadcrumb trail connecting visited cells"""
         if len(self.path) < 2:
             return
 
+        centers = self._cell_centers
+        gw = self.GRID_WIDTH
+        draw_line = self.renderer.draw_line
         for i in range(len(self.path) - 1):
             x1, y1 = self.path[i]
             x2, y2 = self.path[i + 1]
-
-            # Get center of each cell
-            px1 = self.GRID_OFFSET_X + x1 * self.CELL_WIDTH + self.CELL_WIDTH // 2
-            py1 = self.GRID_OFFSET_Y + y1 * self.CELL_HEIGHT + self.CELL_HEIGHT // 2
-            px2 = self.GRID_OFFSET_X + x2 * self.CELL_WIDTH + self.CELL_WIDTH // 2
-            py2 = self.GRID_OFFSET_Y + y2 * self.CELL_HEIGHT + self.CELL_HEIGHT // 2
-
-            self.renderer.draw_line(px1, py1, px2, py2)
+            px1, py1 = centers[y1 * gw + x1]
+            px2, py2 = centers[y2 * gw + x2]
+            draw_line(px1, py1, px2, py2)
 
     def draw_goal(self):
         """Draw fish at goal position"""
@@ -302,12 +304,8 @@ class MazeScene(Scene):
         if self.elapsed_time % 0.5 >= 0.25:
             return
 
-        px, py = self.cell_to_pixel(self.player_x, self.player_y)
-        center_x = px + self.CELL_WIDTH // 2
-        center_y = py + self.CELL_HEIGHT // 2
-
-        # Draw 3x3 filled rect centered on the cell
-        self.renderer.draw_rect(center_x - 1, center_y - 1, 3, 3)
+        cx, cy = self._cell_centers[self.player_y * self.GRID_WIDTH + self.player_x]
+        self.renderer.draw_rect(cx - 1, cy - 1, 3, 3)
 
     def draw_win_message(self):
         """Draw win screen overlay"""
