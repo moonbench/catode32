@@ -88,7 +88,11 @@ class Game:
             env['time_hours'] = new_hours_raw % 24
             env['time_minutes'] = total_minutes % 60
             if new_hours_raw >= 24:
-                env['day_number'] = env.get('day_number', 0) + (new_hours_raw // 24)
+                new_day = env.get('day_number', 0) + (new_hours_raw // 24)
+                env['day_number'] = new_day
+                _MOON_PHASES = ("New", "Wax Cres", "1st Qtr", "Wax Gib",
+                                "Full", "Wan Gib", "3rd Qtr", "Wan Cres")
+                env['moon_phase'] = _MOON_PHASES[(new_day // 6 + 2) % 8]
             self.weather_system.update(mins, env)
 
     def _show_boot_screen(self):
