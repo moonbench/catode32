@@ -6,7 +6,7 @@ import config
 from menu import Menu, MenuItem
 from transitions import TransitionManager
 from ui import OverlayManager
-from assets.icons import WRENCH_ICON, SUN_ICON, HOUSE_ICON, STATS_ICON, MINIGAME_ICONS, MINIGAMES_ICON, CAT_ICON
+from assets.icons import WRENCH_ICON, SUN_ICON, HOUSE_ICON, STATS_ICON, MINIGAME_ICONS, MINIGAMES_ICON, CAT_ICON, TREES_ICON, MEAL_ICON
 
 
 class SceneManager:
@@ -63,6 +63,9 @@ class SceneManager:
         return {
             'inside': ('scenes.inside', 'InsideScene'),
             'outside': ('scenes.outside', 'OutsideScene'),
+            'bedroom': ('scenes.bedroom', 'BedroomScene'),
+            'kitchen': ('scenes.kitchen', 'KitchenScene'),
+            'treehouse': ('scenes.treehouse', 'TreehouseScene'),
             'stats': ('scenes.stats', 'StatsScene'),
             'zoomies': ('scenes.zoomies', 'ZoomiesScene'),
             'maze': ('scenes.maze', 'MazeScene'),
@@ -290,7 +293,10 @@ class SceneManager:
         # Location options
         location_items = []
         location_items.append(MenuItem("Go inside", icon=HOUSE_ICON, action=('scene', 'inside')))
+        location_items.append(MenuItem("Bedroom", icon=HOUSE_ICON, action=('scene', 'bedroom')))
+        location_items.append(MenuItem("Kitchen", icon=MEAL_ICON, action=('scene', 'kitchen')))
         location_items.append(MenuItem("Go outside", icon=SUN_ICON, action=('scene', 'outside')))
+        location_items.append(MenuItem("Treehouse", icon=TREES_ICON, action=('scene', 'treehouse')))
         items.append(MenuItem("Locations", icon=HOUSE_ICON, submenu=location_items))
 
         # Minigames submenu
