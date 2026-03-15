@@ -89,6 +89,7 @@ class OutsideScene(Scene):
         super().unload()
 
     def enter(self):
+        self.context.last_main_scene = 'outside'
         # Re-add all custom draws fresh (cleared on exit to prevent accumulation)
         self.environment.add_custom_draw(LAYER_FOREGROUND, self._draw_grass)
 

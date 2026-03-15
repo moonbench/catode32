@@ -281,6 +281,6 @@ class StatsScene(Scene):
 
         # Exit scene
         if self.input.was_just_pressed('b'):
-            return ('change_scene', 'inside')
+            return ('change_scene', 'last_main')
 
         return None

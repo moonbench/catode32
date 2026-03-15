@@ -62,5 +62,5 @@ class DebugStatsScene(Scene):
         if result is not None:
             for key, value in result.items():
                 setattr(self.context, key, float(value))
-            return ('change_scene', 'inside')
+            return ('change_scene', 'last_main')
         return None

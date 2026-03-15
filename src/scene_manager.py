@@ -212,6 +212,8 @@ class SceneManager:
     def _handle_scene_change(self, scene_ref):
         """Handle a scene change request. scene_ref can be a name (str) or class."""
         if isinstance(scene_ref, str):
+            if scene_ref == 'last_main':
+                scene_ref = self.context.last_main_scene
             self.change_scene_by_name(scene_ref)
         else:
             self.change_scene(scene_ref)

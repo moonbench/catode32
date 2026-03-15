@@ -75,6 +75,9 @@ class GameContext:
 
         # Name of the most recently started behavior (not persisted, used to restore on scene re-entry)
         self.current_behavior_name = None
+
+        # Last active "main" scene (inside/outside/etc) - used by secondary scenes to return home
+        self.last_main_scene = 'inside'
     
     def recompute_health(self):
         """Recompute health as a weighted average of contributing stats.
@@ -181,6 +184,7 @@ class GameContext:
         self.last_save_time = None
         self.recent_behaviors = []
         self.current_behavior_name = None
+        self.last_main_scene = 'inside'
         try:
             import uos
             uos.remove(_SAVE_PATH)

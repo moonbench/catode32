@@ -92,6 +92,6 @@ class DebugMemoryScene(Scene):
             self.scroll_offset = min(max_scroll, self.scroll_offset + 1)
 
         if self.input.was_just_pressed('b'):
-            return ('change_scene', 'inside')
+            return ('change_scene', 'last_main')
 
         return None

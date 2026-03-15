@@ -94,6 +94,7 @@ class InsideScene(Scene):
         super().unload()
 
     def enter(self):
+        self.context.last_main_scene = 'inside'
         env_settings = getattr(self.context, 'environment', {})
         self.sky.configure(env_settings, world_width=self.environment.world_width)
         self.sky.add_to_environment(self.environment, LAYER_BACKGROUND)
