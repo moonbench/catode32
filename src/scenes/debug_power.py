@@ -35,7 +35,7 @@ class DebugPowerScene(Scene):
         if (self.input.was_just_pressed('b')
                 or self.input.was_just_pressed('menu1')
                 or self.input.was_just_pressed('menu2')):
-            return ('change_scene', 'normal')
+            return ('change_scene', 'inside')
 
         if self.input.was_just_pressed('up'):
             self.selected = max(0, self.selected - 1)

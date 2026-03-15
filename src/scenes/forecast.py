@@ -106,7 +106,7 @@ class ForecastScene(Scene):
                 if self._cursor >= self._scroll + _VIS_COLS:
                     self._scroll = self._cursor - _VIS_COLS + 1
         elif self.input.was_just_pressed('a') or self.input.was_just_pressed('b'):
-            return ('change_scene', 'normal')
+            return ('change_scene', 'inside')
         return None
 
     def draw(self):

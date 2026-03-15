@@ -163,8 +163,8 @@ class DebugPosesScene(Scene):
         if self.input.was_just_pressed('down'):
             self.show_grid = not self.show_grid
 
-        # B to go back to normal scene
+        # B to go back to inside scene
         if self.input.was_just_pressed('b'):
-            return ('change_scene', 'normal')
+            return ('change_scene', 'inside')
 
         return None

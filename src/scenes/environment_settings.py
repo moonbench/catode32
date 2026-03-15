@@ -56,5 +56,5 @@ class EnvironmentSettingsScene(Scene):
         if result is not None:
             self.context.environment.update(result)
             self.context.environment['weather_timer'] = 60.0
-            return ('change_scene', 'normal')
+            return ('change_scene', 'inside')
         return None

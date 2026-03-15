@@ -30,5 +30,5 @@ class TimeSettingsScene(Scene):
         result = self.settings.handle_input()
         if result is not None:
             self.context.time_speed = result.get('time_speed', 1.0)
-            return ('change_scene', 'normal')
+            return ('change_scene', 'inside')
         return None

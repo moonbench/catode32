@@ -29,7 +29,7 @@ class Game:
             self.input,
         )
 
-        self.scene_manager.change_scene_by_name('normal')
+        self.scene_manager.change_scene_by_name('inside')
 
         self.weather_system = WeatherSystem()
 

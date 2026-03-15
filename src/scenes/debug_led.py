@@ -58,5 +58,5 @@ class DebugLedScene(Scene):
     def handle_input(self):
         result = self.settings.handle_input()
         if result is not None:
-            return ('change_scene', 'normal')
+            return ('change_scene', 'inside')
         return None

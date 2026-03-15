@@ -129,7 +129,7 @@ class DebugBehaviorsScene(Scene):
             self._trigger_selected()
 
         if self.input.was_just_pressed('b'):
-            return ('change_scene', 'normal')
+            return ('change_scene', 'inside')
 
         return None
 

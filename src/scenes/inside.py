@@ -11,7 +11,7 @@ from sky import SkyRenderer
 from clock import ClockWidget
 
 
-class NormalScene(Scene):
+class InsideScene(Scene):
     MODULES_TO_KEEP = ['assets.furniture', 'assets.nature', 'sky', 'clock']
 
     # Window position and size (world x, screen y, width, height)

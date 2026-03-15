@@ -61,7 +61,7 @@ class SceneManager:
         Scenes are NOT imported here - just registered for lazy loading.
         """
         return {
-            'normal': ('scenes.normal', 'NormalScene'),
+            'inside': ('scenes.inside', 'InsideScene'),
             'outside': ('scenes.outside', 'OutsideScene'),
             'stats': ('scenes.stats', 'StatsScene'),
             'zoomies': ('scenes.zoomies', 'ZoomiesScene'),
@@ -287,7 +287,7 @@ class SceneManager:
 
         # Location options
         location_items = []
-        location_items.append(MenuItem("Go inside", icon=HOUSE_ICON, action=('scene', 'normal')))
+        location_items.append(MenuItem("Go inside", icon=HOUSE_ICON, action=('scene', 'inside')))
         location_items.append(MenuItem("Go outside", icon=SUN_ICON, action=('scene', 'outside')))
         items.append(MenuItem("Locations", icon=HOUSE_ICON, submenu=location_items))
 
