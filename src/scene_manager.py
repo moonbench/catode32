@@ -233,6 +233,12 @@ class SceneManager:
             result = self.current_scene.update(dt)
             if result and result[0] == 'change_scene':
                 self._handle_scene_change(result[1])
+
+        # Check for a scene change requested by a behavior (e.g. go_to on arrival)
+        if self.context.pending_scene:
+            pending = self.context.pending_scene
+            self.context.pending_scene = None
+            self.change_scene_by_name(pending)
     
     def draw(self):
         """Draw current scene and transition overlay"""

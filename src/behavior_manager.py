@@ -42,6 +42,7 @@ class BehaviorManager:
         'eating':        ('entities.behaviors.eating',        'EatingBehavior'),
         'startled':      ('entities.behaviors.startled',      'StartledBehavior'),
         'meandering':    ('entities.behaviors.meandering',    'MeanderingBehavior'),
+        'go_to':         ('entities.behaviors.go_to',         'GoToBehavior'),
     }
 
     # Ordered tuple of auto-selectable behavior names. Built once at class definition;
@@ -114,7 +115,7 @@ class BehaviorManager:
         """
         _INTERACTION_BEHAVIORS = frozenset((
             'affection', 'attention', 'being_groomed', 'eating',
-            'playing', 'gift_bringing', 'chattering',
+            'playing', 'gift_bringing', 'chattering', 'go_to',
         ))
         ctx = self._character.context
         prior = ctx.current_behavior_name if ctx else None
@@ -169,6 +170,13 @@ class BehaviorManager:
             print("\033[32mRandomly meandering....\033[0m")
             return 'meandering', {}
 
+        # Scene exit (special case — pet may decide to walk to a different location)
+        exit_result = self._auto_select_scene_exit(context)
+        if exit_result:
+            name, kwargs = exit_result
+            print("\033[32mScene exit -> %s\033[0m" % kwargs.get('pending_scene', '?'))
+            return name, kwargs
+
         # High serenity makes the pet content to keep resting
         if context.serenity > 25 and random.random() < (context.serenity - 25) / 150:
             print(f"\033[32mStaying idle (serenity: {context.serenity:.1f})\033[0m")
@@ -210,6 +218,79 @@ class BehaviorManager:
         if len(top) > 1:
             print(f">> Selected: {chosen} (from bin tied at {best_bin}: {top})")
         return chosen, {}
+
+    # ------------------------------------------------------------------
+    # Scene exit selection
+    # ------------------------------------------------------------------
+
+    # Valid destinations from each main scene.
+    _SCENE_TRANSITIONS = {
+        'inside':    ('bedroom', 'kitchen', 'outside'),
+        'bedroom':   ('inside',  'kitchen'),
+        'kitchen':   ('inside',  'bedroom'),
+        'outside':   ('inside',  'treehouse'),
+        'treehouse': ('outside',),
+    }
+
+    def _auto_select_scene_exit(self, ctx):
+        """Maybe walk to a new location. Returns ('go_to', kwargs) or None.
+
+        Base probability ~8%, boosted when needs align with a destination
+        (low fullness → kitchen, low comfort/energy → bedroom, bad weather → away
+        from outdoor destinations). Never totally deterministic.
+        """
+        current = getattr(ctx, 'last_main_scene', None)
+        options = self._SCENE_TRANSITIONS.get(current)
+        if not options:
+            return None
+
+        if ctx.energy < 15:
+            return None  # Too exhausted to go anywhere
+
+        weather = ctx.environment.get('weather', 'Clear')
+        outdoor_bad = weather in ('Rain', 'Storm', 'Snow')
+
+        # Compute per-destination weights
+        weights = []
+        for dest in options:
+            w = 1.0
+            if dest == 'kitchen':
+                # Hungry pet more likely to head for food
+                w += max(0.0, 50.0 - ctx.fullness) * 0.04
+            if dest == 'bedroom':
+                # Tired or uncomfortable pet more likely to rest
+                w += max(0.0, 50.0 - ctx.comfort) * 0.02
+                w += max(0.0, 50.0 - ctx.energy) * 0.02
+            if dest in ('outside', 'treehouse') and outdoor_bad:
+                # Bad weather discourages outdoor trips
+                w *= 0.2
+            weights.append(w)
+
+        # Boost effective probability when the strongest pull is high
+        max_w = max(weights)
+        effective_p = min(0.4, 0.08 + (max_w - 1.0) * 0.05)
+
+        roll = random.random()
+        print("Scene exit p=%.3f roll=%.3f (%s) weights: %s" % (
+            effective_p, roll, current,
+            ", ".join("%s=%.2f" % (d, w) for d, w in zip(options, weights))
+        ))
+
+        if roll > effective_p:
+            return None
+
+        # Weighted random destination pick
+        total = sum(weights)
+        r = random.uniform(0.0, total)
+        chosen = options[-1]
+        for dest, w in zip(options, weights):
+            r -= w
+            if r <= 0.0:
+                chosen = dest
+                break
+
+        target_x = getattr(ctx, 'scene_x_min', 10)
+        return 'go_to', {'target_x': target_x, 'speed': 12, 'pending_scene': chosen}
 
     # ------------------------------------------------------------------
     # can_trigger methods
