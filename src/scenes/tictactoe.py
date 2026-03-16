@@ -255,7 +255,6 @@ class TicTacToeScene(Scene):
                 self.pet_think_timer = 0.0
 
     def draw(self):
-        self.renderer.clear()
 
         # Draw board grid
         self._draw_board()

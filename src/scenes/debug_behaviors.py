@@ -73,7 +73,6 @@ class DebugBehaviorsScene(Scene):
             self.character.update(dt)
 
     def draw(self):
-        self.renderer.clear()
 
         self.renderer.draw_line(0, 60, 128, 60)
 

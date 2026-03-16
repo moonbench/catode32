@@ -164,8 +164,6 @@ class Menu:
 
     def draw(self):
         """Render the menu to screen"""
-        self.renderer.clear()
-
         if self.pending_confirmation:
             self._draw_confirmation()
         else:

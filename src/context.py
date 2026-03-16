@@ -6,7 +6,7 @@ _STAT_KEYS = (
     'intelligence', 'maturity', 'affection',
     'fitness', 'serenity',
     'courage', 'loyalty', 'mischievousness',
-    'zoomies_high_score', 'maze_best_time', 'time_speed',
+    'zoomies_high_score', 'maze_best_time', 'snake_high_score', 'time_speed',
 )
 
 
@@ -56,6 +56,7 @@ class GameContext:
         # Minigame high scores
         self.zoomies_high_score = 0
         self.maze_best_time = 0  # Best time in seconds (0 = not played)
+        self.snake_high_score = 0
 
         # For storing time/weather/season/moon-phase type data
         self.environment = {}
@@ -182,6 +183,7 @@ class GameContext:
         self.mischievousness = 50
         self.zoomies_high_score = 0
         self.maze_best_time = 0
+        self.snake_high_score = 0
         self.environment = {}
         self.time_speed = 1.0
         self.last_save_time = None

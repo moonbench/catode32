@@ -144,7 +144,6 @@ class Settings:
 
     def draw(self):
         """Render the settings to screen"""
-        self.renderer.clear()
         self._draw_settings_list()
 
     def _draw_settings_list(self):

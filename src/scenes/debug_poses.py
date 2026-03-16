@@ -41,7 +41,6 @@ class DebugPosesScene(Scene):
             self.grid_offset = (self.grid_offset + dt * 16) % 8
 
     def draw(self):
-        self.renderer.clear()
 
         # Draw moving grid background if enabled
         if self.show_grid:

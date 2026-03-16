@@ -2,9 +2,9 @@ import config
 from scenes.main_scene import MainScene
 from environment import Environment, LAYER_FOREGROUND, LAYER_MIDGROUND
 from entities.character import CharacterEntity
-from assets.furniture import BOOKSHELF
+from assets.furniture import BOOKSHELF, PILLOW
 from assets.nature import PLANTER1, PLANT3
-from assets.items import BOX_SMALL_1, YARN_BALL
+from assets.items import YARN_BALL
 
 
 class BedroomScene(MainScene):
@@ -12,16 +12,20 @@ class BedroomScene(MainScene):
     MODULES_TO_KEEP = ['assets.furniture', 'assets.nature', 'assets.items']
 
     def setup_scene(self):
-        self.environment = Environment(world_width=192)
+        self.environment = Environment(256)
+        self.context.scene_x_min = 10
+        self.context.scene_x_max = 246
 
         # Left wall: bookshelf with a box on top
         self.environment.add_object(
             LAYER_FOREGROUND, BOOKSHELF,
             x=0, y=63 - BOOKSHELF["height"]
         )
+
+        # Pillow on bed
         self.environment.add_object(
-            LAYER_FOREGROUND, BOX_SMALL_1,
-            x=2, y=63 - BOOKSHELF["height"] - BOX_SMALL_1["height"]
+            LAYER_MIDGROUND, PILLOW,
+            x=158, y=23
         )
 
         # Yarn ball on the floor (toy)
@@ -43,7 +47,7 @@ class BedroomScene(MainScene):
         """Draw a simple bed frame against the right side of the room."""
         offset = int(camera_x * parallax)
 
-        bed_x = 70 - offset
+        bed_x = 108 - offset
 
         # Frame
         renderer.draw_rect(bed_x, 50, 80, 5, filled=True)
@@ -52,7 +56,3 @@ class BedroomScene(MainScene):
 
         # Mattress
         renderer.draw_rect(bed_x, 32, 79, 16)
-
-        # Pillow
-        px = 141 - offset
-        renderer.draw_rect(bed_x + 50, 22, 29, 10)

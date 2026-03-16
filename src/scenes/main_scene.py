@@ -90,7 +90,6 @@ class MainScene(Scene):
         if self.menu_active:
             self.menu.draw()
             return
-        self.renderer.clear()
         self.on_pre_draw()
         self.environment.draw(self.renderer)
         camera_offset = int(self.environment.camera_x)

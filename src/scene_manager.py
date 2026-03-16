@@ -71,6 +71,7 @@ class SceneManager:
             'maze': ('scenes.maze', 'MazeScene'),
             'breakout': ('scenes.breakout', 'BreakoutScene'),
             'tictactoe': ('scenes.tictactoe', 'TicTacToeScene'),
+            'snake': ('scenes.snake', 'SnakeScene'),
             'debug_context': ('scenes.debug_context', 'DebugContextScene'),
             'debug_memory': ('scenes.debug_memory', 'DebugMemoryScene'),
             'debug_poses': ('scenes.debug_poses', 'DebugPosesScene'),
@@ -242,6 +243,8 @@ class SceneManager:
     
     def draw(self):
         """Draw current scene and transition overlay"""
+        self.renderer.clear()
+
         # If an overlay is active, draw it instead of the scene
         if self.overlays.draw():
             self.renderer.show()
@@ -298,10 +301,10 @@ class SceneManager:
 
         # Location options
         location_items = []
-        location_items.append(MenuItem("Go inside", icon=HOUSE_ICON, action=('scene', 'inside')))
+        location_items.append(MenuItem("Living Room", icon=HOUSE_ICON, action=('scene', 'inside')))
         location_items.append(MenuItem("Bedroom", icon=HOUSE_ICON, action=('scene', 'bedroom')))
         location_items.append(MenuItem("Kitchen", icon=MEAL_ICON, action=('scene', 'kitchen')))
-        location_items.append(MenuItem("Go outside", icon=SUN_ICON, action=('scene', 'outside')))
+        location_items.append(MenuItem("Outside", icon=SUN_ICON, action=('scene', 'outside')))
         location_items.append(MenuItem("Treehouse", icon=TREES_ICON, action=('scene', 'treehouse')))
         items.append(MenuItem("Locations", icon=HOUSE_ICON, submenu=location_items))
 
@@ -311,6 +314,7 @@ class SceneManager:
         minigame_items.append(MenuItem("Maze", icon=MINIGAME_ICONS.get("Maze"), action=('scene', 'maze')))
         minigame_items.append(MenuItem("Breakout", icon=MINIGAME_ICONS.get("Breakout"), action=('scene', 'breakout')))
         minigame_items.append(MenuItem("TicTacToe", icon=MINIGAME_ICONS.get("TicTacToe"), action=('scene', 'tictactoe')))
+        minigame_items.append(MenuItem("Snake", icon=MINIGAME_ICONS.get("Snake"), action=('scene', 'snake')))
         items.append(MenuItem("Minigames", icon=MINIGAMES_ICON, submenu=minigame_items))
         
         # Debug submenu

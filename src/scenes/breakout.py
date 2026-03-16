@@ -361,8 +361,6 @@ class BreakoutScene(Scene):
                 return
 
     def draw(self):
-        self.renderer.clear()
-
         # Draw cat avatar
         self.renderer.draw_sprite_obj(CAT_AVATAR1, self.CAT_X, self.CAT_Y)
 

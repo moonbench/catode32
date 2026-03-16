@@ -19,7 +19,6 @@ class DebugPowerScene(Scene):
 
     def draw(self):
         r = self.renderer
-        r.clear()
         r.draw_text("Power Control", 2, 4)
         r.draw_line(0, 16, 127, 16)
 

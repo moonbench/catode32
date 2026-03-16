@@ -110,7 +110,6 @@ class ForecastScene(Scene):
         return None
 
     def draw(self):
-        self.renderer.clear()
 
         # Header: name of the highlighted slot's weather
         _, sel_weather = self._slots[self._cursor]

@@ -65,7 +65,6 @@ class DebugMemoryScene(Scene):
 
     def draw(self):
         """Draw the memory info"""
-        self.renderer.clear()
 
         visible_end = min(self.scroll_offset + self.LINES_VISIBLE, len(self.lines))
 

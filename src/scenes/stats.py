@@ -158,7 +158,6 @@ class StatsScene(Scene):
 
     def draw(self):
         """Draw the stats list"""
-        self.renderer.clear()
 
         # Draw all items with scroll offset
         current_stat_index = 0

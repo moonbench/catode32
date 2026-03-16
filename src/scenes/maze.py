@@ -240,7 +240,6 @@ class MazeScene(Scene):
                 self.reset_game()
 
     def draw(self):
-        self.renderer.clear()
 
         # Draw maze walls
         self.draw_maze()

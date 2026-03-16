@@ -56,7 +56,6 @@ class DebugContextScene(Scene):
 
     def draw(self):
         """Draw the debug info"""
-        self.renderer.clear()
 
         visible_end = min(self.scroll_offset + self.LINES_VISIBLE, len(self.lines))
 

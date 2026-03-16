@@ -259,7 +259,6 @@ class ZoomiesScene(Scene):
                 return
 
     def draw(self):
-        self.renderer.clear()
 
         # Draw clouds (background, behind everything)
         self._draw_clouds()
