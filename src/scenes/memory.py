@@ -266,5 +266,3 @@ class MemoryScene(Scene):
         # Win popup overlay
         if self.state == STATE_WIN:
             self.win_popup.draw(show_scroll_indicators=False)
-
-        r.show()

@@ -6,19 +6,18 @@ from scene import Scene
 from ui import Popup
 
 CREDITS = """\
+   Catode 32   
 ===============
-Catode32 Credit
----------------
 
-Thanks for
-playing!
-
----------------
+Thank you for
+playing with
+this virtual
+pet!
+_______________
 
 Code & Design:
 Moonbench
-
----------------
+_______________
 
 This pet was
 inspired by my
@@ -28,13 +27,16 @@ cats.
 My sweet and
 intelligent
 tortoiseshell
-girl, Bean, and
-her adopted
-rambunctious
+girl, Bean,
+and her cute,
+rambunctious,
+adopted younger
 black sister,
-Juno. They are
-both full of
-so much love.
+Juno.
+
+They are both
+full of so
+much love.
 
 I started to
 create the art
@@ -54,15 +56,15 @@ inspired the
 cat in this toy
 and it wouldn't
 exist without
-them! I took
-many breaks
-while working
-on this to give
-them lots of
-love and
-attention!
+them!
 
----------------
+I took so many
+breaks while
+working on this
+to give them
+lots of love
+and attention!
+_______________
 
 I also want
 to give thanks
@@ -73,17 +75,7 @@ this and who
 provided warm
 encouragment
 and support.
-
----------------
-
-The source code
-for this toy is
-available. Just
-search for
-"catode32"
-online!
-
----------------
+_______________
 
 I also want to
 give thanks to
@@ -93,7 +85,12 @@ the projects
 that this was
 built upon.
 
----------------
+The source code
+for this pet is
+available. Just
+search for
+"catode32".
+_______________
 
 Oh, and if you
 have the time
@@ -105,8 +102,7 @@ local animal
 shelter, and
 give them lots
 of love too!
-
----------------
+_______________
 
 
 Made with love!
@@ -115,8 +111,10 @@ Made with love!
 | \________/ |
 |            |
 |  /\    /\  |
- \   ,__,   /
-  \________/
+\    ,__,    /
+ \__________/
+
+===============
 \
 """
 
@@ -154,4 +152,3 @@ class CreditsScene(Scene):
 
     def draw(self):
         self.popup.draw(show_scroll_indicators=True)
-        self.renderer.show()

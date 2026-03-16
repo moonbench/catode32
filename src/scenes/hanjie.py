@@ -209,7 +209,7 @@ class HanjieScene(Scene):
                 self.board[self.cursor] = UNKNOWN
             else:
                 self.board[self.cursor] = FILLED
-                self._check_win_state()
+            self._check_win_state()
 
         elif inp.was_just_pressed('b'):
             cur = self.board[self.cursor]
@@ -217,6 +217,7 @@ class HanjieScene(Scene):
                 self.board[self.cursor] = UNKNOWN
             else:
                 self.board[self.cursor] = CROSSED
+            self._check_win_state()
 
     def _check_win_state(self):
         if not _check_win(self.board, self.row_clues, self.col_clues):
@@ -271,7 +272,6 @@ class HanjieScene(Scene):
             self.character.draw(r)
         if self.state == STATE_WIN:
             self.win_popup.draw(show_scroll_indicators=False)
-        r.show()
 
     def _draw_col_clues(self, r):
         """Draw column clues above the grid (y=0..15)."""
