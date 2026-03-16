@@ -6,7 +6,7 @@ _STAT_KEYS = (
     'intelligence', 'maturity', 'affection',
     'fitness', 'serenity',
     'courage', 'loyalty', 'mischievousness',
-    'zoomies_high_score', 'maze_best_time', 'snake_high_score', 'time_speed',
+    'zoomies_high_score', 'maze_best_time', 'snake_high_score', 'memory_best_score', 'time_speed',
 )
 
 
@@ -57,6 +57,7 @@ class GameContext:
         self.zoomies_high_score = 0
         self.maze_best_time = 0  # Best time in seconds (0 = not played)
         self.snake_high_score = 0
+        self.memory_best_score = -1  # Fewest mismatches (-1 = not yet played)
 
         # For storing time/weather/season/moon-phase type data
         self.environment = {}
