@@ -48,11 +48,21 @@ class NappingBehavior(BaseBehavior):
 
         if context.playfulness > 75:
             bonus["playfulness"] = bonus.get("playfulness", 0) / 2
-        
+
         if context.focus > 75:
             bonus["focus"] = bonus.get("focus", 0) / 2
         elif context.focus < 25:
             bonus["focus"] = bonus.get("focus", 0) * 2.0
+        return self.apply_location_bonus(context, bonus)
+
+    def apply_location_bonus(self, context, bonus):
+        scene = context.last_main_scene
+        weather = context.environment.get('weather', 'Clear')
+        if scene == 'bedroom':
+            bonus['energy'] = bonus.get('energy', 0) * 1.2
+            bonus['comfort'] = bonus.get('comfort', 0) * 1.2
+        if scene in ('outside', 'treehouse') and weather in ('Rain', 'Storm', 'Snow'):
+            bonus['comfort'] = bonus.get('comfort', 0) - 7
         return bonus
     
     def __init__(self, character):

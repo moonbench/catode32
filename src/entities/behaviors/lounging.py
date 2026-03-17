@@ -51,6 +51,19 @@ class LoungeingBehavior(BaseBehavior):
         self.rouse_duration = random.uniform(1.0, 5.0)
         self._lounge_pose = random.choice(self.LOUNGE_POSES)
 
+    def get_completion_bonus(self, context):
+        bonus = dict(super().get_completion_bonus(context))
+        return self.apply_location_bonus(context, bonus)
+
+    def apply_location_bonus(self, context, bonus):
+        scene = context.last_main_scene
+        weather = context.environment.get('weather', 'Clear')
+        if scene in ('inside', 'outside', 'treehouse'):
+            bonus['comfort'] = bonus.get('comfort', 0) * 1.3
+        if scene in ('outside', 'treehouse') and weather in ('Rain', 'Storm', 'Snow'):
+            bonus['comfort'] = bonus.get('comfort', 0) - 6
+        return bonus
+
     def next(self, context):
         # Low serenity -> more likely to knead (restless, not fully settled)
         kneading_p = (100 - context.serenity) * 0.35  # 0% at serenity=100, 15% at serenity=0

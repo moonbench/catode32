@@ -45,6 +45,17 @@ class IdleBehavior(BaseBehavior):
         "serenity": 0.0075,
     }
 
+    def get_completion_bonus(self, context):
+        bonus = dict(super().get_completion_bonus(context))
+        return self.apply_location_bonus(context, bonus)
+
+    def apply_location_bonus(self, context, bonus):
+        scene = context.last_main_scene
+        weather = context.environment.get('weather', 'Clear')
+        if scene in ('outside', 'treehouse') and weather in ('Rain', 'Storm', 'Snow'):
+            bonus['comfort'] = bonus.get('comfort', 0) - 5
+        return bonus
+
     def __init__(self, character):
         super().__init__(character)
         self.min_pose_duration = 15.0

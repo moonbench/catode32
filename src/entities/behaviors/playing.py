@@ -86,7 +86,17 @@ class PlayingBehavior(BaseBehavior):
     NAME = "playing"
 
     def get_completion_bonus(self, context):
-        return dict(VARIANTS[self._variant].get("stats", {}))
+        bonus = dict(VARIANTS[self._variant].get("stats", {}))
+        return self.apply_location_bonus(context, bonus)
+
+    def apply_location_bonus(self, context, bonus):
+        if context.last_main_scene in ('outside', 'treehouse', 'inside'):
+            # Better play locations: reduce energy and playfulness costs by 25%
+            for stat in ('energy', 'playfulness'):
+                if stat in bonus:
+                    bonus[stat] = bonus[stat] * 0.75
+            bonus['fitness'] = bonus.get('fitness', 0) + 0.01
+        return bonus
 
     def __init__(self, character):
         super().__init__(character)

@@ -204,6 +204,22 @@ class BaseBehavior:
         """
         return self.COMPLETION_BONUS
 
+    def apply_location_bonus(self, context, bonus):
+        """Apply location and weather modifiers to the completion bonus.
+
+        Override in subclasses to modify bonus values based on the current
+        scene (context.last_main_scene) and weather
+        (context.environment.get('weather')).
+
+        Args:
+            context: The GameContext.
+            bonus: A mutable copy of the completion bonus dict.
+
+        Returns:
+            The modified bonus dict.
+        """
+        return bonus
+
     def apply_completion_bonus(self, context, progress=1.0):
         """Apply completion bonus stats, scaled by how much was completed.
 

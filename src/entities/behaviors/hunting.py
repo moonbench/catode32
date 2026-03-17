@@ -62,6 +62,16 @@ class HuntingBehavior(BaseBehavior):
         self._miss_count = 0
         self._max_misses = 0
 
+    def get_completion_bonus(self, context):
+        bonus = dict(super().get_completion_bonus(context))
+        return self.apply_location_bonus(context, bonus)
+
+    def apply_location_bonus(self, context, bonus):
+        if context.last_main_scene in ('outside', 'treehouse'):
+            bonus['fitness'] = bonus.get('fitness', 0) * 1.5
+            bonus['fulfillment'] = bonus.get('fulfillment', 0) + 0.05
+        return bonus
+
     def next(self, context):
         # Sigmoid centered at fullness=30: >90% above 15 fullness, ~50% at 30, <12% above 40
         eating_chance = 0.95 / (1 + math.exp(0.2 * (context.fullness - 30)))

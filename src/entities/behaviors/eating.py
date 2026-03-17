@@ -64,7 +64,15 @@ class EatingBehavior(BaseBehavior):
 
     def get_completion_bonus(self, context):
         config = self.FOOD_CONFIG.get(self._food_type, self.DEFAULT_FOOD_CONFIG)
-        return config["stats"]
+        bonus = dict(config["stats"])
+        return self.apply_location_bonus(context, bonus)
+
+    def apply_location_bonus(self, context, bonus):
+        if context.last_main_scene == 'kitchen':
+            for stat in ('fullness', 'energy'):
+                if stat in bonus:
+                    bonus[stat] = bonus[stat] * 1.2
+        return bonus
 
     def stop(self, completed=True):
         if not self._active:
