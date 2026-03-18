@@ -2,7 +2,7 @@
 
 import math
 from entities.behaviors.base import BaseBehavior
-from assets.items import HAND
+from assets.items import HAND, HAND_SCRATCH
 from ui import draw_bubble
 
 
@@ -44,6 +44,25 @@ VARIANTS = {
             "loyalty": 0.5,
             "mischievousness": -0.1,
             "courage": 0.15,
+        },
+    },
+    "scratching": {
+        "pose": "sitting_silly.side.happy",
+        "bubble": "heart",
+        "duration": 6.0,
+        "stats": {
+            "affection": 5,
+            "fulfillment": 2.0,
+            "comfort": 2,
+            "focus": 0.5,
+            "playfulness": 4.5,
+            "curiosity": 1.5,
+            "sociability": 1,
+            "serenity": 2,
+            "maturity": 0.1,
+            "loyalty": 0.5,
+            "mischievousness": 0.1,
+            "courage": 0.1,
         },
     },
 }
@@ -131,3 +150,22 @@ class AffectionBehavior(BaseBehavior):
             hand_y = int(char_y - base_height + arc_lift * math.sin(math.pi * t))
 
             renderer.draw_sprite_obj(HAND, hand_x, hand_y, mirror_h=mirror)
+
+        if self._active and self._variant == "scratching":
+            scratch_speed = 3.5
+            raw = (self._phase_timer * scratch_speed) % 2.0
+            t = raw if raw <= 1.0 else 2.0 - raw  # 0 -> 1 -> 0
+
+            jitter_span = 8
+            base_height = 52
+            vertical_range = 4
+
+            offset = int(jitter_span * (t - 0.5))
+            hand_x = int(char_x + offset if mirror else char_x - offset) - HAND_SCRATCH["width"] // 2
+            hand_y = int(char_y - base_height + vertical_range * t)
+
+            frame_count = len(HAND_SCRATCH["frames"])
+            frame_speed = HAND_SCRATCH.get("speed", 6)
+            frame = int(self._phase_timer * frame_speed) % frame_count
+
+            renderer.draw_sprite_obj(HAND_SCRATCH, hand_x, hand_y, frame=frame, mirror_h=mirror)

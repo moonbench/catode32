@@ -128,6 +128,7 @@ class MainScene(Scene):
     def _build_menu_items(self):
         affection_items = [
             MenuItem("Pets", icon=HAND_ICON, action=("pets",)),
+            MenuItem("Scratch", icon=HAND_ICON, action=("scratch",)),
             MenuItem("Kiss", icon=HEART_ICON, action=("kiss",)),
             MenuItem("Psst psst", icon=HEART_BUBBLE_ICON, action=("psst",)),
             MenuItem("Groom", icon=HAND_ICON, action=("groom",))
@@ -182,6 +183,8 @@ class MainScene(Scene):
             self.character.trigger('affection', variant='kiss')
         elif action_type == "pets":
             self.character.trigger('affection', variant='pets')
+        elif action_type == "scratch":
+            self.character.trigger('affection', variant='scratching')
         elif action_type == "psst":
             self.character.trigger('attention', variant='psst')
         elif action_type == "snack":
