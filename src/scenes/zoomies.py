@@ -39,7 +39,7 @@ class ZoomiesScene(Scene):
         super().__init__(context, renderer, input)
         # Popups - centered on screen
         self.hit_popup = Popup(renderer, x=14, y=10, width=100, height=24)
-        self.start_popup = Popup(renderer, x=14, y=10, width=100, height=24)
+        self.start_popup = Popup(renderer, x=14, y=10, width=100, height=48)
         self._session_score = 0
         self.score = 0
         self.reset_game()
@@ -309,10 +309,7 @@ class ZoomiesScene(Scene):
 
         # Draw start/game over message
         if not self.game_started:
-            if self.context.zoomies_high_score > 0:
-                self.start_popup.set_text(f"A to start\nBest: {self.context.zoomies_high_score}", wrap=False, center=True)
-            else:
-                self.start_popup.set_text("Press A to start", center=True)
+            self.start_popup.set_text("A to start\nA to jump\n\nHold for\nhigh jumps!",  wrap=False, center=True)
             self.start_popup.draw(show_scroll_indicators=False)
         elif self.is_hit:
             if self.is_new_best:
