@@ -298,7 +298,10 @@ class BehaviorManager:
 
     def can_trigger_sleeping(self, ctx):
         h = ctx.environment.get('time_hours', 12)
+        in_bedroom = getattr(ctx, 'last_main_scene', None) == 'bedroom'
         threshold = 70 if (h >= 21 or h < 6) else 40
+        if in_bedroom:
+            threshold += 20
         trigger = ctx.energy < threshold
         if not trigger:
             print("Skipping sleeping. Energy: %6.4f" % ctx.energy)
@@ -306,7 +309,10 @@ class BehaviorManager:
 
     def can_trigger_napping(self, ctx):
         h = ctx.environment.get('time_hours', 12)
+        in_bedroom = getattr(ctx, 'last_main_scene', None) == 'bedroom'
         threshold = 85 if (h >= 21 or h < 6) else 60
+        if in_bedroom:
+            threshold += 20
         trigger = ctx.energy < threshold
         if not trigger:
             print("Skipping napping. Energy: %6.4f" % ctx.energy)
@@ -447,6 +453,8 @@ class BehaviorManager:
         h = ctx.environment.get('time_hours', 12)
         if h >= 19 or h < 6:
             base *= 0.4
+        if getattr(ctx, 'last_main_scene', None) == 'bedroom':
+            base *= 0.55
         return base
 
     def priority_napping(self, ctx):
@@ -454,6 +462,8 @@ class BehaviorManager:
         h = ctx.environment.get('time_hours', 12)
         if h >= 19 or h < 6:
             base *= 0.5
+        if getattr(ctx, 'last_main_scene', None) == 'bedroom':
+            base *= 0.55
         return base
 
     def priority_zoomies(self, ctx):
