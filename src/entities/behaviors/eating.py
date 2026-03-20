@@ -25,14 +25,27 @@ class EatingBehavior(BaseBehavior):
         "tuna":       {"stats": {"fullness": 45, "energy": 4, "affection": 3}, "eating_speed": 0.45},
         "shrimp":     {"stats": {"fullness": 30, "energy": 2, "affection": 4, "playfulness": 2}, "eating_speed": 0.5},
         "kibble":     {"stats": {"fullness": 45, "energy": 2, "affection": 2}, "eating_speed": 0.45},
+        "trout":      {"stats": {"fullness": 45, "energy": 2, "affection": 2}, "eating_speed": 0.45},
+        "herring":    {"stats": {"fullness": 45, "energy": 3, "affection": 2.5}, "eating_speed": 0.45},
+        "haddock":    {"stats": {"fullness": 45, "energy": 2, "affection": 2}, "eating_speed": 0.45},
+        "cod":        {"stats": {"fullness": 45, "energy": 2, "affection": 2}, "eating_speed": 0.45},
+        "beef":       {"stats": {"fullness": 55, "energy": 3, "affection": 4}, "eating_speed": 0.45},
+        "lamb":       {"stats": {"fullness": 55, "energy": 3, "affection": 4}, "eating_speed": 0.45},
+        "liver":      {"stats": {"fullness": 55, "energy": 4, "affection": 2}, "eating_speed": 0.45},
+        
         # Hunted / special
         "caught_snack": {"stats": {"fullness": 20}, "eating_speed": 0.5},
+
         # Snacks
         "chew_stick": {"stats": {"fullness": 8, "comfort": 3, "playfulness": 2}, "eating_speed": 1.0},
         "nugget":     {"stats": {"fullness": 12, "affection": 2}, "eating_speed": 1.25},
         "cream":      {"stats": {"fullness": 8, "comfort": 5, "affection": 2}, "eating_speed": 1.5},
         "milk":       {"stats": {"fullness": 10, "energy": 3, "comfort": 3}, "eating_speed": 1.5},
         "fish_bite":  {"stats": {"fullness": 4, "affection": 3}, "eating_speed": 1.25},
+        "eggs":       {"stats": {"fullness": 2, "affection": 2}, "eating_speed": 1.25},
+        "treats":     {"stats": {"fullness": 2, "affection": 2}, "eating_speed": 1.25},
+        "pumpkin":    {"stats": {"fullness": 3, "affection": 1.5}, "eating_speed": 1},
+        "carrots":    {"stats": {"fullness": 3, "affection": 1.5}, "eating_speed": 1},
     }
     DEFAULT_FOOD_CONFIG = {"stats": {"fullness": 8}, "eating_speed": 0.4}
 

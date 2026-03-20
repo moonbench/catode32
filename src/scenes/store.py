@@ -16,16 +16,27 @@ _MEAL_ITEMS = (
     ("Salmon",   "salmon",   7),
     ("Tuna",     "tuna",     6),
     ("Shrimp",   "shrimp",   5),
+    ("Trout",    "trout",    6),
+    ("Herring",  "herring",  7),
+    ("Haddock",  "haddock",  7),
+    ("Cod",      "cod",      7),
     ("Turkey",   "turkey",   6),
     ("Kibble",   "kibble",   4),
+    ("Beef",     "beef",     8),
+    ("Lamb",     "lamb",     8),
+    ("Liver",    "liver",    8),
 )
 
 _SNACK_ITEMS = (
+    ("Treats",     "treats",      4),
     ("Nuggets",    "nugget",      2),
-    ("Cream",      "cream",       4),
+    ("Puree",      "puree",       4),
     ("Milk",       "milk",        3),
     ("Sticks",     "chew_stick",  3),
     ("Bytes",      "fish_bite",   2),
+    ("Eggs",       "eggs",        2),
+    ("Pumpkin",    "pumpkin",     2),
+    ("Carrots",    "carrots",     2),
 )
 
 # (store_label, full_name, variant, cost)

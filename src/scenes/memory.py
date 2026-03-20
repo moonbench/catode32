@@ -236,7 +236,7 @@ class MemoryScene(Scene):
                         best = self.score
                     best_line = ("Best: " + str(best)) if best >= 0 else ""
                     self.win_popup.set_text(
-                        ("Incredible!" if self.score < 50 else "Amazing!" if self.score < 100 else "Impressive!" if self.score < 150 else "Well done!" if self.score < 250 else "Not bad!" if self.score < 500 else "Phwew!") + "\nScore: " + str(self.score) + "\n" + best_line + "\nA: play again",
+                        ("Incredible!" if self.score < 50 else "Amazing!" if self.score < 100 else "Impressive!" if self.score < 150 else "Well done!" if self.score < 250 else "Not bad!" if self.score < 500 else "Phwew!") + "\n\nScore: " + str(self.score) + "\n" + best_line,
                         wrap=False, center=True)
                     self.state = STATE_WIN
                     self.win_timer = 0.0
