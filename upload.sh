@@ -75,19 +75,20 @@ echo -e "${YELLOW}Step 3: Compiling .py to .mpy...${NC}"
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
-find "$SRC_DIR" -name "*.py" | while read -r pyfile; do
+while read -r pyfile; do
     REL_PATH="${pyfile#$SRC_DIR/}"
     MPY_PATH="$BUILD_DIR/${REL_PATH%.py}.mpy"
     mkdir -p "$(dirname "$MPY_PATH")"
     echo -n "  Compiling $REL_PATH..."
-    if mpy-cross -march=xtensawin "$pyfile" -o "$MPY_PATH" 2>/dev/null; then
+    if mpy-cross -march=xtensawin "$pyfile" -o "$MPY_PATH" 2>/tmp/mpy_cross_err; then
         echo -e " ${GREEN}✓${NC}"
     else
         echo -e " ${RED}✗${NC}"
-        echo -e "${RED}Compilation failed for $pyfile${NC}"
+        cat /tmp/mpy_cross_err
+        echo -e "${RED}Compilation failed. Fix the errors above and try again.${NC}"
         exit 1
     fi
-done
+done < <(find "$SRC_DIR" -name "*.py")
 echo -e "${GREEN}✓ Compilation complete${NC}"
 
 echo ""

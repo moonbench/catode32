@@ -32,7 +32,7 @@ mkdir -p "$BUILD_DIR"
 
 # Find all .py files and compile them
 FAILED=0
-find "$SRC_DIR" -name "*.py" | while read -r pyfile; do
+while read -r pyfile; do
     # Get relative path from src/
     REL_PATH="${pyfile#$SRC_DIR/}"
     # Change extension to .mpy
@@ -42,16 +42,17 @@ find "$SRC_DIR" -name "*.py" | while read -r pyfile; do
     mkdir -p "$(dirname "$MPY_PATH")"
 
     echo -n "  Compiling $REL_PATH..."
-    if mpy-cross -march=xtensawin "$pyfile" -o "$MPY_PATH" 2>/dev/null; then
+    if mpy-cross -march=xtensawin "$pyfile" -o "$MPY_PATH" 2>/tmp/mpy_cross_err; then
         echo -e " ${GREEN}✓${NC}"
     else
         echo -e " ${RED}✗${NC}"
+        cat /tmp/mpy_cross_err
         FAILED=1
     fi
-done
+done < <(find "$SRC_DIR" -name "*.py")
 
 if [ "$FAILED" -eq 1 ]; then
-    echo -e "${RED}Compilation failed. Check mpy-cross output above.${NC}"
+    echo -e "${RED}Compilation failed. Fix the errors above and try again.${NC}"
     exit 1
 fi
 
