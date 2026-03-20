@@ -137,6 +137,10 @@ class ZoomiesScene(Scene):
                 'playfulness':  3 * progress,
                 'sociability':   3 * progress,
             })
+            coins = int(5 * progress)
+            if coins > 0:
+                self.context.coins += coins
+                print(f"[Zoomies] Awarded {coins} coins (total: {self.context.coins})")
 
     def update(self, dt):
         if not self.game_started or self.is_hit:

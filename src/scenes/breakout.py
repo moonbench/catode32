@@ -164,6 +164,10 @@ class BreakoutScene(Scene):
             else:
                 changes['fulfillment'] = 2 * brick_reward
             self.context.apply_stat_changes(changes)
+            coins = int((2 * brick_reward) + (3 * paw_reward))
+            if coins > 0:
+                self.context.coins += coins
+                print(f"[Breakout] Awarded {coins} coins (total: {self.context.coins})")
 
     def update(self, dt):
         # Update paddle physics (runs in all states for smooth feel)

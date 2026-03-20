@@ -249,6 +249,10 @@ class MazeScene(Scene):
                 'focus':        3 * scale,
                 'sociability':   2,
             })
+            coins = int(5 * scale)
+            if coins > 0:
+                self.context.coins += coins
+                print(f"[Maze] Awarded {coins} coins (total: {self.context.coins})")
 
     def update(self, dt):
         if self.state == self.STATE_PLAYING:

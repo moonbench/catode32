@@ -183,6 +183,10 @@ class HanjieScene(Scene):
                 'serenity':     3 * reward,
                 'sociability':  2,
             })
+            coins = int(5 * reward)
+            if coins > 0:
+                self.context.coins += coins
+                print(f"[Zoomies] Awarded {coins} coins (total: {self.context.coins})")
 
     def _init_game(self):
         # Accumulate completion stats before resetting state

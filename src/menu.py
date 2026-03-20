@@ -30,12 +30,15 @@ class Menu:
     VISIBLE_ITEMS = 4
     ROW_HEIGHT = 16
     ICON_SIZE = 13
-    CONTENT_WIDTH = 120  # 128 - scrollbar area
+    CONTENT_WIDTH = 120  # default; overridable per-instance
 
-    def __init__(self, renderer, input_handler):
+    def __init__(self, renderer, input_handler, content_width=None, scrollbar_x=None, show_submenu_arrow=True):
         self.renderer = renderer
         self.input = input_handler
-        self.scrollbar = Scrollbar(renderer)
+        self.content_width = content_width if content_width is not None else self.CONTENT_WIDTH
+        self.show_submenu_arrow = show_submenu_arrow
+        sb_x = scrollbar_x if scrollbar_x is not None else self.content_width + 6
+        self.scrollbar = Scrollbar(renderer, x=sb_x)
 
         self.active = False
         self.items = []
@@ -187,7 +190,7 @@ class Menu:
         """Draw a single menu item row"""
         # Draw selection background (inverted)
         if is_selected:
-            self.renderer.draw_rect(0, y, self.CONTENT_WIDTH, self.ROW_HEIGHT,
+            self.renderer.draw_rect(0, y, self.content_width, self.ROW_HEIGHT,
                                     filled=True, color=1)
 
         text_color = 0 if is_selected else 1
@@ -209,8 +212,8 @@ class Menu:
         self.renderer.draw_text(item.label, x_offset, text_y, text_color)
 
         # Draw submenu indicator if has submenu
-        if item.submenu:
-            arrow_x = self.CONTENT_WIDTH - 10
+        if item.submenu and self.show_submenu_arrow:
+            arrow_x = self.content_width - 10
             self.renderer.draw_text(">", arrow_x, text_y, text_color)
 
     def _draw_scrollbar(self):

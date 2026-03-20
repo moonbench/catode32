@@ -111,7 +111,7 @@ class MainScene(Scene):
                 self.menu_active = False
             elif result is not None:
                 self.menu_active = False
-                self._handle_menu_action(result)
+                return self._handle_menu_action(result)
             return None
 
         if self.input.was_just_pressed('menu2'):
@@ -134,24 +134,46 @@ class MainScene(Scene):
             MenuItem("Groom", icon=HAND_ICON, action=("groom",))
         ]
 
+        food_stock = self.context.food_stock
+        _meal_defs = (
+            ("Chicken",  "chicken",  CHICKEN_ICON),
+            ("Salmon",   "salmon",   FISH_ICON),
+            ("Tuna",     "tuna",     FISH_ICON),
+            ("Shrimp",   "shrimp",   FISH_ICON),
+            ("Mackerel", "mackerel", FISH_ICON),
+            ("Kibble",   "kibble",   KIBBLE_ICON),
+        )
         meal_items = [
-            MenuItem("Chicken", icon=CHICKEN_ICON, action=("meal", "chicken")),
-            MenuItem("Fish", icon=FISH_ICON, action=("meal", "fish")),
-            MenuItem("Kibble", icon=KIBBLE_ICON, action=("meal", "kibble")),
+            MenuItem(f"{name} ({food_stock.get(key, 0)})", icon=icon, action=("meal", key))
+            for name, key, icon in _meal_defs
+            if food_stock.get(key, 0) > 0
         ]
+        _snack_defs = (
+            ("Chew Stick", "chew_stick"),
+            ("Nugget",     "nugget"),
+            ("Cream",      "cream"),
+            ("Milk",       "milk"),
+            ("Fish Bite",  "fish_bite"),
+        )
         snack_items = [
-            MenuItem(snack["name"], icon=SNACK_ICONS.get(snack["name"]), action=("snack", snack))
-            for snack in self.context.inventory.get("snacks", [])
+            MenuItem(f"{name} ({food_stock.get(key, 0)})",
+                     icon=SNACK_ICONS.get(name, KIBBLE_ICON),
+                     action=("snack", key))
+            for name, key in _snack_defs
+            if food_stock.get(key, 0) > 0
         ]
-        feed_items = [
-            MenuItem("Meals", icon=MEAL_ICON, submenu=meal_items),
-            MenuItem("Snacks", icon=KIBBLE_ICON, submenu=snack_items),
-        ]
+        feed_items = []
+        if meal_items:
+            feed_items.append(MenuItem("Meals", icon=MEAL_ICON, submenu=meal_items))
+        if snack_items:
+            feed_items.append(MenuItem("Snacks", icon=KIBBLE_ICON, submenu=snack_items))
+        feed_items.append(MenuItem("Store...", action=("go_store",)))
 
         toy_items = [
             MenuItem(toy["name"], icon=TOY_ICONS.get(toy["name"]), action=("toy", toy))
             for toy in self.context.inventory.get("toys", [])
         ]
+        toy_items.append(MenuItem("Store...", action=("go_store",)))
 
         train_items = [
             MenuItem("Intelligence", icon=HAND_ICON, action=("train",)),
@@ -163,11 +185,9 @@ class MainScene(Scene):
         items = [
             MenuItem("Affection", icon=HEART_ICON, submenu=affection_items),
             MenuItem("Train", icon=HAND_ICON, submenu=train_items),
-            MenuItem("Feed", icon=MEAL_ICON, submenu=feed_items),
         ]
-
-        if toy_items:
-            items.append(MenuItem("Play", icon=TOYS_ICON, submenu=toy_items))
+        items.append(MenuItem("Feed", icon=MEAL_ICON, submenu=feed_items))
+        items.append(MenuItem("Play", icon=TOYS_ICON, submenu=toy_items))
 
         return items
 
@@ -178,7 +198,9 @@ class MainScene(Scene):
         action_type = action[0]
 
         if action_type == "meal":
-            self.character.trigger('eating', food_sprite=FOOD_BOWL, food_type=action[1])
+            food_type = action[1]
+            self.character.trigger('eating', food_sprite=FOOD_BOWL, food_type=food_type)
+            self.context.food_stock[food_type] = max(0, self.context.food_stock.get(food_type, 0) - 1)
         elif action_type == "kiss":
             self.character.trigger('affection', variant='kiss')
         elif action_type == "pets":
@@ -188,10 +210,14 @@ class MainScene(Scene):
         elif action_type == "psst":
             self.character.trigger('attention', variant='psst')
         elif action_type == "snack":
-            self.character.trigger('eating', food_sprite=TREAT_PILE, food_type='treat')
+            snack_key = action[1]
+            self.character.trigger('eating', food_sprite=TREAT_PILE, food_type=snack_key)
+            self.context.food_stock[snack_key] = max(0, self.context.food_stock.get(snack_key, 0) - 1)
         elif action_type == "toy":
             self.character.trigger('playing', variant=action[1]['variant'])
         elif action_type == "groom":
             self.character.trigger('being_groomed')
         elif action_type == "train":
             self.character.trigger('training')
+        elif action_type == "go_store":
+            return ('change_scene', 'store')

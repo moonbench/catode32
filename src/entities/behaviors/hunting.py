@@ -64,6 +64,9 @@ class HuntingBehavior(BaseBehavior):
 
     def get_completion_bonus(self, context):
         bonus = dict(super().get_completion_bonus(context))
+        coins = random.randint(1, 3)
+        context.coins += coins
+        print(f"[Hunting] Awarded {coins} coins (total: {context.coins})")
         return self.apply_location_bonus(context, bonus)
 
     def apply_location_bonus(self, context, bonus):

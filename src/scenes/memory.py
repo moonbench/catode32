@@ -147,6 +147,10 @@ class MemoryScene(Scene):
                 'focus':        4 * progress,
                 'sociability':  3 * progress + 0.5,
             })
+            coins = int(5 * progress)
+            if coins > 0:
+                self.context.coins += coins
+                print(f"[Memory] Awarded {coins} coins (total: {self.context.coins})")
 
     def _init_game(self):
         self.total_solved += self.solved_count

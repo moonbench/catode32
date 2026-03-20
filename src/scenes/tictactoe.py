@@ -97,6 +97,10 @@ class TicTacToeScene(Scene):
                 'focus':         3 * scale,
                 'fulfillment':   3 * scale,
             })
+            coins = 2 * total_rounds
+            if coins > 0:
+                self.context.coins += coins
+                print(f"[Zoomies] Awarded {coins} coins (total: {self.context.coins})")
 
     def update(self, dt):
         self.character.update(dt)

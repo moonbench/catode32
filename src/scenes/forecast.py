@@ -71,7 +71,7 @@ def _build_slots(forecast, cur_hour, cur_min):
 
 
 # Highlight rectangle bounds (covers label + icon)
-_HL_Y = 11
+_HL_Y = 12
 _HL_H = _ICON_Y + 17 - _HL_Y   # top of rect to bottom of icon
 
 

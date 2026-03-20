@@ -6,7 +6,7 @@ import config
 from menu import Menu, MenuItem
 from transitions import TransitionManager
 from ui import OverlayManager
-from assets.icons import WRENCH_ICON, SUN_ICON, HOUSE_ICON, STATS_ICON, MINIGAME_ICONS, MINIGAMES_ICON, CAT_ICON, TREES_ICON, MEAL_ICON, POWER_ICON, CREDITS_ICON
+from assets.icons import WRENCH_ICON, SUN_ICON, HOUSE_ICON, STATS_ICON, MINIGAME_ICONS, MINIGAMES_ICON, CAT_ICON, TREES_ICON, MEAL_ICON, POWER_ICON, CREDITS_ICON, STORE_ICON
 
 
 class SceneManager:
@@ -85,6 +85,7 @@ class SceneManager:
             'environment_settings': ('scenes.environment_settings', 'EnvironmentSettingsScene'),
             'time_settings': ('scenes.time_settings', 'TimeSettingsScene'),
             'forecast': ('scenes.forecast', 'ForecastScene'),
+            'store': ('scenes.store', 'StoreScene'),
         }
 
     def _get_scene_class(self, name):
@@ -299,9 +300,6 @@ class SceneManager:
         # Stats page
         items.append(MenuItem("Pet stats", icon=STATS_ICON, action=('scene', 'stats')))
 
-        # Weather forecast
-        items.append(MenuItem("Forecast", icon=SUN_ICON, action=('scene', 'forecast')))
-
         # Location options
         location_items = []
         location_items.append(MenuItem("Living Room", icon=HOUSE_ICON, action=('scene', 'inside')))
@@ -322,6 +320,12 @@ class SceneManager:
         minigame_items.append(MenuItem("Hanjie", icon=MINIGAME_ICONS.get("Hanjie"), action=('scene', 'hanjie')))
         items.append(MenuItem("Minigames", icon=MINIGAMES_ICON, submenu=minigame_items))
         
+        # Store
+        items.append(MenuItem("Store", icon=STORE_ICON, action=('scene', 'store')))
+
+        # Weather forecast
+        items.append(MenuItem("Forecast", icon=SUN_ICON, action=('scene', 'forecast')))
+
         # Debug submenu
         debug_items = []
         debug_items.append(MenuItem("Environment", icon=SUN_ICON, action=('scene', 'environment_settings')))

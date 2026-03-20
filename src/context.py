@@ -7,6 +7,7 @@ _STAT_KEYS = (
     'fitness', 'serenity',
     'courage', 'loyalty', 'mischievousness',
     'zoomies_high_score', 'maze_best_time', 'snake_high_score', 'memory_best_score', 'hanjie_best_time', 'time_speed',
+    'coins',
 )
 
 
@@ -40,16 +41,19 @@ class GameContext:
         self.loyalty = 50           # Attachment strength
         self.mischievousness = 50   # Tendency towards trouble
 
-        # Inventory for menu testing
+        # Coins (earned from minigames and hunting, spent in the store)
+        self.coins = 50
+
+        # Quantities of food purchased from the store (uses per type)
+        self.food_stock = {
+            "chicken": 0, "salmon": 0, "tuna": 0, "shrimp": 0, "mackerel": 0, "kibble": 5,
+            "chew_stick": 0, "nugget": 3, "cream": 0, "milk": 0, "fish_bite": 0,
+        }
+
+        # Inventory of owned items
         self.inventory = {
             "toys": [
                 {"name": "Feather", "variant": "toy"},
-                {"name": "Yarn ball", "variant": "ball"},
-                {"name": "Laser", "variant": "laser"},
-            ],
-            "snacks": [
-                {"name": "Treat"},
-                {"name": "Kibble"},
             ],
         }
 
@@ -153,7 +157,7 @@ class GameContext:
         """Serialize stats to flash storage."""
         import ujson
         import time
-        data = {'v': 1, 'env': self.environment}
+        data = {'v': 1, 'env': self.environment, 'food_stock': self.food_stock, 'toys': self.inventory["toys"]}
         for key in _STAT_KEYS:
             data[key] = getattr(self, key)
         try:
@@ -184,6 +188,10 @@ class GameContext:
                 if key in data:
                     setattr(self, key, data[key])
             self.environment = data.get('env', {})
+            if 'food_stock' in data:
+                self.food_stock.update(data['food_stock'])
+            if 'toys' in data:
+                self.inventory['toys'] = data['toys']
             self.recompute_health()
             import time
             self.last_save_time = time.ticks_ms()
@@ -216,6 +224,12 @@ class GameContext:
         self.zoomies_high_score = 0
         self.maze_best_time = 0
         self.snake_high_score = 0
+        self.coins = 50
+        self.food_stock = {
+            "chicken": 0, "salmon": 0, "tuna": 0, "shrimp": 0, "mackerel": 0, "kibble": 5,
+            "chew_stick": 0, "nugget": 3, "cream": 0, "milk": 0, "fish_bite": 0,
+        }
+        self.inventory = {"toys": [{"name": "Feather", "variant": "toy"}]}
         self.environment = {}
         self.time_speed = 1.0
         self.last_save_time = None
