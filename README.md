@@ -116,6 +116,8 @@ The intent is that a pet left at home is calmer, sleeps better, and plays more f
 - **A/B buttons**: Action buttons
 - **Menu buttons**: Additional functions
 
+![spookycat](https://github.com/user-attachments/assets/c1f8b6eb-b90c-46ad-b652-80093db97f83)
+
 ## Setup
 
 ### Hardware Requirements
