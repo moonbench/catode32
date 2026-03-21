@@ -4,6 +4,118 @@ A virtual pet game for ESP32 with MicroPython, featuring an SSD1306 OLED display
 
 ![catstars](https://github.com/user-attachments/assets/2ffc652a-f392-42e7-9a13-d7fb91f3770d)
 
+## How the Pet Works
+
+### Stats
+
+The pet tracks 18 stats, split into tiers by how quickly they change:
+
+| Tier | Stats | Change rate |
+|------|-------|-------------|
+| Rapid | health, fullness, energy, comfort, playfulness, focus | Daily |
+| Medium | fulfillment, cleanliness, intelligence, maturity, affection | Weekly |
+| Slow | fitness, serenity | Monthly |
+| Trait | courage, loyalty, mischievousness, curiosity, sociability | Nearly fixed |
+
+All stats sit on a 0–100 scale. **Health** is never set directly — it's a weighted average of fitness, fullness, energy, cleanliness, comfort, affection, fulfillment, focus, intelligence, and playfulness, recomputed after every behavior completes.
+
+Each pet gets a unique 64-bit seed at creation. That seed deterministically derives balanced personality offsets (up to ±10) for the five trait stats, so every pet feels distinct without any individual pet being universally happier or sadder than another.
+
+Stat changes use **asymptotic damping**: a stat near its ceiling resists further increases, and a stat near the floor resists further decreases. This keeps rewards feeling meaningful throughout the full 0–100 range.
+
+### Behaviors
+
+The pet runs one behavior at a time. Behaviors are lazy-loaded and their modules are unloaded from memory after completion, keeping RAM usage low. The full list includes:
+
+`sleeping`, `napping`, `stretching`, `kneading`, `lounging`, `investigating`, `observing`, `chattering`, `zoomies`, `vocalizing`, `self_grooming`, `being_groomed`, `hunting`, `gift_bringing`, `pacing`, `sulking`, `mischief`, `hiding`, `training`, `playing`, `affection`, `attention`, `eating`, `startled`, `meandering`, `go_to`
+
+After each behavior finishes, the next one is chosen automatically:
+
+1. Each behavior defines a `can_trigger` condition (stat thresholds, time of day, location, etc.).
+2. Eligible behaviors are given a random priority draw — lower is better.
+3. Recently completed behaviors get a priority penalty to prevent loops.
+4. The best few behaviors are binned together and one is chosen at random from the top bin.
+
+Personality traits feed directly into the selection. A high-mischievousness pet triggers `mischief` more often; a low-courage pet is more prone to `hiding` and `startled`.
+
+High serenity adds a chance to skip the selection entirely and stay idle — a content pet is happy doing nothing.
+
+### Coins and the store
+
+Coins are the in-game currency. They are earned by:
+
+- **Minigames** — Zoomies, Snake, Maze, Memory, Hanjie, Breakout, and Tic-tac-toe all award coins on completion, scaled by how well the player did.
+- **Hunting** — each successful hunt awards 1–3 coins at random.
+
+Coins are spent at the **store**, which is accessible from the main scene menu. The store sells:
+
+| Category | Items | Cost |
+|----------|-------|------|
+| **Meals** | Chicken, Salmon, Tuna, Shrimp, Trout, Herring, Haddock, Cod, Turkey, Kibble, Beef, Lamb, Liver | 4–8c per 5 uses |
+| **Snacks** | Treats, Nuggets, Puree, Milk, Chew Sticks, Fish Bytes, Eggs, Pumpkin, Carrots | 2–4c per 5 uses |
+| **Toys** | String (5c), Feather (8c), Yarn Ball (10c), Laser Pointer (15c) | one-time purchase |
+
+Food is consumed by feeding the pet from the main scene menu and depletes by one use per feeding. Different foods grant different stat bonuses — meals primarily restore fullness and energy, while snacks tend to boost comfort and affection. Toys can be used to trigger the playing behavior.
+
+### Location rewards
+
+The pet can roam between five scenes: **inside**, **bedroom**, **kitchen**, **outside**, and **treehouse**. Location is tracked in `context.last_main_scene`.
+
+The pet navigates autonomously using the `go_to` behavior. At the end of each behavior, there is a small base chance (~8%) of walking to a new room, boosted by relevant needs:
+
+- **Hungry** → more likely to head to the kitchen
+- **Tired or uncomfortable** → more likely to head to the bedroom
+- **Bad weather** → strongly discourages trips outside or to the treehouse
+
+Each location modifies the stat rewards from behaviors:
+
+| Location | Effect |
+|----------|--------|
+| **Bedroom** | Sleeping grants +30% energy and +25% comfort. Sleep/nap trigger thresholds are raised (the pet falls asleep more readily). |
+| **Kitchen** | Eating grants +20% fullness and energy. |
+| **Outside / Treehouse** | Hunting grants +50% fitness and bonus fulfillment. |
+| **Outside / Treehouse (bad weather)** | Sleeping or lounging in rain, storms, or snow incurs a comfort penalty. |
+| **Inside / Outside / Treehouse** | Lounging grants +30% comfort (vs. a bedroom baseline). |
+
+### Weather
+
+Weather follows a **deterministic Markov chain** seeded from the pet's unique seed, so each pet has its own distinct long-term weather trajectory that is reproducible across saves.
+
+Possible states: **Clear → Cloudy → Overcast → Rain → Storm**, with **Windy** accessible from most states and **Snow** possible from Overcast during Fall and Winter only. Each state lasts between 30 and 300 in-game minutes before transitioning.
+
+Weather influences behavior in several ways:
+
+- **Scene navigation**: rain, storms, and snow reduce the pet's desire to go outside or to the treehouse.
+- **Outdoor sleep/lounge**: bad weather while outside applies a comfort penalty on completion.
+- **Forecast screen**: because the weather is fully deterministic, a 72-hour forecast can be computed ahead of time without any randomness.
+
+### WiFi home detection
+
+The ESP32's WiFi radio is used to determine whether the pet is at its familiar home location. Scans run **passively during the sleeping behavior** so the brief radio freeze is invisible to the user, at most once per hour.
+
+Two lists of access points are maintained:
+
+- **`wifi_familiar`** — up to 16 well-known APs (persisted to flash). An AP here means the pet considers this a home location.
+- **`wifi_recent`** — up to 8 candidate APs (persisted). New APs land here first and are promoted to familiar after being seen at least 5 times. Entries that aren't seen decay by 0.25 per scan and are pruned when they reach zero.
+
+`context.in_familiar_location` is set to `True` whenever at least one familiar AP is visible. This flag affects multiple behaviors:
+
+| When familiar | When unfamiliar |
+|---------------|-----------------|
+| Zoomies and playing are more likely | Investigating, pacing, and startled are more likely |
+| Lounging is more likely; grants +1.5 serenity and +15% comfort | Sulking and hiding are more likely |
+| Sleeping grants +3 serenity | Sleeping loses 2 serenity and 15% comfort |
+| Hiding is much less likely | Hiding is much more likely |
+
+The intent is that a pet left at home is calmer, sleeps better, and plays more freely, while a pet taken somewhere unfamiliar becomes more anxious and restless.
+
+
+## Controls
+
+- **D-pad**: Navigate / Move character
+- **A/B buttons**: Action buttons
+- **Menu buttons**: Additional functions
+
 ## Setup
 
 ### Hardware Requirements
@@ -220,100 +332,6 @@ If the glob doesn't match (or you have multiple devices), find the exact port fi
 Press **Ctrl+A then K** to exit `screen`.
 
 This is useful after a reboot (e.g. from a context save) breaks an mpremote session — the game is still running and its output is still on the serial port.
-
-## Controls
-
-- **D-pad**: Navigate / Move character
-- **A/B buttons**: Action buttons
-- **Menu buttons**: Additional functions
-
-## How the Pet Works
-
-### Stats
-
-The pet tracks 18 stats, split into tiers by how quickly they change:
-
-| Tier | Stats | Change rate |
-|------|-------|-------------|
-| Rapid | health, fullness, energy, comfort, playfulness, focus | Daily |
-| Medium | fulfillment, cleanliness, intelligence, maturity, affection | Weekly |
-| Slow | fitness, serenity | Monthly |
-| Trait | courage, loyalty, mischievousness, curiosity, sociability | Nearly fixed |
-
-All stats sit on a 0–100 scale. **Health** is never set directly — it's a weighted average of fitness, fullness, energy, cleanliness, comfort, affection, fulfillment, focus, intelligence, and playfulness, recomputed after every behavior completes.
-
-Each pet gets a unique 64-bit seed at creation. That seed deterministically derives balanced personality offsets (up to ±10) for the five trait stats, so every pet feels distinct without any individual pet being universally happier or sadder than another.
-
-Stat changes use **asymptotic damping**: a stat near its ceiling resists further increases, and a stat near the floor resists further decreases. This keeps rewards feeling meaningful throughout the full 0–100 range.
-
-### Behaviors
-
-The pet runs one behavior at a time. Behaviors are lazy-loaded and their modules are unloaded from memory after completion, keeping RAM usage low. The full list includes:
-
-`sleeping`, `napping`, `stretching`, `kneading`, `lounging`, `investigating`, `observing`, `chattering`, `zoomies`, `vocalizing`, `self_grooming`, `being_groomed`, `hunting`, `gift_bringing`, `pacing`, `sulking`, `mischief`, `hiding`, `training`, `playing`, `affection`, `attention`, `eating`, `startled`, `meandering`, `go_to`
-
-After each behavior finishes, the next one is chosen automatically:
-
-1. Each behavior defines a `can_trigger` condition (stat thresholds, time of day, location, etc.).
-2. Eligible behaviors are given a random priority draw — lower is better.
-3. Recently completed behaviors get a priority penalty to prevent loops.
-4. The best few behaviors are binned together and one is chosen at random from the top bin.
-
-Personality traits feed directly into the selection. A high-mischievousness pet triggers `mischief` more often; a low-courage pet is more prone to `hiding` and `startled`.
-
-High serenity adds a chance to skip the selection entirely and stay idle — a content pet is happy doing nothing.
-
-### Location rewards
-
-The pet can roam between five scenes: **inside**, **bedroom**, **kitchen**, **outside**, and **treehouse**. Location is tracked in `context.last_main_scene`.
-
-The pet navigates autonomously using the `go_to` behavior. At the end of each behavior, there is a small base chance (~8%) of walking to a new room, boosted by relevant needs:
-
-- **Hungry** → more likely to head to the kitchen
-- **Tired or uncomfortable** → more likely to head to the bedroom
-- **Bad weather** → strongly discourages trips outside or to the treehouse
-
-Each location modifies the stat rewards from behaviors:
-
-| Location | Effect |
-|----------|--------|
-| **Bedroom** | Sleeping grants +30% energy and +25% comfort. Sleep/nap trigger thresholds are raised (the pet falls asleep more readily). |
-| **Kitchen** | Eating grants +20% fullness and energy. |
-| **Outside / Treehouse** | Hunting grants +50% fitness and bonus fulfillment. |
-| **Outside / Treehouse (bad weather)** | Sleeping or lounging in rain, storms, or snow incurs a comfort penalty. |
-| **Inside / Outside / Treehouse** | Lounging grants +30% comfort (vs. a bedroom baseline). |
-
-### Weather
-
-Weather follows a **deterministic Markov chain** seeded from the pet's unique seed, so each pet has its own distinct long-term weather trajectory that is reproducible across saves.
-
-Possible states: **Clear → Cloudy → Overcast → Rain → Storm**, with **Windy** accessible from most states and **Snow** possible from Overcast during Fall and Winter only. Each state lasts between 30 and 300 in-game minutes before transitioning.
-
-Weather influences behavior in several ways:
-
-- **Scene navigation**: rain, storms, and snow reduce the pet's desire to go outside or to the treehouse.
-- **Outdoor sleep/lounge**: bad weather while outside applies a comfort penalty on completion.
-- **Forecast screen**: because the weather is fully deterministic, a 72-hour forecast can be computed ahead of time without any randomness.
-
-### WiFi home detection
-
-The ESP32's WiFi radio is used to determine whether the pet is at its familiar home location. Scans run **passively during the sleeping behavior** so the brief radio freeze is invisible to the user, at most once per hour.
-
-Two lists of access points are maintained:
-
-- **`wifi_familiar`** — up to 16 well-known APs (persisted to flash). An AP here means the pet considers this a home location.
-- **`wifi_recent`** — up to 8 candidate APs (persisted). New APs land here first and are promoted to familiar after being seen at least 5 times. Entries that aren't seen decay by 0.25 per scan and are pruned when they reach zero.
-
-`context.in_familiar_location` is set to `True` whenever at least one familiar AP is visible. This flag affects multiple behaviors:
-
-| When familiar | When unfamiliar |
-|---------------|-----------------|
-| Zoomies and playing are more likely | Investigating, pacing, and startled are more likely |
-| Lounging is more likely; grants +1.5 serenity and +15% comfort | Sulking and hiding are more likely |
-| Sleeping grants +3 serenity | Sleeping loses 2 serenity and 15% comfort |
-| Hiding is much less likely | Hiding is much more likely |
-
-The intent is that a pet left at home is calmer, sleeps better, and plays more freely, while a pet taken somewhere unfamiliar becomes more anxious and restless.
 
 ## Contributing
 
