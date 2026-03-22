@@ -22,6 +22,16 @@ class Game:
         self.context = GameContext()
         self.context.load()
 
+        # Scan WiFi at boot while memory is cleanest (boot screen is already showing)
+        if config.WIFI_ENABLED:
+            try:
+                import wifi_tracker
+                wifi_tracker.scan_now(self.context)
+                import sys
+                del sys.modules['wifi_tracker']
+            except Exception as e:
+                print("[Boot] WiFi scan failed: " + str(e))
+
         # Setup the scene manager (imports all scenes during init)
         self.scene_manager = SceneManager(
             self.context,
@@ -39,6 +49,12 @@ class Game:
             )
 
         self._update_moon_phase()
+
+        # Collect frequently to limit heap fragmentation.
+        # Trigger after every ~40KB of allocations rather than waiting for OOM.
+        import gc as _gc
+        _gc.threshold(24000)
+        del _gc
 
         # Prepare to start rendering
         self.last_frame_time = time.ticks_ms()

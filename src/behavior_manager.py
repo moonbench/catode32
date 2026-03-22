@@ -136,12 +136,34 @@ class BehaviorManager:
         if ctx:
             ctx.current_behavior_name = name
 
-        mod = __import__(module_path, None, None, [class_name])
+        gc.collect()
+        try:
+            mod = __import__(module_path, None, None, [class_name])
+        except MemoryError:
+            if name != 'idle':
+                print(f"\033[31mOOM loading {name}, falling back to idle\033[0m")
+                name = 'idle'
+                kwargs = {}
+                module_path, class_name = self._REGISTRY[name]
+                if ctx:
+                    ctx.current_behavior_name = name
+                gc.collect()
+                mod = __import__(module_path, None, None, [class_name])
+            else:
+                raise
+
         cls = getattr(mod, class_name)
         behavior = cls(self._character)
         behavior._behavior_name = name
         self._character.current_behavior = behavior
         behavior.start(**kwargs)
+
+    # Modules kept permanently in sys.modules to avoid repeated import spikes.
+    # idle cycles on every behavior transition so pinning it eliminates the most
+    # frequent source of fragmentation.
+    _PINNED_MODULES = frozenset((
+        'entities.behaviors.idle',
+    ))
 
     def _unload_module(self, module_path):
         """Remove a behavior module from sys.modules and trigger GC.
@@ -149,6 +171,8 @@ class BehaviorManager:
         Safe to call while still executing code from that module — the call
         stack's frame reference keeps the code object alive until return.
         """
+        if module_path in self._PINNED_MODULES:
+            return
         if module_path in sys.modules:
             del sys.modules[module_path]
             gc.collect()

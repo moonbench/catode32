@@ -121,8 +121,8 @@ class GameContext:
         print("Courage:      %6.4f, Loyalty:      %6.4f, Mischievousness: %6.4f" % (self.courage, self.loyalty, self.mischievousness))
         print("----------------------------------------------------------------")
 
-    def save(self):
-        """Serialize stats to flash storage."""
+    def _write_to_flash(self):
+        """Write stats to flash without rebooting. Returns True on success."""
         import ujson
         import time
         data = {'v': 1, 'env': self.environment, 'food_stock': self.food_stock, 'toys': self.inventory["toys"], 'pet_seed': self.pet_seed,
@@ -135,17 +135,24 @@ class GameContext:
             import uos
             uos.sync()
             self.last_save_time = time.ticks_ms()
-            import sys
-            if '/remote' in sys.path:
-                # Running under mpremote mount (dev mode) — soft reset would
-                # kill the mount and crash mpremote, so skip it.
-                print("[Context] Saved to " + _SAVE_PATH + " (dev mode, no reboot)")
-            else:
-                print("[Context] Saved to " + _SAVE_PATH + ", rebooting...")
-                import machine
-                machine.soft_reset()
+            return True
         except Exception as e:
             print("[Context] Save failed: " + str(e))
+            return False
+
+    def save(self):
+        """Write stats to flash then reboot."""
+        import sys
+        if not self._write_to_flash():
+            return
+        if '/remote' in sys.path:
+            # Running under mpremote mount (dev mode) — soft reset would
+            # kill the mount and crash mpremote, so skip it.
+            print("[Context] Saved to " + _SAVE_PATH + " (dev mode, no reboot)")
+        else:
+            print("[Context] Saved to " + _SAVE_PATH + ", rebooting...")
+            import machine
+            machine.soft_reset()
 
     def load(self):
         """Load stats from flash storage. Returns True if successful."""
@@ -244,11 +251,10 @@ class GameContext:
         # Time of last save in ticks_ms; None = never saved this session
         self.last_save_time = None
 
-        # WiFi location tracking (lists persisted; last_wifi_scan_ms and flag are not)
+        # WiFi location tracking (lists persisted; flag is not)
         self.wifi_familiar = []          # up to 16 well-known APs (persisted)
         self.wifi_recent = []            # up to 8 candidate APs (persisted)
-        self.in_familiar_location = False  # updated each scan, not persisted
-        self.last_wifi_scan_ms = None    # ticks_ms of last scan, not persisted
+        self.in_familiar_location = True   # updated each scan; defaults True when WiFi disabled
 
         # Recent completed behavior names for loop prevention (most recent first, not persisted)
         self.recent_behaviors = []
@@ -278,7 +284,7 @@ class GameContext:
             self.recent_behaviors.pop()
 
     def save_if_needed(self):
-        """Save if more than 59 minutes have passed since the last save."""
+        """Save+reboot if more than 59 minutes have passed since the last save."""
         import time
         if (self.last_save_time is None or
                 time.ticks_diff(time.ticks_ms(), self.last_save_time) > 59 * 60 * 1000):

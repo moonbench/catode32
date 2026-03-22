@@ -126,17 +126,8 @@ class SleepingBehavior(BaseBehavior):
             self._progress = min(1.0, self._phase_timer / self.sleep_duration)
 
             if self._phase_timer >= self.sleep_duration:
-                # Scan while the pet is still asleep so any display freeze is invisible
-                try:
-                    import sys
-                    import wifi_tracker
-                    wifi_tracker.maybe_scan(self._character.context)
-                    del sys.modules['wifi_tracker']
-                except Exception:
-                    pass
                 self._phase = "waking"
                 self._phase_timer = 0.0
-                # Stay in sleep pose briefly while "waking"
 
         elif self._phase == "waking":
             if self._character.context:

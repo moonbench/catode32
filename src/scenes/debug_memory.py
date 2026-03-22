@@ -30,6 +30,20 @@ class DebugMemoryScene(Scene):
     def exit(self):
         pass
 
+    @staticmethod
+    def _largest_free_block():
+        """Binary search for the largest contiguous allocatable block."""
+        lo, hi = 1, gc.mem_free()
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            try:
+                b = bytearray(mid)
+                del b
+                lo = mid
+            except MemoryError:
+                hi = mid - 1
+        return lo
+
     def _build_lines(self):
         """Build display lines from memory info"""
         gc.collect()
@@ -38,14 +52,17 @@ class DebugMemoryScene(Scene):
         free = gc.mem_free()
         alloc = gc.mem_alloc()
         total = free + alloc
+        largest = self._largest_free_block()
 
         self.lines.append("Memory:")
         self.lines.append(f" Free: {free}")
+        self.lines.append(f" Largest: {largest}")
         self.lines.append(f" Used: {alloc}")
         self.lines.append(f" Total: {total}")
         self.lines.append("")
         print("Memory:")
         print(f" Free: {free}")
+        print(f" Largest: {largest}")
         print(f" Used: {alloc}")
         print(f" Total: {total}")
         # print("Heap map:")

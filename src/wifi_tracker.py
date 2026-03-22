@@ -6,17 +6,15 @@ Maintains two lists of access points on the context:
 
 Each entry is a dict:  {'b': 'aa:bb:cc:dd:ee:ff', 's': 'SSID', 'n': <float count>}
 
-A scan is triggered at most once per _SCAN_INTERVAL_MS.  It is intended to be called
-from the sleeping behavior so the brief blocking freeze is invisible.
+Scanning runs once at boot (clean memory) and on demand from the debug_wifi scene.
 """
 
 import gc
 
-_FAMILIAR_MAX     = 16
-_RECENT_MAX       = 8
-_PROMOTE_MIN      = 5.0   # min count before a recent entry can be promoted
-_DECAY_PER_SCAN   = 0.25  # subtracted from every unseen entry each scan
-_SCAN_INTERVAL_MS = 60 * 60 * 1000  # 60 minutes
+_FAMILIAR_MAX   = 16
+_RECENT_MAX     = 8
+_PROMOTE_MIN    = 5.0   # min count before a recent entry can be promoted
+_DECAY_PER_SCAN = 0.25  # subtracted from every unseen entry each scan
 
 
 def _bssid_str(raw):
@@ -24,14 +22,14 @@ def _bssid_str(raw):
 
 
 def scan_now(context):
-    """Force a WiFi scan immediately, ignoring the cooldown.
+    """Perform a WiFi scan immediately.
 
     Updates context in-place and returns the raw AP list for callers that
     need RSSI / channel / auth data (e.g. the debug scene).  Returns [] on error.
     """
-    import time
     try:
         import network
+        import time
         wlan = network.WLAN(network.STA_IF)
         was_active = wlan.active()
         wlan.active(True)
@@ -41,7 +39,6 @@ def scan_now(context):
         if not was_active:
             wlan.active(False)
         _process(context, aps)
-        context.last_wifi_scan_ms = time.ticks_ms()
         print("[WiFi] Scan done. familiar=" + str(context.in_familiar_location) +
               " (" + str(len(context.wifi_familiar)) + "/" + str(_FAMILIAR_MAX) + " known)")
         return aps
@@ -51,14 +48,6 @@ def scan_now(context):
     finally:
         gc.collect()
 
-
-def maybe_scan(context):
-    """Scan for nearby APs if the cooldown has elapsed.  Updates context in-place."""
-    import time
-    last = context.last_wifi_scan_ms
-    if last is not None and time.ticks_diff(time.ticks_ms(), last) < _SCAN_INTERVAL_MS:
-        return
-    scan_now(context)
 
 
 def _process(context, aps):

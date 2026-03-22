@@ -1,5 +1,6 @@
 import gc
 import sys
+import config
 from scene import Scene
 from ui import Scrollbar
 
@@ -27,8 +28,12 @@ class DebugWifiScene(Scene):
 
     def enter(self):
         self.scroll_offset = 0
-        self.lines = ["Scanning WiFi..."]
-        self._scan_countdown = 0.1  # seconds before scan fires
+        if config.WIFI_ENABLED:
+            self.lines = ["Scanning WiFi..."]
+            self._scan_countdown = 0.1  # seconds before scan fires
+        else:
+            self.lines = ["WiFi disabled.", "Set WIFI_ENABLED=True", "in config.py to use."]
+            self._scan_countdown = None
 
     def exit(self):
         pass
@@ -138,7 +143,7 @@ class DebugWifiScene(Scene):
             self.scroll_offset = max(0, self.scroll_offset - 1)
         if self.input.was_just_pressed('down'):
             self.scroll_offset = min(max_scroll, self.scroll_offset + 1)
-        if self.input.was_just_pressed('a'):
+        if self.input.was_just_pressed('a') and config.WIFI_ENABLED:
             self.scroll_offset = 0
             self._scan()
         if self.input.was_just_pressed('b'):

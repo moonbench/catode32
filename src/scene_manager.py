@@ -98,7 +98,9 @@ class SceneManager:
 
         module_path, class_name = self._scene_registry[name]
 
-        # Import the module (or get from cache if already loaded)
+        # Defragment before import so the module has the best chance of finding
+        # a contiguous block large enough for its bytecode.
+        gc.collect()
         module = __import__(module_path, None, None, [class_name])
         return getattr(module, class_name)
 
