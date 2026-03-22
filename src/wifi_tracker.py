@@ -35,6 +35,8 @@ def scan_now(context):
         wlan = network.WLAN(network.STA_IF)
         was_active = wlan.active()
         wlan.active(True)
+        time.sleep_ms(200)
+        gc.collect()
         aps = wlan.scan()
         if not was_active:
             wlan.active(False)
