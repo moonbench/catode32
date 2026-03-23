@@ -172,9 +172,9 @@ class ShootingStarEvent:
     def __init__(self, start_x, start_y):
         self.x = start_x
         self.y = start_y
-        self.max_length = 22
-        self.speed_x = 28
-        self.speed_y = 7
+        self.max_length = random.randint(16, 28)
+        self.speed_x = random.randint(20, 36)
+        self.speed_y = random.randint(3, 13)
         self.lifetime = 0.0
         self.max_lifetime = 3.1
         self.active = True
@@ -518,15 +518,20 @@ class SkyRenderer:
             environment: Environment instance
             layer: Layer constant (e.g., LAYER_BACKGROUND)
         """
-        # Add custom draw functions
+        # Custom draw order: stars → moon → shooting star → sky events
+        # This ensures shooting stars render in front of the moon (atmosphere, not deep space)
         environment.add_custom_draw(layer, self._draw_stars)
+        environment.add_custom_draw(layer, self._draw_moon)
+        environment.add_custom_draw(layer, self._draw_shooting_star)
         environment.add_custom_draw(layer, self._draw_sky_events)
 
-        # Add sun and moon (both always present; one or both may be off-screen)
+        # Add sun (always present; may be off-screen)
         sx, sy = _calc_sun_position(self._hours_f)
         self._sun_obj = {"sprite": SUN, "x": sx, "y": sy, "frame": self._sun_anim_frame}
         environment.layers[layer].append(self._sun_obj)
 
+        # Set up moon state (drawn via _draw_moon custom draw, not as a layer sprite,
+        # so shooting stars can render in front of it)
         moon_sprite = self._get_moon_sprite()
         moon_frame = MOON_PHASE_FRAMES.get(self.moon_phase)
         mx, my = _calc_moon_position(self._hours_f)
@@ -535,7 +540,6 @@ class SkyRenderer:
             "x": mx, "y": my,
             "frame": moon_frame if moon_frame is not None else 0,
         }
-        environment.layers[layer].append(self._moon_obj)
 
         # Add clouds
         self._cloud_objs.clear()
@@ -563,12 +567,10 @@ class SkyRenderer:
             environment: Environment instance
             layer: Layer constant
         """
-        # Remove sun and moon
+        # Remove sun (moon is drawn via custom draw, not stored in layer)
         if self._sun_obj and self._sun_obj in environment.layers[layer]:
             environment.layers[layer].remove(self._sun_obj)
         self._sun_obj = None
-        if self._moon_obj and self._moon_obj in environment.layers[layer]:
-            environment.layers[layer].remove(self._moon_obj)
         self._moon_obj = None
 
         # Remove clouds
@@ -755,6 +757,31 @@ class SkyRenderer:
         season_offset = int((self.day_of_year % 365) / 365 * 60)
         return time_offset + season_offset
 
+    def _draw_moon(self, renderer, camera_x, parallax):
+        """Draw the moon as a custom draw (so shooting stars render in front of it)"""
+        if not self._moon_obj:
+            return
+        camera_offset = int(camera_x * parallax)
+        screen_x = int(self._moon_obj["x"] - camera_offset)
+        sprite = self._moon_obj["sprite"]
+        if screen_x + sprite["width"] < 0 or screen_x >= config.DISPLAY_WIDTH:
+            return
+        renderer.draw_sprite_obj(sprite, screen_x, int(self._moon_obj["y"]), frame=self._moon_obj["frame"])
+
+    def _draw_shooting_star(self, renderer, camera_x, parallax):
+        """Draw shooting star in front of the moon but behind clouds"""
+        if not self.shooting_star or not self.shooting_star.active:
+            return
+        # Draw trailing particles first (behind the main streak)
+        for p in self.shooting_star.particles:
+            px, py = int(p[_SS_X]), int(p[_SS_Y])
+            if 0 <= px < config.DISPLAY_WIDTH and 0 <= py < 50:
+                renderer.draw_pixel(px, py)
+        # Draw main streak
+        x1, y1, x2, y2 = self.shooting_star.get_points()
+        if 0 <= x2 < config.DISPLAY_WIDTH and 0 <= y2 < STAR_FIELD_HEIGHT + 10:
+            renderer.draw_line(x1, y1, x2, y2)
+
     def _draw_sky_events(self, renderer, camera_x, parallax):
         """Draw daytime sky events (balloon, plane, etc.)"""
         if not self.sky_event or not self.sky_event.active:
@@ -827,18 +854,6 @@ class SkyRenderer:
             else:
                 renderer.draw_pixel(screen_x, screen_y)
 
-        # Draw shooting star if active
-        if self.shooting_star and self.shooting_star.active:
-            # Draw trailing particles first (behind the main streak)
-            for p in self.shooting_star.particles:
-                px, py = int(p[_SS_X]), int(p[_SS_Y])
-                if 0 <= px < config.DISPLAY_WIDTH and 0 <= py < 50:
-                    renderer.draw_pixel(px, py)
-
-            # Draw main streak
-            x1, y1, x2, y2 = self.shooting_star.get_points()
-            if 0 <= x2 < config.DISPLAY_WIDTH and 0 <= y2 < STAR_FIELD_HEIGHT + 10:
-                renderer.draw_line(x1, y1, x2, y2)
 
     def make_precipitation_drawer(self, parallax, layer_index):
         """
