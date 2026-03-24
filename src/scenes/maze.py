@@ -2,6 +2,7 @@
 Maze scene - Find the fish minigame
 """
 import random
+import framebuf
 import config
 from scene import Scene
 from assets.minigame_character import SITCAT1
@@ -58,13 +59,9 @@ class MazeScene(Scene):
         # Generate maze with reserved open areas for sprites
         self.maze = self.generate_maze()
 
-        # Precompute flat draw list: (px, py, walls_bitmask) per cell, row-major
-        self._maze_draw_data = []
-        for cy in range(self.GRID_HEIGHT):
-            for cx in range(self.GRID_WIDTH):
-                px = self.GRID_OFFSET_X + cx * self.CELL_WIDTH
-                py = self.GRID_OFFSET_Y + cy * self.CELL_HEIGHT
-                self._maze_draw_data.append((px, py, self.maze[cy][cx]))
+        # Pre-render static maze walls into a FrameBuffer so draw_maze is a
+        # single blit instead of ~1200 draw_line calls every frame.
+        self._build_maze_cache()
 
         # Precompute cell center pixel coords (flat, row-major) for path/indicator
         cx_base = self.GRID_OFFSET_X + self.CELL_WIDTH // 2
@@ -84,8 +81,9 @@ class MazeScene(Scene):
         self.goal_x = self.GRID_WIDTH - 1
         self.goal_y = 0
 
-        # Path tracking
+        # Path tracking (list for ordered traversal, set for O(1) backtrack lookup)
         self.path = [(self.player_x, self.player_y)]
+        self.path_set = {(self.player_x, self.player_y)}
 
         # Timer
         self.elapsed_time = 0.0
@@ -94,6 +92,33 @@ class MazeScene(Scene):
 
         # Game state
         self.state = self.STATE_PLAYING
+
+    def _build_maze_cache(self):
+        """Pre-render maze walls into a FrameBuffer (runs once per generation)."""
+        # 128 * 64 / 8 = 1024 bytes for MONO_HLSB
+        buf = bytearray(1024)
+        fb = framebuf.FrameBuffer(buf, 128, 64, framebuf.MONO_HLSB)
+        cw1 = self.CELL_WIDTH - 1
+        ch1 = self.CELL_HEIGHT - 1
+        ox = self.GRID_OFFSET_X
+        oy = self.GRID_OFFSET_Y
+        cw = self.CELL_WIDTH
+        ch = self.CELL_HEIGHT
+        for cy in range(self.GRID_HEIGHT):
+            row = self.maze[cy]
+            for cx in range(self.GRID_WIDTH):
+                walls = row[cx]
+                px = ox + cx * cw
+                py = oy + cy * ch
+                if walls & WALL_N:
+                    fb.line(px, py, px + cw1, py, 1)
+                if walls & WALL_S:
+                    fb.line(px, py + ch1, px + cw1, py + ch1, 1)
+                if walls & WALL_E:
+                    fb.line(px + cw1, py, px + cw1, py + ch1, 1)
+                if walls & WALL_W:
+                    fb.line(px, py, px, py + ch1, 1)
+        self._maze_fb = fb
 
     def generate_maze(self):
         """Generate a perfect maze using Prim's algorithm (more branching, harder mazes)"""
@@ -199,14 +224,13 @@ class MazeScene(Scene):
         new_y = self.player_y + dy
         new_pos = (new_x, new_y)
 
-        # Check for backtracking
-        if new_pos in self.path:
-            # Unwind path to that position
+        # Check for backtracking (O(1) set lookup instead of O(n) list scan)
+        if new_pos in self.path_set:
             while self.path[-1] != new_pos:
-                self.path.pop()
+                self.path_set.discard(self.path.pop())
         else:
-            # Add to path
             self.path.append(new_pos)
+            self.path_set.add(new_pos)
 
         self.player_x = new_x
         self.player_y = new_y
@@ -284,19 +308,8 @@ class MazeScene(Scene):
             self.draw_win_message()
 
     def draw_maze(self):
-        """Draw maze walls using precomputed draw data"""
-        draw_line = self.renderer.draw_line
-        cw1 = self.CELL_WIDTH - 1
-        ch1 = self.CELL_HEIGHT - 1
-        for px, py, walls in self._maze_draw_data:
-            if walls & WALL_N:
-                draw_line(px, py, px + cw1, py)
-            if walls & WALL_S:
-                draw_line(px, py + ch1, px + cw1, py + ch1)
-            if walls & WALL_E:
-                draw_line(px + cw1, py, px + cw1, py + ch1)
-            if walls & WALL_W:
-                draw_line(px, py, px, py + ch1)
+        """Blit pre-rendered maze framebuf — one C-level call instead of ~1200 draw_line calls."""
+        self.renderer.display.blit(self._maze_fb, 0, 0, 0)
 
     def draw_path(self):
         """Draw breadcrumb trail connecting visited cells"""
