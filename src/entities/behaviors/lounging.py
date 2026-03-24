@@ -68,6 +68,11 @@ class LoungeingBehavior(BaseBehavior):
         else:
             bonus['serenity'] = bonus.get('serenity', 0) - 1
             bonus['comfort'] = bonus.get('comfort', 0) * 0.9   # can't fully relax elsewhere
+        if context.meteor_shower_happening:
+            bonus['serenity'] = bonus.get('serenity', 0) + 2
+            bonus['fulfillment'] = bonus.get('fulfillment', 0) + 1.5
+            bonus['comfort'] = bonus.get('comfort', 0) + 3
+            bonus['maturity'] = bonus.get('maturity', 0) + 0.5
         return bonus
 
     def next(self, context):

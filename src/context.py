@@ -56,7 +56,12 @@ _STAT_KEYS = (
 class GameContext:
     def __init__(self):
         self.reset(delete_save=False)
-    
+
+    @property
+    def meteor_shower_happening(self):
+        """True when a meteor shower is currently active."""
+        return self.environment.get('meteor_shower_timer', 0.0) > 0
+
     def apply_stat_changes(self, changes):
         """Apply a dict of stat changes with asymptotic damping near extremes.
 

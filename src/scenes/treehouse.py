@@ -28,15 +28,6 @@ class TreehouseScene(MainScene):
             LAYER_FOREGROUND, PLANT3,
             x=16, y=63 - PLANTER1["height"] - PLANT3["height"]
         )
-        
-        self.environment.add_object(
-            LAYER_MIDGROUND, PLANTER1,
-            x=30, y=57 - PLANTER1["height"]
-        )
-        self.environment.add_object(
-            LAYER_MIDGROUND, PLANT1,
-            x=29, y=57 - PLANTER1["height"] - PLANT1["height"]
-        )
 
         self.environment.add_object(
             LAYER_FOREGROUND, PLANTER1,
@@ -49,11 +40,19 @@ class TreehouseScene(MainScene):
 
         self.environment.add_object(
             LAYER_MIDGROUND, PLANTER1,
-            x=120, y=57 - PLANTER1["height"]
+            x=30, y=59 - PLANTER1["height"]
+        )
+        self.environment.add_object(
+            LAYER_MIDGROUND, PLANT1,
+            x=29, y=59 - PLANTER1["height"] - PLANT1["height"]
+        )
+        self.environment.add_object(
+            LAYER_MIDGROUND, PLANTER1,
+            x=120, y=59 - PLANTER1["height"]
         )
         self.environment.add_object(
             LAYER_MIDGROUND, PLANT3,
-            x=121, y=57 - PLANTER1["height"] - PLANT3["height"]
+            x=121, y=59 - PLANTER1["height"] - PLANT3["height"]
         )
 
         self.context.scene_x_min = 20
@@ -71,6 +70,7 @@ class TreehouseScene(MainScene):
         self.environment.add_custom_draw(LAYER_MIDGROUND, self.sky.make_precipitation_drawer(0.6, 1))
         self.environment.add_custom_draw(LAYER_FOREGROUND, self.sky.make_precipitation_drawer(1.0, 2))
         self.environment.add_custom_draw(LAYER_FOREGROUND, self._draw_platform)
+        self.environment.add_custom_draw(LAYER_MIDGROUND, self._draw_platform_mid)
 
     def on_exit(self):
         self.sky.remove_from_environment(self.environment, LAYER_BACKGROUND)
@@ -101,11 +101,34 @@ class TreehouseScene(MainScene):
             return
 
         # Horizontal planks
-        for py in [57, 59, 61]:
+        for py in [59, 61]:
             renderer.draw_line(sx, py, ex, py)
 
         # Vertical post supports
         for world_x in [10, 80, 160, 245]:
             px = world_x - offset
             if sx <= px <= ex:
-                renderer.draw_line(px, 57, px, 63)
+                renderer.draw_line(px, 59, px, 63)
+
+    def _draw_platform_mid(self, renderer, camera_x, parallax):
+        """Draw wooden deck planks spanning the treehouse platform."""
+        offset = int(camera_x * parallax)
+
+        sx = max(0, 0 - offset)
+        ex = min(config.DISPLAY_WIDTH, 300 - offset)
+        if sx >= ex:
+            return
+
+        # Horizontal planks
+        renderer.draw_line(sx, 57, ex, 57)
+
+        # Vertical post supports
+        for world_x in [20, 90, 160, 230]:
+            px = world_x - offset
+            if sx <= px <= ex:
+                renderer.draw_line(px, 57, px, 59)
+        
+        renderer.draw_rect(0 - offset - 1, -1, 10, 61, filled=True, color=0)
+        renderer.draw_rect(180 - offset, -1, 10, 61, filled=True, color=0)
+        renderer.draw_rect(0 - offset - 1, -1, 10, 61)
+        renderer.draw_rect(180 - offset, -1, 10, 61)

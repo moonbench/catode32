@@ -72,6 +72,9 @@ class SleepingBehavior(BaseBehavior):
         else:
             bonus['serenity'] = bonus.get('serenity', 0) - 2   # restless sleep away from home
             bonus['comfort'] = bonus.get('comfort', 0) * 0.85  # less restorative
+        if context.meteor_shower_happening:
+            bonus['serenity'] = bonus.get('serenity', 0) + 4
+            bonus['fulfillment'] = bonus.get('fulfillment', 0) + 2
         return bonus
 
     def __init__(self, character):

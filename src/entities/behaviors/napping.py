@@ -69,6 +69,9 @@ class NappingBehavior(BaseBehavior):
         else:
             bonus['serenity'] = bonus.get('serenity', 0) - 1
             bonus['comfort'] = bonus.get('comfort', 0) * 0.9
+        if context.meteor_shower_happening:
+            bonus['serenity'] = bonus.get('serenity', 0) + 2
+            bonus['fulfillment'] = bonus.get('fulfillment', 0) + 1
         return bonus
     
     def __init__(self, character):

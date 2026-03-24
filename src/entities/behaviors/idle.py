@@ -54,6 +54,10 @@ class IdleBehavior(BaseBehavior):
         weather = context.environment.get('weather', 'Clear')
         if scene in ('outside', 'treehouse') and weather in ('Rain', 'Storm', 'Snow'):
             bonus['comfort'] = bonus.get('comfort', 0) - 5
+        if context.meteor_shower_happening:
+            bonus['serenity'] = bonus.get('serenity', 0) + 0.5
+            bonus['fulfillment'] = bonus.get('fulfillment', 0) + 0.3
+            bonus['comfort'] = bonus.get('comfort', 0) + 0.5
         return bonus
 
     def __init__(self, character):

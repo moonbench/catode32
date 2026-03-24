@@ -40,6 +40,39 @@ _DURATION_RANGES = {
 
 _COLD_SEASONS = ("Fall", "Winter")
 
+# Meteor shower constants
+# Large offset so shower PRNG doesn't correlate with weather PRNG at the same step
+_METEOR_SEED_OFFSET = 0x100000
+
+# Chance (%) that a meteor shower starts at any given weather transition, by season
+_METEOR_SHOWER_CHANCE = {
+    "Summer": 8,
+    "Spring": 4,
+    "Fall":   4,
+    "Winter": 2,
+}
+
+# Shower duration range in in-game minutes (min >= one 3h forecast slot)
+_METEOR_SHOWER_MIN_DURATION = 180
+_METEOR_SHOWER_MAX_DURATION = 300
+
+
+def _compute_meteor_shower(step, season):
+    """
+    Deterministically decide whether a meteor shower starts at this transition step.
+
+    Returns (shower_active: bool, duration_minutes: int).
+    Fully deterministic for a given (step, season).
+    """
+    x = _seeded_rand(step + _METEOR_SEED_OFFSET)
+    chance = _METEOR_SHOWER_CHANCE.get(season, 4)
+    if (x % 100) < chance:
+        x = _xorshift32(x)
+        span = _METEOR_SHOWER_MAX_DURATION - _METEOR_SHOWER_MIN_DURATION + 1
+        duration = _METEOR_SHOWER_MIN_DURATION + (x % span)
+        return True, duration
+    return False, 0
+
 
 def _compute_transition(step, current_weather, season):
     """
@@ -94,6 +127,7 @@ class WeatherSystem:
         environment['weather'] = weather
         environment['weather_step'] = step + 1
         environment['weather_timer'] = float(duration)
+        environment['meteor_shower_timer'] = 0.0
 
     def update(self, game_minutes, environment):
         """
@@ -106,41 +140,56 @@ class WeatherSystem:
             return
 
         timer = environment.get('weather_timer', 0.0)
+        shower_timer = environment.get('meteor_shower_timer', 0.0) - game_minutes
+        if shower_timer < 0:
+            shower_timer = 0.0
         timer -= game_minutes
 
         while timer <= 0:
             step = environment.get('weather_step', 0)
             current = environment.get('weather', 'Clear')
             season = environment.get('season', 'Summer')
+            shower_start, shower_dur = _compute_meteor_shower(step, season)
+            if shower_start:
+                shower_timer = max(shower_timer, float(shower_dur))
             next_weather, duration = _compute_transition(step, current, season)
             environment['weather'] = next_weather
             environment['weather_step'] = step + 1
             timer += duration
 
         environment['weather_timer'] = timer
+        environment['meteor_shower_timer'] = shower_timer
 
     def get_forecast(self, environment, hours=72):
         """
         Return a deterministic weather forecast for the next `hours` in-game hours.
 
-        Returns a list of (weather, duration_minutes) tuples. The first entry is
-        the current weather with its remaining time; subsequent entries are future
-        states. The list covers at least `hours * 60` minutes of future time.
+        Returns a list of (weather, duration_minutes, meteor_shower) tuples. The first
+        entry is the current weather with its remaining time; subsequent entries are
+        future states. The list covers at least `hours * 60` minutes of future time.
         """
         current = environment.get('weather', 'Clear')
         step = environment.get('weather_step', 0)
         remaining = environment.get('weather_timer', 60.0)
         season = environment.get('season', 'Summer')
+        shower_timer = float(environment.get('meteor_shower_timer', 0.0))
 
-        forecast = [(current, int(remaining))]
+        forecast = [(current, int(remaining), shower_timer > 0)]
         total_minutes = remaining
         target_minutes = hours * 60
 
+        # Advance shower timer past the current weather's remaining duration
+        shower_timer = max(0.0, shower_timer - remaining)
+
         while total_minutes < target_minutes:
+            shower_start, shower_dur = _compute_meteor_shower(step, season)
+            if shower_start:
+                shower_timer = max(shower_timer, float(shower_dur))
             next_weather, duration = _compute_transition(step, current, season)
-            forecast.append((next_weather, duration))
+            forecast.append((next_weather, duration, shower_timer > 0))
             total_minutes += duration
             current = next_weather
             step += 1
+            shower_timer = max(0.0, shower_timer - duration)
 
         return forecast

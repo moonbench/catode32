@@ -276,6 +276,31 @@ class SkyEvent:
                 self.active = False
 
 
+# Meteor spawn rate constants
+_METEOR_BASE_RATE = 0.0005  # baseline spawn chance per frame
+
+_METEOR_SEASON_MULT = {
+    "Summer": 1.0,
+    "Spring": 0.6,
+    "Fall":   0.4,
+    "Winter": 0.15,
+}
+
+# Only clear-sky weather allows seeing shooting stars
+_METEOR_WEATHER_OK = frozenset(("Clear", "Cloudy", "Windy"))
+
+_METEOR_SHOWER_MULT = 16  # shower windows are 8× more active
+
+
+def _get_meteor_rate(season, weather, shower_active):
+    if weather not in _METEOR_WEATHER_OK:
+        return 0.0
+    rate = _METEOR_BASE_RATE * _METEOR_SEASON_MULT.get(season, 0.5)
+    if shower_active:
+        rate *= _METEOR_SHOWER_MULT
+    return rate
+
+
 # Precipitation constants
 RAIN_PARTICLE_COUNT = 40
 SNOW_PARTICLE_COUNT = 30
@@ -346,6 +371,7 @@ class SkyRenderer:
         self._sun_anim_frame = 0
         self.shooting_star = None
         self.sky_event = None  # Daytime events (balloon, plane, etc.)
+        self._meteor_rate = _METEOR_BASE_RATE
 
         # Current fractional hours (set by configure/set_time)
         self._hours_f = 12.0
@@ -415,6 +441,9 @@ class SkyRenderer:
         if seed is not None:
             star_seed = (seed ^ (seed >> 32)) & 0xFFFFFFFF
             self.stars = _generate_stars(star_seed)
+
+        shower_active = environment_settings.get("meteor_shower_timer", 0.0) > 0
+        self._meteor_rate = _get_meteor_rate(self.season, self.weather, shower_active)
 
         self._update_star_visibility()
         self._update_cloud_config()
@@ -713,8 +742,8 @@ class SkyRenderer:
         return self._lightning_invert_state
 
     def _maybe_spawn_shooting_star(self):
-        """Check if a shooting star should spawn (very rare)"""
-        if random.random() < 0.002:  # ~0.2% chance per frame
+        """Check if a shooting star should spawn, based on season/weather/shower rate"""
+        if random.random() < self._meteor_rate:
             start_x = random.randint(10, 70)
             start_y = random.randint(2, 22)
             self.shooting_star = ShootingStarEvent(start_x, start_y)

@@ -22,27 +22,27 @@ class OutsideScene(MainScene):
         # Add plants to foreground
         self.environment.add_object(
             LAYER_FOREGROUND, PLANTER1,
-            x=10, y=63 - PLANTER1["height"]
+            x=10, y=64 - PLANTER1["height"]
         )
         self.environment.add_object(
             LAYER_FOREGROUND, PLANT1,
-            x=9, y=63 - PLANTER1["height"] - PLANT1["height"]
+            x=9, y=64 - PLANTER1["height"] - PLANT1["height"]
         )
         self.environment.add_object(
             LAYER_FOREGROUND, PLANTER1,
-            x=94, y=63 - PLANTER1["height"]
+            x=94, y=64 - PLANTER1["height"]
         )
         self.environment.add_object(
             LAYER_FOREGROUND, PLANT2,
-            x=90, y=63 - PLANTER1["height"] - PLANT2["height"]
+            x=90, y=64 - PLANTER1["height"] - PLANT2["height"]
         )
         self.environment.add_object(
             LAYER_FOREGROUND, PLANTER1,
-            x=180, y=63 - PLANTER1["height"]
+            x=180, y=64 - PLANTER1["height"]
         )
         self.environment.add_object(
             LAYER_FOREGROUND, PLANT1,
-            x=179, y=63 - PLANTER1["height"] - PLANT1["height"]
+            x=179, y=64 - PLANTER1["height"] - PLANT1["height"]
         )
 
         # Plants for midground
