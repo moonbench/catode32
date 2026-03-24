@@ -91,6 +91,7 @@ Weather influences behavior in several ways:
 
 ### WiFi home detection
 
+> [!NOTE]
 > **Disabled by default.** Set `WIFI_ENABLED = True` in `config.py` to enable. See the RAM warning below before doing so.
 
 The ESP32's WiFi radio is used to determine whether the pet is at its familiar home location. A scan runs **once at boot** (while the loading screen is shown) and can be triggered manually from the debug WiFi scene.
@@ -111,12 +112,14 @@ Two lists of access points are maintained:
 
 The intent is that a pet left at home is calmer, sleeps better, and plays more freely, while a pet taken somewhere unfamiliar becomes more anxious and restless.
 
-#### RAM cost of enabling WiFi
-
-On ESP32-C3/C6, all SRAM is shared; there is no separate "WiFi RAM." When the WiFi driver initialises (`network.WLAN(...).active(True)`), the ESP-IDF stack allocates internal buffers (TX/RX queues, the lwIP network stack, control structures) that are never returned, even after `wlan.active(False)` and garbage collection. This is because `active(False)` only stops the radio; it does not call `esp_wifi_deinit()`, and MicroPython's network API does not expose deinit.
-
-The practical result: enabling WiFi permanently reduces available heap for the rest of the boot session. On devices already running close to the memory limit this is enough to cause allocation failures during scene changes or behavior loads, typically within an hour of boot. With `WIFI_ENABLED = False` the devices run indefinitely without issue.
-
+> [!WARNING]
+> #### RAM cost of enabling WiFi
+>
+> Enabling wifi will make the device freeze within an hour or two.
+> 
+> On ESP32-C3/C6, all SRAM is shared; there is no separate "WiFi RAM." When the WiFi driver initialises (`network.WLAN(...).active(True)`), the ESP-IDF stack allocates internal buffers (TX/RX queues, the lwIP network stack, control structures) that are never returned, even after `wlan.active(False)` and garbage collection. This is because `active(False)` only stops the radio; it does not call `esp_wifi_deinit()`, and MicroPython's network API does not expose deinit.
+> 
+> The practical result: enabling WiFi permanently reduces available heap for the rest of the boot session. On devices already running close to the memory limit this is enough to cause allocation failures during scene changes or behavior loads, typically within an hour of boot. With `WIFI_ENABLED = False` the devices run indefinitely without issue.
 
 ## Controls
 
