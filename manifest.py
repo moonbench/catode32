@@ -6,7 +6,10 @@
 # Only freeze always-loaded asset modules. Lazy-loaded scenes and behaviors
 # must stay on the filesystem so they can be unloaded from sys.modules.
 
-freeze("src", (
+# Include the board's default manifest (asyncio, networking libs, etc.)
+include("$(PORT_DIR)/boards/manifest.py")
+
+freeze("/Users/user/Documents/petpython/src", (
     "assets/__init__.py",
     "assets/boot_img.py",
     "assets/character.py",
