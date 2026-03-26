@@ -72,6 +72,7 @@ echo -e "${GREEN}✓ SSD1306 library installed${NC}"
 
 echo ""
 echo -e "${YELLOW}Step 3: Compiling .py to .mpy...${NC}"
+echo "  (skipping src/assets/ — frozen into firmware, not needed on filesystem)"
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
@@ -88,7 +89,7 @@ while read -r pyfile; do
         echo -e "${RED}Compilation failed. Fix the errors above and try again.${NC}"
         exit 1
     fi
-done < <(find "$SRC_DIR" -name "*.py")
+done < <(find "$SRC_DIR" -name "*.py" -not -path "$SRC_DIR/assets/*")
 echo -e "${GREEN}✓ Compilation complete${NC}"
 
 echo ""

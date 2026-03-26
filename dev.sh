@@ -25,12 +25,13 @@ if ! command -v mpremote &> /dev/null; then
 fi
 
 echo -e "${YELLOW}=== Compiling .py to .mpy ===${NC}"
+echo "  (skipping src/assets/ — frozen into firmware, not needed on filesystem)"
 
 # Clean and create build directory
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
-# Find all .py files and compile them
+# Find all .py files and compile them (assets are frozen in firmware)
 FAILED=0
 while read -r pyfile; do
     # Get relative path from src/
@@ -49,7 +50,7 @@ while read -r pyfile; do
         cat /tmp/mpy_cross_err
         FAILED=1
     fi
-done < <(find "$SRC_DIR" -name "*.py")
+done < <(find "$SRC_DIR" -name "*.py" -not -path "$SRC_DIR/assets/*")
 
 if [ "$FAILED" -eq 1 ]; then
     echo -e "${RED}Compilation failed. Fix the errors above and try again.${NC}"
