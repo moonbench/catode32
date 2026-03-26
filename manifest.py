@@ -9,7 +9,10 @@
 # Include the board's default manifest (asyncio, networking libs, etc.)
 include("$(PORT_DIR)/boards/manifest.py")
 
-freeze("/Users/user/Documents/petpython/src", (
+import os as _os
+_src = _os.environ["PETPYTHON_SRC"]
+
+freeze(_src, (
     "assets/__init__.py",
     "assets/boot_img.py",
     "assets/character.py",
