@@ -251,12 +251,15 @@ class SceneManager:
             self.change_scene_by_name(pending)
     
     def draw(self):
-        """Draw current scene and transition overlay"""
+        """Draw current scene and transition overlay into the frame buffer.
+
+        Does NOT call renderer.show() — the caller is responsible for
+        presenting the buffer after any additional overlays are drawn.
+        """
         self.renderer.clear()
 
         # If an overlay is active, draw it instead of the scene
         if self.overlays.draw():
-            self.renderer.show()
             return
 
         if self.current_scene:
@@ -264,8 +267,6 @@ class SceneManager:
 
         # Draw transition overlay if active
         self.transitions.draw()
-
-        self.renderer.show()
     
     def handle_input(self):
         """Handle input for current scene"""

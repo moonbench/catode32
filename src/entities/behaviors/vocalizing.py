@@ -55,6 +55,7 @@ class VocalizingBehavior(BaseBehavior):
         self.vocalize_duration = random.uniform(6.0, 24.0)
         self.settle_duration = random.uniform(1.0, 3.0)
         self._vocalize_icon = "exclaim"
+        self._broadcast_sent = False
 
     def next(self, context):
         if random.random() < 0.2:
@@ -66,6 +67,7 @@ class VocalizingBehavior(BaseBehavior):
             return
         super().start(on_complete)
         self._phase = "winding_up"
+        self._broadcast_sent = False
         self._character.set_pose("sitting.forward.neutral")
         self._vocalize_icon = self._pick_icon(self._character.context)
         self.vocalize_duration = random.randint(6, 15)
@@ -83,6 +85,11 @@ class VocalizingBehavior(BaseBehavior):
                 self._character.set_pose("yelling.forward.lift_and_yell")
 
         elif self._phase == "vocalizing":
+            if not self._broadcast_sent:
+                ctx = self._character.context
+                if ctx and ctx.espnow and ctx.espnow.active:
+                    ctx.espnow.send('vocalize', {'i': self._vocalize_icon})
+                self._broadcast_sent = True
             self._progress = min(1.0, self._phase_timer / self.vocalize_duration)
             if self._phase_timer >= self.vocalize_duration:
                 self._phase = "settling"

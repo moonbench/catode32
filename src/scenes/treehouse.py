@@ -62,6 +62,9 @@ class TreehouseScene(MainScene):
         self.character.set_pose("sitting.forward.neutral")
 
     def on_enter(self):
+        if self.context.espnow:
+            self.context.espnow.start()
+
         env_settings = getattr(self.context, 'environment', {})
         self.sky.configure(env_settings, world_width=self.environment.world_width, seed=self.context.pet_seed)
         self.sky.add_to_environment(self.environment, LAYER_BACKGROUND)
@@ -73,6 +76,9 @@ class TreehouseScene(MainScene):
         self.environment.add_custom_draw(LAYER_MIDGROUND, self._draw_platform_mid)
 
     def on_exit(self):
+        if self.context.espnow:
+            self.context.espnow.stop()
+
         self.sky.remove_from_environment(self.environment, LAYER_BACKGROUND)
 
     def on_update(self, dt):

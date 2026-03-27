@@ -86,6 +86,9 @@ class OutsideScene(MainScene):
         self.environment.add_entity(butterfly2)
 
     def on_enter(self):
+        if self.context.espnow:
+            self.context.espnow.start()
+
         # Re-add all custom draws fresh (cleared on exit to prevent accumulation)
         self.environment.add_custom_draw(LAYER_FOREGROUND, self._draw_grass)
 
@@ -99,6 +102,9 @@ class OutsideScene(MainScene):
         self.environment.add_custom_draw(LAYER_FOREGROUND, self.sky.make_precipitation_drawer(1.0, 2))
 
     def on_exit(self):
+        if self.context.espnow:
+            self.context.espnow.stop()
+
         # Remove sky objects (celestial body, clouds) from environment layers
         self.sky.remove_from_environment(self.environment, LAYER_BACKGROUND)
 

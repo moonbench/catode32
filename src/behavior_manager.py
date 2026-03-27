@@ -43,6 +43,7 @@ class BehaviorManager:
         'startled':      ('entities.behaviors.startled',      'StartledBehavior'),
         'meandering':    ('entities.behaviors.meandering',    'MeanderingBehavior'),
         'go_to':         ('entities.behaviors.go_to',         'GoToBehavior'),
+        'hearing':       ('entities.behaviors.hearing',       'HearingBehavior'),
     }
 
     # Ordered tuple of auto-selectable behavior names. Built once at class definition;
@@ -115,7 +116,7 @@ class BehaviorManager:
         """
         _INTERACTION_BEHAVIORS = frozenset((
             'affection', 'attention', 'being_groomed', 'eating',
-            'playing', 'gift_bringing', 'chattering', 'go_to',
+            'playing', 'gift_bringing', 'chattering', 'go_to', 'hearing',
         ))
         ctx = self._character.context
         prior = ctx.current_behavior_name if ctx else None
@@ -499,6 +500,13 @@ class BehaviorManager:
         return base
 
     def priority_vocalizing(self, ctx):
+        # Outdoors and not recently vocalized: cats are chatty outside —
+        # push priority low enough to win selection roughly every ~5 behaviors.
+        # Checked first so mild urgency can't bypass it.
+        espnow = getattr(ctx, 'espnow', None)
+        if espnow and espnow.active and 'vocalizing' not in ctx.recent_behaviors:
+            return random.uniform(5, 15)
+
         # How urgently each need demands communication
         _NEED = 40
         hunger_deficit    = max(0, _NEED - ctx.fullness)    # hungry → vocalize before hunting
@@ -513,6 +521,7 @@ class BehaviorManager:
         if urgency > 0:
             # urgency=40 (stat=0) → priority 5; urgency=17 (fullness=23) → priority 14
             return max(5, 65 - urgency * 3)
+
         # Happy and energetic: chatty but not urgent
         return random.uniform(25, max(25, (200 - ctx.energy - ctx.playfulness) * 0.5))
 
@@ -574,10 +583,10 @@ class BehaviorManager:
         return base
 
     def priority_lounging(self, ctx):
-        base = 100 - random.uniform(ctx.serenity * 0.5, ctx.serenity * 1.5)
+        base = 100 - random.uniform(ctx.serenity * 0.5, min(90, ctx.serenity * 1.5))
         if getattr(ctx, 'in_familiar_location', False):
             base *= 0.8  # more likely to just relax at home
-        return base
+        return max(5, base)
 
     def priority_startled(self, ctx):
         base = random.uniform(20, max(20, ctx.courage * 1.2))

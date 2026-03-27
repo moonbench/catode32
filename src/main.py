@@ -1,3 +1,4 @@
+import sys
 import time
 import config
 
@@ -6,49 +7,52 @@ from renderer import Renderer
 from context import GameContext
 from scene_manager import SceneManager
 from weather_system import WeatherSystem
-from assets.boot_img import STRETCH_CAT1
+from time_system import TimeSystem
+from splash import show_splash
+
+if config.WIFI_ENABLED:
+    from espnow_manager import EspNowManager
+    from espnow_handler import EspNowHandler
+
 
 class Game:
     def __init__(self):
         print("==> Virtual Pet Starting...")
 
-        # Setup shared resources
         self.renderer = Renderer()
-
-        # Show boot screen immediately
-        self._show_boot_screen()
+        show_splash(self.renderer)
+        del sys.modules['splash']
 
         self.input = InputHandler()
         self.context = GameContext()
         self.context.load()
 
-        # Scan WiFi at boot while memory is cleanest (boot screen is already showing)
+        if config.WIFI_ENABLED:
+            espnow = EspNowManager()
+            self.context.espnow = espnow
+        else:
+            espnow = None
+
+        # Scan WiFi at boot while memory is cleanest (splash is already showing)
         if config.WIFI_ENABLED:
             try:
                 import wifi_tracker
                 wifi_tracker.scan_now(self.context)
-                import sys
                 del sys.modules['wifi_tracker']
             except Exception as e:
                 print("[Boot] WiFi scan failed: " + str(e))
 
-        # Setup the scene manager (imports all scenes during init)
-        self.scene_manager = SceneManager(
-            self.context,
-            self.renderer,
-            self.input,
-        )
-
+        self.scene_manager = SceneManager(self.context, self.renderer, self.input)
         self.scene_manager.change_scene_by_name('inside')
 
         self.weather_system = WeatherSystem()
-
         if 'weather' not in self.context.environment:
-            self.weather_system.init_environment(
-                self.context.environment, self.context.pet_seed
-            )
+            self.weather_system.init_environment(self.context.environment, self.context.pet_seed)
 
-        self._update_moon_phase()
+        self.time_system = TimeSystem()
+        self.time_system.update_moon_phase(self.context.environment)
+
+        self.espnow_handler = EspNowHandler(espnow, self.scene_manager) if espnow else None
 
         # Collect frequently to limit heap fragmentation.
         # Trigger after every ~40KB of allocations rather than waiting for OOM.
@@ -56,81 +60,46 @@ class Game:
         _gc.threshold(24000)
         del _gc
 
-        # Prepare to start rendering
         self.last_frame_time = time.ticks_ms()
-        self._time_accumulator = 0.0
         # Simulated time rate: game minutes per real second (full day = 24 real minutes)
-        self._game_minutes_per_second = 1.0
-    
+        self.time_system.game_minutes_per_second = 1.0
+
     def run(self):
         print("==> Starting game loop...")
 
         while True:
-            #  Calculate frame timing
             current_time = time.ticks_ms()
             delta_time = time.ticks_diff(current_time, self.last_frame_time)
-
-            # Handle inputs
-            self.scene_manager.handle_input()
-            
             dt = delta_time / 1000.0 * self.context.time_speed
-            self._advance_time(dt)
 
-            # Update game logic
+            self.scene_manager.handle_input()
+            self.time_system.advance(dt, self.context.environment, self.weather_system)
+
+            if self.espnow_handler:
+                self.espnow_handler.dispatch()
+                self.espnow_handler.update(dt)
+
             self.scene_manager.update(dt)
-            
-            # Render frame
+
             try:
                 self.scene_manager.draw()
+                if self.espnow_handler:
+                    self.espnow_handler.draw(self.renderer)
+                self.renderer.show()
             except OSError as e:
                 if e.errno == 19:  # ENODEV - display disconnected
-                    print(f"==! Display disconnected, attempting reinit...")
+                    print("==! Display disconnected, attempting reinit...")
                     time.sleep_ms(500)
                     self.renderer.reinit()
                 else:
                     raise
-            
-            # Update timing
+
             self.last_frame_time = current_time
-            
-            # Frame rate limiting
+
             frame_time = time.ticks_diff(time.ticks_ms(), current_time)
             if frame_time < config.FRAME_TIME_MS:
                 time.sleep_ms(config.FRAME_TIME_MS - frame_time)
 
-    def _advance_time(self, dt):
-        """Advance simulated time of day. Replace body with RTC read when hardware is available."""
-        self._time_accumulator += dt * self._game_minutes_per_second
-        if self._time_accumulator >= 1.0:
-            mins = int(self._time_accumulator)
-            self._time_accumulator -= mins
-            env = self.context.environment
-            total_minutes = env.get('time_minutes', 0) + mins
-            old_hours = env.get('time_hours', 12)
-            new_hours_raw = old_hours + total_minutes // 60
-            env['time_hours'] = new_hours_raw % 24
-            env['time_minutes'] = total_minutes % 60
-            if new_hours_raw >= 24:
-                env['day_number'] = env.get('day_number', 0) + (new_hours_raw // 24)
-                self._update_moon_phase()
-            self.weather_system.update(mins, env)
-
-    def _update_moon_phase(self):
-        _MOON_PHASES = ("New", "Wax Cres", "1st Qtr", "Wax Gib", "Full", "Wan Gib", "3rd Qtr", "Wan Cres")
-        day = self.context.environment.get('day_number', 0)
-        self.context.environment['moon_phase'] = _MOON_PHASES[(day // 6 + 2) % 8]
-
-    def _show_boot_screen(self):
-        self.renderer.clear()
-        # Center sprite (23x30) and text on 128x64 display
-        sprite_x = (config.DISPLAY_WIDTH - STRETCH_CAT1["width"]) // 2
-        sprite_y = 10
-        self.renderer.draw_sprite_obj(STRETCH_CAT1, sprite_x, sprite_y)
-        # "Loading..." is 10 chars * 8px = 80px wide
-        text_x = (config.DISPLAY_WIDTH - 80) // 2
-        text_y = sprite_y + STRETCH_CAT1["height"] + 6
-        self.renderer.draw_text("Loading...", text_x, text_y)
-        self.renderer.show()
 
 def main():
     try:
@@ -140,8 +109,8 @@ def main():
         print("== Interrupted ==")
     except Exception as e:
         print(f"==! Error: {e}")
-        import sys
         sys.print_exception(e)
+
 
 if __name__ == "__main__":
     main()

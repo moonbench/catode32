@@ -32,9 +32,12 @@ BEHAVIOR_ENTRIES = [
     ("playing",      "Playing",        "playing",       {}),
     ("playing_ball", "Playing (ball)", "playing",       {"variant": "ball"}),
     ("affection",    "Affection",      "affection",     {"variant": "pets"}),
-    ("attention",    "Attention",      "attention",     {"variant": "psst"}),
-    ("eating",       "Eating",         "eating",        None),  # special case
-    ("eating_treat", "Eating (treat)", "eating",        None),  # special case
+    ("attention",      "Attention",        "attention", {"variant": "psst"}),
+    ("hearing_exclaim","Hearing (exclaim)","hearing",   {"icon": "exclaim"}),
+    ("hearing_heart",  "Hearing (heart)",  "hearing",   {"icon": "heart"}),
+    ("hearing_note",   "Hearing (note)",   "hearing",   {"icon": "note"}),
+    ("eating",         "Eating",           "eating",    None),  # special case
+    ("eating_treat",   "Eating (treat)",   "eating",    None),  # special case
 ]
 
 

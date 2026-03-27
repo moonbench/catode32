@@ -273,6 +273,9 @@ class GameContext:
         # Requested scene change from a behavior (e.g. go_to on arrival). Cleared by scene_manager.
         self.pending_scene = None
 
+        # ESP-NOW manager; injected by Game.__init__ when WIFI_ENABLED. None otherwise.
+        self.espnow = None
+
         if delete_save:
             try:
                 import uos

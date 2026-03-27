@@ -361,6 +361,46 @@ class Popup:
         return lines
 
 
+def draw_heard_bubble(renderer, bubble_type, corner='left', y_offset=0):
+    """Draw an upside-down speech bubble in a screen corner.
+
+    Represents a sound heard from a nearby cat's device. The bubble is
+    flipped vertically so its tail points upward, implying the sound arrived
+    from off-screen.
+
+    Args:
+        renderer:    The renderer to draw with.
+        bubble_type: Icon name (same vocabulary as draw_bubble).
+        corner:      'left' or 'right' — which top corner to occupy.
+        y_offset:    Vertical pixel offset for bounce animation (positive = down).
+    """
+    if not bubble_type:
+        return
+
+    w = SPEECH_BUBBLE["width"]  # 17
+    if corner == 'left':
+        bubble_x = 2
+        mirror_h = True   # tail curls toward top-left corner
+    else:
+        bubble_x = 128 - w - 2
+        mirror_h = False  # tail curls toward top-right corner
+
+    bubble_y = y_offset
+
+    renderer.draw_sprite_obj(SPEECH_BUBBLE, bubble_x, bubble_y,
+                             mirror_v=True, mirror_h=mirror_h)
+
+    content_sprite = BUBBLE_SPRITES.get(bubble_type)
+    if content_sprite:
+        # The body occupies the lower ~13 rows of the flipped sprite; offset
+        # down past the tail (rows 0-3) to centre the icon in the body.
+        renderer.draw_sprite(
+            content_sprite, 9, 9,
+            bubble_x + 4, bubble_y + 5,
+            invert=True, transparent=True, transparent_color=1
+        )
+
+
 def draw_bubble(renderer, bubble_type, char_x, char_y, progress=0.0, mirror=False):
     """Draw a speech bubble with content.
 
