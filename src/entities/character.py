@@ -86,6 +86,10 @@ class CharacterEntity(Entity):
             self._pose = pose
             self._mirror_cache = {}
             self._inv_fill_cache = {}
+            self.anim_body = random.uniform(0, self._get_total_frames(pose["body"]))
+            self.anim_head = random.uniform(0, self._get_total_frames(pose["head"]))
+            self.anim_eyes = random.uniform(0, self._get_total_frames(pose["eyes"]))
+            self.anim_tail = random.uniform(0, self._get_total_frames(pose["tail"]))
         else:
             print(f"[character] Failed to set pose: '{pose_name}', keeping current pose")
 
