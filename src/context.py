@@ -131,7 +131,8 @@ class GameContext:
         import ujson
         import time
         data = {'v': 1, 'env': self.environment, 'food_stock': self.food_stock, 'toys': self.inventory["toys"], 'pet_seed': self.pet_seed,
-                'wifi_familiar': self.wifi_familiar, 'wifi_recent': self.wifi_recent}
+                'wifi_familiar': self.wifi_familiar, 'wifi_recent': self.wifi_recent,
+                'pet_name': self.pet_name}
         for key in _STAT_KEYS:
             data[key] = getattr(self, key)
         try:
@@ -169,6 +170,7 @@ class GameContext:
                 if key in data:
                     setattr(self, key, data[key])
             self.pet_seed = data.get('pet_seed') or _generate_seed()
+            self.pet_name = data.get('pet_name')
             self.environment = data.get('env', {})
             if 'food_stock' in data:
                 self.food_stock.update(data['food_stock'])

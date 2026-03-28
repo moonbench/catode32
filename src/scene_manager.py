@@ -90,6 +90,7 @@ class SceneManager:
             'forecast': ('scenes.forecast', 'ForecastScene'),
             'store': ('scenes.store', 'StoreScene'),
             'social': ('scenes.social', 'SocialScene'),
+            'pet_info': ('scenes.pet_info', 'PetInfoScene'),
         }
 
     def _get_scene_class(self, name):
@@ -335,6 +336,9 @@ class SceneManager:
 
         # Social / playdate
         items.append(MenuItem("Social", icon=CAT_ICON, action=('scene', 'social')))
+
+        # Pet info
+        items.append(MenuItem("Pet info", icon=CAT_ICON, action=('scene', 'pet_info')))
 
         # Debug submenu
         debug_items = []
