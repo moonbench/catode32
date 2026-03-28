@@ -44,6 +44,7 @@ class BehaviorManager:
         'meandering':    ('entities.behaviors.meandering',    'MeanderingBehavior'),
         'go_to':         ('entities.behaviors.go_to',         'GoToBehavior'),
         'hearing':       ('entities.behaviors.hearing',       'HearingBehavior'),
+        'greeting':      ('entities.behaviors.greeting',      'GreetingBehavior'),
     }
 
     # Ordered tuple of auto-selectable behavior names. Built once at class definition;

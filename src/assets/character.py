@@ -1171,6 +1171,12 @@ POSES = {
                 "eyes": CHAR_EYES_SIDE_ANNOYED,
                 "tail": CHAR_TAIL_ANNOYED,
             },
+            "sniffing": {
+                "head": CHAR_HEAD_SIDE_AIRPLANE2,
+                "body": CHAR_BODY_SIDE_STANDING,
+                "eyes": CHAR_EYES_SIDE_DOWN,
+                "tail": CHAR_TAIL_NEUTRAL,
+            },
             "happy": {
                 "head": CHAR_HEAD_SIDE_NEUTRAL,
                 "body": CHAR_BODY_SIDE_STANDING,

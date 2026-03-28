@@ -3,9 +3,15 @@
 The heard-bubble HUD is drawn at the game level (not inside a behavior) so it always
 appears when a signal arrives, even if the cat is too busy or overwhelmed to react.
 
-Visit protocol messages handled here:
-  vst  - remote cat state update (pose/position/mirror); updates visitor_cat on current scene
+Visit interaction messages (vst, vbeh, vgreet, vprox, vocalize-during-visit) are
+delegated to VisitManager which owns all visit runtime state.
+
+Visit lifecycle messages handled here:
   vbye - remote player ended the visit; clears context.visit and stops radio if appropriate
+  vloc - peer switched scene; we follow
+  venv - peer's environment snapshot (time/weather); applied to our sky
+  vss  - peer spawned a shooting star; relayed to our sky
+  vse  - peer spawned a sky event (balloon/plane); relayed to our sky
 
 Handshake messages (hello, vreq, vok, vno) are forwarded to the current scene via
 on_espnow_msg() so SocialScene can own that state machine.
@@ -36,13 +42,23 @@ class EspNowHandler:
         self._espnow.poll()
         if not self._espnow.messages:
             return
+        ctx = self._scene_manager.context
+        vm = getattr(ctx, 'visit_manager', None)
         for mac, msg_type, payload in self._espnow.messages:
             mac_str = ':'.join('%02x' % b for b in mac)
             print('[ESPNow] %s from %s: %s' % (msg_type, mac_str, payload))
             if msg_type == 'vocalize':
-                self._handle_heard_vocalize(payload)
-            elif msg_type == 'vst':
-                self._handle_vst(mac, payload)
+                # During a visit, peer vocalization is handled by VisitManager
+                if ctx.visit is not None and vm:
+                    vm.handle_msg(mac, 'vocalize', payload)
+                else:
+                    self._handle_heard_vocalize(payload)
+            elif msg_type in ('vst', 'vbeh', 'vgreet', 'vprox'):
+                # Reset keepalive timer on any packet from our peer
+                if ctx.visit is not None and mac == ctx.visit.get('peer_mac'):
+                    self._visit_timeout = 0.0
+                if vm:
+                    vm.handle_msg(mac, msg_type, payload)
             elif msg_type == 'vbye':
                 self._handle_vbye(mac)
             elif msg_type == 'vloc':
@@ -91,14 +107,12 @@ class EspNowHandler:
 
     def _handle_heard_vocalize(self, payload):
         ctx = self._scene_manager.context
-        # Suppress "nearby cat" HUD during playdates and when not outdoors
-        if ctx.visit is not None:
-            return
         scene = self._scene_manager.current_scene
+        icon = payload.get('i', 'exclaim')
+
+        # Suppress "nearby cat" HUD when not outdoors
         if getattr(scene, 'SCENE_NAME', None) not in ('outside', 'treehouse'):
             return
-
-        icon = payload.get('i', 'exclaim')
 
         # Always show the HUD bubble regardless of what the cat does
         self._heard_flash = (icon, self._compute_corner(scene), self._FLASH_DURATION)
@@ -114,23 +128,6 @@ class EspNowHandler:
         if character.context.recent_behaviors.count('hearing') >= 3:
             return
         character.behavior_manager.trigger('hearing', icon=icon)
-
-    def _handle_vst(self, mac, payload):
-        """Apply remote cat state to the visitor entity on the current scene."""
-        ctx = self._scene_manager.context
-        if ctx.visit is None or mac != ctx.visit['peer_mac']:
-            return
-        # Reset timeout counter on any vst from our peer
-        self._visit_timeout = 0.0
-        scene = self._scene_manager.current_scene
-        visitor = getattr(scene, 'visitor_cat', None)
-        if visitor is not None:
-            visitor.apply_state(
-                payload.get('x', 64),
-                payload.get('p', 'sitting.side.neutral'),
-                payload.get('m', 0),
-                payload.get('vx', 0),
-            )
 
     def _handle_vloc(self, mac, payload):
         """Peer switched to a different scene; follow if we're not already there."""
@@ -193,7 +190,7 @@ class EspNowHandler:
     def _end_visit(self):
         """Clear visit state and stop the radio if the current scene isn't outdoor."""
         ctx = self._scene_manager.context
-        ctx.visit = None
+        ctx.record_visit_end()  # saves playtime to friends and clears ctx.visit
         self._visit_timeout = 0.0
         scene_name = getattr(self._scene_manager.current_scene, 'SCENE_NAME', None)
         if scene_name not in ('outside', 'treehouse'):

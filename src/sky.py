@@ -397,6 +397,7 @@ class SkyRenderer:
         self._lightning_flashes_remaining = 0
         self._lightning_timer = 0.0
         self._lightning_invert_state = False
+        self.lightning_just_started = False  # True for exactly one frame when a new strike begins
 
         # Screen-space clip rect for window rendering (x, y, w, h). None = full screen.
         self._render_rect = None
@@ -666,7 +667,8 @@ class SkyRenderer:
         # Update precipitation particles
         self._update_precipitation_particles(dt)
 
-        # Update lightning
+        # Update lightning (flag reset each frame before _update_lightning may set it)
+        self.lightning_just_started = False
         self._update_lightning(dt)
 
     def _update_precipitation_particles(self, dt):
@@ -733,6 +735,7 @@ class SkyRenderer:
             # Maybe spawn new lightning
             if random.random() < 0.003:  # ~0.3% chance per frame
                 self._lightning_active = True
+                self.lightning_just_started = True
                 # 2-5 inversions means 4-10 state changes (on/off pairs)
                 num_inversions = random.randint(2, 5)
                 self._lightning_flashes_remaining = num_inversions * 2

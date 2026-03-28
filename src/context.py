@@ -132,7 +132,7 @@ class GameContext:
         import time
         data = {'v': 1, 'env': self.environment, 'food_stock': self.food_stock, 'toys': self.inventory["toys"], 'pet_seed': self.pet_seed,
                 'wifi_familiar': self.wifi_familiar, 'wifi_recent': self.wifi_recent,
-                'pet_name': self.pet_name}
+                'pet_name': self.pet_name, 'friends': self.friends}
         for key in _STAT_KEYS:
             data[key] = getattr(self, key)
         try:
@@ -178,6 +178,7 @@ class GameContext:
                 self.inventory['toys'] = data['toys']
             self.wifi_familiar = data.get('wifi_familiar', [])
             self.wifi_recent   = data.get('wifi_recent',   [])
+            self.friends       = data.get('friends',       {})
             self.recompute_health()
             import time
             self.last_save_time = time.ticks_ms()
@@ -282,8 +283,12 @@ class GameContext:
         self.pet_name = None
 
         # Active visit state. None when not visiting, otherwise:
-        #   {'peer_mac': bytes, 'peer_name': str}
+        #   {'peer_mac': bytes, 'peer_name': str, 'role': str,
+        #    'greeted': bool, 'play_time': float}
         self.visit = None
+
+        # Friends: mac_hex_str -> {'n': name, 't': total_seconds, 'c': visit_count}
+        self.friends = {}
 
         if delete_save:
             try:
@@ -299,6 +304,44 @@ class GameContext:
         self.recent_behaviors.insert(0, name)
         if len(self.recent_behaviors) > 5:
             self.recent_behaviors.pop()
+
+    def get_friendship_level(self, mac_hex):
+        """Return 0.0-1.0 familiarity with a peer (by MAC hex string).
+
+        Reaches 1.0 after 15 minutes of total playtime across all visits.
+        """
+        entry = self.friends.get(mac_hex)
+        if not entry:
+            return 0.0
+        return min(1.0, entry.get('t', 0.0) / 900.0)
+
+    def update_friend(self, mac_hex, name, seconds_added):
+        """Record playtime with a peer. Creates a new entry or updates existing.
+
+        Caps the friends list at 10 entries, evicting the one with least total time.
+        """
+        if mac_hex in self.friends:
+            f = self.friends[mac_hex]
+            f['n'] = name
+            f['t'] = f.get('t', 0.0) + seconds_added
+            f['c'] = f.get('c', 0) + 1
+        else:
+            if len(self.friends) >= 10:
+                oldest = min(self.friends, key=lambda k: self.friends[k].get('t', 0.0))
+                del self.friends[oldest]
+            self.friends[mac_hex] = {'n': name, 't': seconds_added, 'c': 1}
+
+    def record_visit_end(self):
+        """Persist visit stats to the friends dict and clear active visit."""
+        if self.visit:
+            mac = self.visit.get('peer_mac')
+            name = self.visit.get('peer_name', '?')
+            secs = self.visit.get('play_time', 0.0)
+            if mac and secs > 5:
+                mac_hex = ':'.join('%02x' % b for b in mac)
+                self.update_friend(mac_hex, name, secs)
+                print('[Context] Recorded %.0fs with %s (%s)' % (secs, name, mac_hex))
+        self.visit = None
 
     def save_if_needed(self):
         """Save+reboot if more than 59 minutes have passed since the last save."""

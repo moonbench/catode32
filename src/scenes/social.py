@@ -253,13 +253,19 @@ class SocialScene(Scene):
             self.context.espnow.send_to(mac, 'vreq', {'n': name})
 
     def _start_visit(self, peer_mac, peer_name, role):
-        self.context.visit = {'peer_mac': peer_mac, 'peer_name': peer_name, 'role': role}
+        self.context.visit = {
+            'peer_mac': peer_mac,
+            'peer_name': peer_name,
+            'role': role,
+            'greeted': False,   # becomes True after first greeting ritual fires
+            'play_time': 0.0,   # accumulated seconds; written to friends on end
+        }
         self._state = _ST_VISITING
 
     def _end_visit(self):
         if self.context.espnow and self.context.visit:
             self.context.espnow.send_to(self.context.visit['peer_mac'], 'vbye')
-        self.context.visit = None
+        self.context.record_visit_end()  # saves playtime to friends and clears visit
         self._state = _ST_BROWSING
         if self.context.espnow:
             self.context.espnow.stop()

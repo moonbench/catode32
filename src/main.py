@@ -13,6 +13,7 @@ from splash import show_splash
 if config.WIFI_ENABLED:
     from espnow_manager import EspNowManager
     from espnow_handler import EspNowHandler
+    from visit_manager import VisitManager
 
 
 class Game:
@@ -53,6 +54,8 @@ class Game:
         self.time_system.update_moon_phase(self.context.environment)
 
         self.espnow_handler = EspNowHandler(espnow, self.scene_manager) if espnow else None
+        self.visit_manager = VisitManager(self.context, self.scene_manager) if espnow else None
+        self.context.visit_manager = self.visit_manager
 
         # Collect frequently to limit heap fragmentation.
         # Trigger after every ~40KB of allocations rather than waiting for OOM.
@@ -80,6 +83,9 @@ class Game:
                 self.espnow_handler.update(dt)
 
             self.scene_manager.update(dt)
+
+            if self.visit_manager:
+                self.visit_manager.update(dt)
 
             try:
                 self.scene_manager.draw()
