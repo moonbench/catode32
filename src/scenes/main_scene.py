@@ -131,6 +131,7 @@ class MainScene(Scene):
 
     def _update_visit(self, dt):
         """Tick visitor cat animation and sync our state to the peer."""
+        sky = getattr(self, 'sky', None)
         if self.context.visit is not None:
             if self.visitor_cat is None:
                 from entities.visitor_cat import VisitorCatEntity
@@ -139,12 +140,29 @@ class MainScene(Scene):
             self.visitor_cat.update(dt)
             self._broadcast_vst(dt)
             self._broadcast_venv(dt)
-        elif self.visitor_cat is not None:
-            # Visit was ended remotely; clear the entity
-            self.visitor_cat = None
+            if sky:
+                is_inviter = self.context.visit.get('role') == 'inviter'
+                sky.suppress_auto_spawns = not is_inviter
+                if sky.pending_events:
+                    if is_inviter and self.context.espnow:
+                        for evt_type, params in sky.pending_events:
+                            msg = 'vss' if evt_type == 'ss' else 'vse'
+                            self.context.espnow.send_to(
+                                self.context.visit['peer_mac'], msg, params)
+                    sky.pending_events.clear()
+        else:
+            if self.visitor_cat is not None:
+                # Visit was ended remotely; clear the entity
+                self.visitor_cat = None
+            if sky:
+                sky.suppress_auto_spawns = False
+                sky.pending_events.clear()
 
     def _broadcast_venv(self, dt):
-        """Inviter sends environment snapshot once per second to keep peer's sky in sync."""
+        """Inviter sends time update once per second to keep peer's sky in sync.
+
+        Weather, season, and moon phase are only sent once on scene entry (see enter()).
+        """
         if self.context.visit is None or self.context.visit.get('role') != 'inviter':
             return
         self._venv_timer -= dt
@@ -157,9 +175,6 @@ class MainScene(Scene):
                 self.context.visit['peer_mac'], 'venv', {
                     'h':  env.get('time_hours', 12),
                     'mn': env.get('time_minutes', 0),
-                    'w':  env.get('weather', 'Clear'),
-                    's':  env.get('season', 'Spring'),
-                    'mp': env.get('moon_phase', 'Full'),
                 }
             )
 
@@ -197,8 +212,12 @@ class MainScene(Scene):
         self.on_pre_draw()
         self.environment.draw(self.renderer)
         camera_offset = int(self.environment.camera_x)
-        if self.visitor_cat is not None and self.visitor_cat.x < self.character.x:
-            self.visitor_cat.draw(self.renderer, camera_offset=camera_offset)
+        # Inviter is always drawn in front (last). Visitor draws behind (first).
+        inviter_is_us = (self.context.visit is None or
+                         self.context.visit.get('role') == 'inviter')
+        if inviter_is_us:
+            if self.visitor_cat is not None:
+                self.visitor_cat.draw(self.renderer, camera_offset=camera_offset)
             self.character.draw(self.renderer, mirror=self.character.mirror, camera_offset=camera_offset)
         else:
             self.character.draw(self.renderer, mirror=self.character.mirror, camera_offset=camera_offset)

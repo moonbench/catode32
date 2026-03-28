@@ -169,12 +169,12 @@ def _generate_stars(seed=STAR_SEED):
 class ShootingStarEvent:
     """Manages a shooting star animation with grow/shrink and trailing particles"""
 
-    def __init__(self, start_x, start_y):
+    def __init__(self, start_x, start_y, max_length=None, speed_x=None, speed_y=None):
         self.x = start_x
         self.y = start_y
-        self.max_length = random.randint(16, 28)
-        self.speed_x = random.randint(20, 36)
-        self.speed_y = random.randint(3, 13)
+        self.max_length = max_length if max_length is not None else random.randint(16, 28)
+        self.speed_x = speed_x if speed_x is not None else random.randint(20, 36)
+        self.speed_y = speed_y if speed_y is not None else random.randint(3, 13)
         self.lifetime = 0.0
         self.max_lifetime = 3.1
         self.active = True
@@ -244,7 +244,7 @@ SKY_EVENT_TYPES = [
 class SkyEvent:
     """A daytime sky object (balloon, plane, etc.) crossing the screen"""
 
-    def __init__(self, event_type, start_x, y, going_right, world_width):
+    def __init__(self, event_type, start_x, y, going_right, world_width, speed=None):
         self.sprite = event_type["sprite"]
         self.base_speed = event_type["speed"]
         self.mirror_when_right = event_type["mirror_when_right"]
@@ -255,8 +255,8 @@ class SkyEvent:
         self.world_width = world_width
         self.active = True
 
-        # Speed with slight variance
-        self.speed = self.base_speed * (0.8 + random.random() * 0.4)
+        # Speed with slight variance (or exact value for playdate sync)
+        self.speed = speed if speed is not None else self.base_speed * (0.8 + random.random() * 0.4)
 
     @property
     def mirror(self):
@@ -372,6 +372,8 @@ class SkyRenderer:
         self.shooting_star = None
         self.sky_event = None  # Daytime events (balloon, plane, etc.)
         self._meteor_rate = _METEOR_BASE_RATE
+        self.suppress_auto_spawns = False  # Set True on invited peer during playdates
+        self.pending_events = []           # Spawns since last drain; [(type, params), ...]
 
         # Current fractional hours (set by configure/set_time)
         self._hours_f = 12.0
@@ -639,7 +641,7 @@ class SkyRenderer:
                 self.shooting_star = None
 
         # Maybe spawn new shooting star
-        if self.show_stars and not self.shooting_star:
+        if self.show_stars and not self.shooting_star and not self.suppress_auto_spawns:
             self._maybe_spawn_shooting_star()
 
         # Daytime sky events (balloon, plane, etc.)
@@ -649,7 +651,7 @@ class SkyRenderer:
                 self.sky_event = None
 
         # Maybe spawn new daytime sky event
-        if self.time_of_day in DAYTIME_TIMES and not self.sky_event:
+        if self.time_of_day in DAYTIME_TIMES and not self.sky_event and not self.suppress_auto_spawns:
             self._maybe_spawn_sky_event()
 
         # Update cloud positions
@@ -747,6 +749,12 @@ class SkyRenderer:
             start_x = random.randint(10, 70)
             start_y = random.randint(2, 22)
             self.shooting_star = ShootingStarEvent(start_x, start_y)
+            self.pending_events.append(('ss', {
+                'x': start_x, 'y': start_y,
+                'ml': self.shooting_star.max_length,
+                'sx': self.shooting_star.speed_x,
+                'sy': self.shooting_star.speed_y,
+            }))
 
     def _maybe_spawn_sky_event(self):
         """Check if a daytime sky event should spawn (rare)"""
@@ -779,6 +787,22 @@ class SkyRenderer:
         y = random.randint(2, 22)
 
         self.sky_event = SkyEvent(event_type, start_x, y, going_right, self.world_width)
+        self.pending_events.append(('se', {
+            'ei': SKY_EVENT_TYPES.index(event_type),
+            'r':  1 if going_right else 0,
+            'y':  y,
+            'sp': self.sky_event.speed,
+        }))
+
+    def apply_shooting_star(self, x, y, ml, sx, sy):
+        """Spawn a shooting star with exact params (playdate sync from inviter)."""
+        self.shooting_star = ShootingStarEvent(x, y, max_length=ml, speed_x=sx, speed_y=sy)
+
+    def apply_sky_event(self, event_index, going_right, y, speed):
+        """Spawn a sky event with exact params (playdate sync from inviter)."""
+        event_type = SKY_EVENT_TYPES[event_index % len(SKY_EVENT_TYPES)]
+        start_x = (-event_type["sprite"]["width"] - 10) if going_right else (self.world_width + 10)
+        self.sky_event = SkyEvent(event_type, start_x, y, going_right, self.world_width, speed=speed)
 
     def get_star_offset(self):
         """Get combined star offset for time-of-night and seasonal drift"""

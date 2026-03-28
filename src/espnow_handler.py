@@ -49,6 +49,10 @@ class EspNowHandler:
                 self._handle_vloc(mac, payload)
             elif msg_type == 'venv':
                 self._handle_venv(mac, payload)
+            elif msg_type == 'vss':
+                self._handle_vss(mac, payload)
+            elif msg_type == 'vse':
+                self._handle_vse(mac, payload)
             elif msg_type in ('hello', 'vreq', 'vok', 'vno'):
                 scene = self._scene_manager.current_scene
                 if hasattr(scene, 'on_espnow_msg'):
@@ -151,6 +155,32 @@ class EspNowHandler:
         env['weather']      = payload.get('w', env.get('weather', 'Clear'))
         env['season']       = payload.get('s', env.get('season', 'Spring'))
         env['moon_phase']   = payload.get('mp', env.get('moon_phase', 'Full'))
+
+    def _handle_vss(self, mac, payload):
+        """Apply an inviter-spawned shooting star to our sky."""
+        ctx = self._scene_manager.context
+        if ctx.visit is None or mac != ctx.visit['peer_mac']:
+            return
+        sky = getattr(self._scene_manager.current_scene, 'sky', None)
+        if sky:
+            sky.apply_shooting_star(
+                payload.get('x', 30), payload.get('y', 10),
+                payload.get('ml', 20), payload.get('sx', 28), payload.get('sy', 8),
+            )
+
+    def _handle_vse(self, mac, payload):
+        """Apply an inviter-spawned sky event (balloon/plane) to our sky."""
+        ctx = self._scene_manager.context
+        if ctx.visit is None or mac != ctx.visit['peer_mac']:
+            return
+        sky = getattr(self._scene_manager.current_scene, 'sky', None)
+        if sky:
+            sky.apply_sky_event(
+                payload.get('ei', 0),
+                bool(payload.get('r', 0)),
+                payload.get('y', 10),
+                payload.get('sp', 4.0),
+            )
 
     def _handle_vbye(self, mac):
         """Remote player ended the visit."""
