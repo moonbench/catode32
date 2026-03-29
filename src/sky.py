@@ -835,7 +835,7 @@ class SkyRenderer:
                 renderer.draw_pixel(px, py)
         # Draw main streak
         x1, y1, x2, y2 = self.shooting_star.get_points()
-        if 0 <= x2 < config.DISPLAY_WIDTH and 0 <= y2 < STAR_FIELD_HEIGHT + 10:
+        if x1 < config.DISPLAY_WIDTH and x2 >= 0 and y1 < STAR_FIELD_HEIGHT + 10:
             renderer.draw_line(x1, y1, x2, y2)
 
     def _draw_sky_events(self, renderer, camera_x, parallax):
