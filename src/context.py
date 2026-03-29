@@ -99,9 +99,9 @@ class GameContext:
         Health is never modified directly — it is always derived.
         """
         raw = (
-            0.30 * self.fullness +
+            0.25 * self.fullness +
             0.20 * self.fitness +
-            0.15 * self.energy +
+            0.20 * self.energy +
             0.15 * self.cleanliness +
             0.05 * self.comfort +
             0.05 * self.affection +
