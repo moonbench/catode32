@@ -140,10 +140,18 @@ class MainScene(Scene):
         if cb and cb.NAME in self._NO_STARTLE_BEHAVIORS:
             return
         # Probability scales with inverse courage (same curve as can_trigger_startled)
+        # Location modifier: exposed locations increase chance, indoors reduces it
+        scene = getattr(self, 'SCENE_NAME', '')
+        if scene in ('outside', 'treehouse'):
+            location_mul = 1.4
+        elif scene == 'inside':
+            location_mul = 0.5
+        else:
+            location_mul = 1.0
         ctx = self.character.context
-        p = 0.6 * (1 - ctx.courage / 100)
+        p = min(1.0, 0.6 * (1 - ctx.courage / 100) * location_mul)
         if random.random() < p:
-            print('[Scene] Lightning startled! p=%.2f courage=%.1f' % (p, ctx.courage))
+            print('[Scene] Lightning startled! p=%.2f courage=%.1f loc=%s' % (p, ctx.courage, scene))
             self.character.trigger('startled')
 
     def on_update(self, dt):
