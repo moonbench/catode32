@@ -115,10 +115,20 @@ def _maturation_threshold(ptype, stage_idx):
 # Per-plant tick (one in-game hour)
 # ---------------------------------------------------------------------------
 
-def tick_plant(plant, season):
+# Debt adjustment per hour for outdoor plants in wet weather.
+# Applied after the normal +1, so net effect = delta + 1.
+# Rain:  net -10 per hour (10 hours of debt cleared per rain hour).
+# Storm: net -20 per hour (heavier downpour, twice the rain benefit).
+_RAIN_DEBT_DELTA  = -11   # net -10
+_STORM_DEBT_DELTA = -21   # net -20
+
+
+def tick_plant(plant, season, weather='Clear'):
     """Advance one in-game hour for a single plant.
 
     Modifies the plant dict in place.  Returns True if the stage changed.
+    weather is the current weather string from context.environment; used to
+    reduce water debt for outdoor plants during Rain or Storm.
     """
     stage = plant['stage']
 
@@ -146,6 +156,15 @@ def tick_plant(plant, season):
     # --- Normal hour accumulation ---
     plant['age_hours'] = plant.get('age_hours', 0) + 1
     plant['water_debt_hours'] = plant.get('water_debt_hours', 0) + 1
+
+    # --- Rain / storm watering for outdoor plants ---
+    if plant['scene'] == 'outside':
+        if weather == 'Rain':
+            plant['water_debt_hours'] += _RAIN_DEBT_DELTA
+        elif weather == 'Storm':
+            plant['water_debt_hours'] += _STORM_DEBT_DELTA
+        if plant['water_debt_hours'] < 0:
+            plant['water_debt_hours'] = 0
 
     debt = plant['water_debt_hours']
 
@@ -203,12 +222,13 @@ def tick_plants(context):
         return
 
     season = env.get('season', 'Summer')
+    weather = env.get('weather', 'Clear')
     plants = context.plants
 
     # Cap to 24 hours to avoid runaway ticks after very long pauses.
     for _ in range(min(hours_elapsed, 24)):
         for plant in plants:
-            tick_plant(plant, season)
+            tick_plant(plant, season, weather)
 
     context._last_plant_tick_hour = current_hour
 
