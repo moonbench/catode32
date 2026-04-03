@@ -9,7 +9,7 @@ to select one for watering, tending, or seeding into an empty pot.
 
 import config
 from plant_system import place_empty_pot
-from assets.plants import POT_SPRITES
+from assets.plants import POT_SPRITES, PLANT_SPRITES
 from assets.icons import PLACE_DOWN_ICON
 from environment import PARALLAX_FACTORS
 
@@ -128,17 +128,22 @@ class PlacementMode:
     # ------------------------------------------------------------------
 
     def draw(self, renderer, environment):
-        surf    = self._surfaces[self._surface_idx]
-        pot_spr = POT_SPRITES.get(self._pot_type)
-        if pot_spr is None:
-            return
+        surf     = self._surfaces[self._surface_idx]
         parallax = PARALLAX_FACTORS.get(surf.get('layer', 'foreground'), 1.0)
         sx = self._cursor_x - int(environment.camera_x * parallax)
-        sy = surf['y_snap'] - pot_spr['height']
-        renderer.draw_sprite_obj(pot_spr, sx, sy)
-        # Bounce the placement icon above the pot: 2-position up/down.
         bounce_offset = 0 if self._bounce_t < self._BOUNCE_PERIOD else 2
-        icon_x = sx + pot_spr['width'] // 2 - PLACE_DOWN_ICON['width'] // 2
+
+        pot_spr = POT_SPRITES.get(self._pot_type)
+        if pot_spr is not None:
+            sy = surf['y_snap'] - pot_spr['height']
+            renderer.draw_sprite_obj(pot_spr, sx, sy)
+            icon_x = sx + pot_spr['width'] // 2 - PLACE_DOWN_ICON['width'] // 2
+        elif self._pot_type == 'ground':
+            sy = surf['y_snap']
+            icon_x = sx - PLACE_DOWN_ICON['width'] // 2
+        else:
+            return
+
         icon_y = sy - PLACE_DOWN_ICON['height'] - 2 + bounce_offset
         renderer.draw_sprite_obj(PLACE_DOWN_ICON, icon_x, icon_y)
 
@@ -189,7 +194,7 @@ class PlacementMode:
         else:
             scene_count = sum(1 for p in scene.context.plants
                               if p['scene'] == scene.SCENE_NAME)
-            if scene_count < 12:
+            if scene_count < 8:
                 place_empty_pot(
                     scene.context,
                     scene.SCENE_NAME,
@@ -307,10 +312,12 @@ class PlantSelectionMode:
         if pot_type != 'ground':
             pot_spr = POT_SPRITES.get(pot_type)
             pot_h = pot_spr['height'] if pot_spr else 0
-            pot_w = pot_spr['width'] if pot_spr else 8
+            pot_w = pot_spr['width'] if pot_spr else 0
         else:
-            pot_h = 0
-            pot_w = 8
+            pot_w = 0
+            # Use the plant sprite height so the icon sits above the plant top.
+            plant_spr = PLANT_SPRITES.get((plant.get('type'), plant.get('stage', '')))
+            pot_h = plant_spr['height'] if plant_spr else 0
 
         sx = plant['x'] - int(environment.camera_x * parallax)
         sy = plant['y_snap'] - pot_h

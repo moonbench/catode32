@@ -302,8 +302,8 @@ def _get_meteor_rate(season, weather, shower_active):
 
 
 # Precipitation constants
-RAIN_PARTICLE_COUNT = 40
-SNOW_PARTICLE_COUNT = 30
+RAIN_PARTICLE_COUNT = 20
+SNOW_PARTICLE_COUNT = 15
 RAIN_SPEED_Y = 100  # Pixels per second
 RAIN_SPEED_X = 10   # Slight wind drift
 RAIN_STREAK_LENGTH = 3
@@ -549,17 +549,18 @@ class SkyRenderer:
             environment: Environment instance
             layer: Layer constant (e.g., LAYER_BACKGROUND)
         """
-        # Custom draw order: stars → moon → shooting star → sky events
-        # This ensures shooting stars render in front of the moon (atmosphere, not deep space)
+        # Custom draw order: stars → moon → sun → shooting star → sky events → clouds
+        # Sun and moon sit behind clouds; shooting stars and sky events are atmospheric.
         environment.add_custom_draw(layer, self._draw_stars)
         environment.add_custom_draw(layer, self._draw_moon)
-        environment.add_custom_draw(layer, self._draw_shooting_star)
-        environment.add_custom_draw(layer, self._draw_sky_events)
 
-        # Add sun (always present; may be off-screen)
+        # Initialise sun obj then register its draw immediately after moon.
         sx, sy = _calc_sun_position(self._hours_f)
         self._sun_obj = {"sprite": SUN, "x": sx, "y": sy, "frame": self._sun_anim_frame}
-        environment.layers[layer].append(self._sun_obj)
+        environment.add_custom_draw(layer, self._draw_sun)
+
+        environment.add_custom_draw(layer, self._draw_shooting_star)
+        environment.add_custom_draw(layer, self._draw_sky_events)
 
         # Set up moon state (drawn via _draw_moon custom draw, not as a layer sprite,
         # so shooting stars can render in front of it)
@@ -600,9 +601,8 @@ class SkyRenderer:
             environment: Environment instance
             layer: Layer constant
         """
-        # Remove sun (moon is drawn via custom draw, not stored in layer)
-        if self._sun_obj and self._sun_obj in environment.layers[layer]:
-            environment.layers[layer].remove(self._sun_obj)
+        # Sun and moon are both drawn via custom draws; cleared by the scene's
+        # environment.custom_draws.clear() on exit — nothing to remove from layers.
         self._sun_obj = None
         self._moon_obj = None
 
@@ -820,6 +820,17 @@ class SkyRenderer:
         if screen_x + sprite["width"] < 0 or screen_x >= config.DISPLAY_WIDTH:
             return
         renderer.draw_sprite_obj(sprite, screen_x, int(self._moon_obj["y"]), frame=self._moon_obj["frame"])
+
+    def _draw_sun(self, renderer, camera_x, parallax):
+        """Draw the sun as a custom draw so it renders behind clouds."""
+        if not self._sun_obj:
+            return
+        camera_offset = int(camera_x * parallax)
+        screen_x = int(self._sun_obj["x"] - camera_offset)
+        sprite = self._sun_obj["sprite"]
+        if screen_x + sprite["width"] < 0 or screen_x >= config.DISPLAY_WIDTH:
+            return
+        renderer.draw_sprite_obj(sprite, screen_x, int(self._sun_obj["y"]), frame=self._sun_obj["frame"])
 
     def _draw_shooting_star(self, renderer, camera_x, parallax):
         """Draw shooting star in front of the moon but behind clouds"""

@@ -4,7 +4,8 @@ from scene import Scene
 from entities.character import CharacterEntity
 from menu import Menu, MenuItem
 from plant_system import (tick_plants, plant_seed, water_plant, remove_plant,
-                          repot_plant, move_plant, get_plant_by_id, inspect_lines)
+                          repot_plant, move_plant, get_plant_by_id, inspect_lines,
+                          plant_in_ground)
 from plant_renderer import register_plant_draws, invalidate_plant_cache
 from gardening_ui import PlacementMode, PlantSelectionMode
 from assets.icons import (TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON,
@@ -363,11 +364,23 @@ class MainScene(Scene):
             if inv['seeds'].get(key, 0) > 0
         ]
 
+        has_spade = inv.get('tools', {}).get('spade', False)
+        plant_ground_items = []
+        if has_spade and getattr(self, 'PLANT_SURFACES', None):
+            plant_ground_items = [
+                MenuItem(f"{name} ({inv['seeds'].get(key, 0)})", icon=TREES_ICON,
+                         action=("gardening_plant_ground", key))
+                for name, key in _seed_defs
+                if inv['seeds'].get(key, 0) > 0
+            ]
+
         gardening_items = []
         if place_pot_items:
             gardening_items.append(MenuItem("Place Pot",  icon=TREES_ICON, submenu=place_pot_items))
         if plant_seed_items:
             gardening_items.append(MenuItem("Plant Seed", icon=TREES_ICON, submenu=plant_seed_items))
+        if plant_ground_items:
+            gardening_items.append(MenuItem("Plant in Ground", icon=TREES_ICON, submenu=plant_ground_items))
         gardening_items.append(MenuItem("Water", icon=TREES_ICON, action=("gardening_water",)))
         gardening_items.append(MenuItem("Tend",  icon=TREES_ICON, action=("gardening_tend",)))
         gardening_items.append(MenuItem("Reset",  icon=TREES_ICON, action=("gardening_reset",), confirm="Reset all plants?"))
@@ -420,6 +433,13 @@ class MainScene(Scene):
                 plant_seed(self.context, plant['id'], _st)
             self._plant_selection.enter(self, _on_pot_selected,
                                         filter_fn=lambda p: p['stage'] == 'empty_pot')
+        elif action_type == "gardening_plant_ground":
+            seed_type = action[1]
+            scene = self
+            def _on_ground_placed(layer, x, y_snap, _st=seed_type, _sc=scene):
+                plant_in_ground(_sc.context, _sc.SCENE_NAME, layer, x, y_snap, _st)
+                invalidate_plant_cache(_sc)
+            self._placement.enter('ground', self, on_confirm=_on_ground_placed)
         elif action_type == "gardening_water":
             def _on_water_selected(plant):
                 water_plant(plant)

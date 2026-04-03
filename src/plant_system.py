@@ -319,6 +319,40 @@ def place_empty_pot(context, scene, layer, x, y_snap, pot_type):
     return plant
 
 
+def plant_in_ground(context, scene, layer, x, y_snap, plant_type):
+    """Plant a seed directly in the ground (no pot). Consumes one seed from inventory.
+
+    Returns the new plant dict (stage='seedling'), or None if seed not available.
+    Unlike place_empty_pot, this skips the empty-pot stage and goes straight to seedling.
+    """
+    import random
+    seeds = context.inventory.get('seeds', {})
+    if seeds.get(plant_type, 0) <= 0:
+        return None
+
+    seeds[plant_type] -= 1
+
+    pid = context.next_plant_id
+    context.next_plant_id += 1
+
+    plant = {
+        'id': pid,
+        'type': plant_type,
+        'scene': scene,
+        'layer': layer,
+        'x': x,
+        'y_snap': y_snap,
+        'pot': 'ground',
+        'stage': 'seedling',
+        'age_hours': 0,
+        'water_debt_hours': 0,
+        'planted_day': context.environment.get('day_number', 0),
+        'mirror': bool(random.getrandbits(1)),
+    }
+    context.plants.append(plant)
+    return plant
+
+
 def remove_plant(context, plant_id):
     """Remove a plant from context.plants by id.
 
