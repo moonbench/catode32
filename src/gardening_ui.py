@@ -234,7 +234,7 @@ class PlantSelectionMode:
     # Activation
     # ------------------------------------------------------------------
 
-    def enter(self, scene, on_confirm, filter_fn=None):
+    def enter(self, scene, on_confirm, filter_fn=None, start_plant_id=None):
         """Activate selection mode.
 
         Args:
@@ -242,6 +242,8 @@ class PlantSelectionMode:
             on_confirm: callable(plant_dict) invoked when A is pressed
             filter_fn: optional callable(plant_dict) → bool to restrict which
                        plants are selectable (e.g. only empty pots)
+            start_plant_id: optional plant id to start the cursor on; falls
+                            back to index 0 if not found
 
         Returns True if at least one selectable plant was found, False otherwise.
         """
@@ -253,9 +255,16 @@ class PlantSelectionMode:
 
         plants.sort(key=lambda p: p['x'])
 
+        idx = 0
+        if start_plant_id is not None:
+            for i, p in enumerate(plants):
+                if p['id'] == start_plant_id:
+                    idx = i
+                    break
+
         self.active = True
         self._plants = plants
-        self._idx = 0
+        self._idx = idx
         self._scene = scene
         self._bounce_t = 0.0
         self._on_confirm = on_confirm

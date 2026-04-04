@@ -44,6 +44,7 @@ class MainScene(Scene):
         self._placement = PlacementMode()
         self._plant_selection = PlantSelectionMode()
         self._in_tend_mode = False
+        self._last_tended_plant_id = None
         self._popup_msg = None
         self._plant_bursts = {}  # {plant_id: {'timer': float, 'bursts': [{dx,dy,delay},...]}}
 
@@ -287,9 +288,11 @@ class MainScene(Scene):
         """Re-enter plant selection for the next tend action. Returns True if
         at least one plant is available, False if the scene is now empty."""
         def _on_tend_selected(plant):
+            self._last_tended_plant_id = plant['id']
             self.menu_active = True
             self.menu.open(self._build_tend_items(plant))
-        return self._plant_selection.enter(self, _on_tend_selected)
+        return self._plant_selection.enter(self, _on_tend_selected,
+                                           start_plant_id=self._last_tended_plant_id)
 
     def _build_menu_items(self):
         affection_items = [
