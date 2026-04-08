@@ -19,33 +19,33 @@ class EatingBehavior(BaseBehavior):
     # Config for each food type: stat effects and how fast it's eaten
     FOOD_CONFIG = {
         # Meals
-        "chicken":    {"stats": {"fullness": 55, "energy": 5}, "eating_speed": 0.5},
-        "turkey":     {"stats": {"fullness": 50, "energy": 3, "fitness": 3}, "eating_speed": 0.4},
-        "salmon":     {"stats": {"fullness": 50, "energy": 5, "fitness": 2}, "eating_speed": 0.45},
-        "tuna":       {"stats": {"fullness": 45, "energy": 4, "affection": 3}, "eating_speed": 0.45},
-        "shrimp":     {"stats": {"fullness": 30, "energy": 2, "affection": 4, "playfulness": 2}, "eating_speed": 0.5},
-        "kibble":     {"stats": {"fullness": 45, "energy": 2, "affection": 2}, "eating_speed": 0.45},
-        "trout":      {"stats": {"fullness": 45, "energy": 2, "affection": 2}, "eating_speed": 0.45},
-        "herring":    {"stats": {"fullness": 45, "energy": 3, "affection": 2.5}, "eating_speed": 0.45},
-        "haddock":    {"stats": {"fullness": 45, "energy": 2, "affection": 2}, "eating_speed": 0.45},
-        "cod":        {"stats": {"fullness": 45, "energy": 2, "affection": 2}, "eating_speed": 0.45},
-        "beef":       {"stats": {"fullness": 55, "energy": 3, "affection": 4}, "eating_speed": 0.45},
-        "lamb":       {"stats": {"fullness": 55, "energy": 3, "affection": 4}, "eating_speed": 0.45},
-        "liver":      {"stats": {"fullness": 55, "energy": 4, "affection": 2}, "eating_speed": 0.45},
-        
+        "kibble":     {"stats": {"fullness": 45, "energy": 2, "fitness": 2}, "eating_speed": 0.45},
+        "cod":        {"stats": {"fullness": 45, "energy": 2, "affection": 2, "curiosity": 1}, "eating_speed": 0.45},
+        "haddock":    {"stats": {"fullness": 45, "energy": 3, "affection": 2}, "eating_speed": 0.45},
+        "trout":      {"stats": {"fullness": 45, "energy": 3, "affection": 3}, "eating_speed": 0.45},
+        "shrimp":     {"stats": {"fullness": 25, "energy": 2, "affection": 4, "playfulness": 3, "curiosity": 2}, "eating_speed": 0.5},
+        "herring":    {"stats": {"fullness": 45, "energy": 4, "fitness": 2, "affection": 2}, "eating_speed": 0.45},
+        "turkey":     {"stats": {"fullness": 50, "energy": 3, "fitness": 3, "serenity": 3}, "eating_speed": 0.4},
+        "tuna":       {"stats": {"fullness": 40, "energy": 3, "affection": 7, "playfulness": 2, "mischievousness": 1}, "eating_speed": 0.45},
+        "salmon":     {"stats": {"fullness": 50, "energy": 5, "fitness": 4, "affection": 2}, "eating_speed": 0.45},
+        "chicken":    {"stats": {"fullness": 55, "energy": 6, "affection": 4}, "eating_speed": 0.5},
+        "liver":      {"stats": {"fullness": 55, "energy": 5, "fitness": 5, "affection": 3}, "eating_speed": 0.45},
+        "beef":       {"stats": {"fullness": 55, "energy": 4, "fitness": 2, "affection": 4, "comfort": 2}, "eating_speed": 0.45},
+        "lamb":       {"stats": {"fullness": 55, "energy": 3, "affection": 4, "comfort": 4, "serenity": 2}, "eating_speed": 0.45},
+
         # Hunted / special
         "caught_snack": {"stats": {"fullness": 20}, "eating_speed": 0.5},
 
         # Snacks
-        "chew_stick": {"stats": {"fullness": 8, "comfort": 3, "playfulness": 2}, "eating_speed": 1.0},
-        "nugget":     {"stats": {"fullness": 12, "affection": 2}, "eating_speed": 1.25},
-        "cream":      {"stats": {"fullness": 8, "comfort": 5, "affection": 2}, "eating_speed": 1.5},
-        "milk":       {"stats": {"fullness": 10, "energy": 3, "comfort": 3}, "eating_speed": 1.5},
-        "fish_bite":  {"stats": {"fullness": 4, "affection": 3}, "eating_speed": 1.25},
-        "eggs":       {"stats": {"fullness": 2, "affection": 2}, "eating_speed": 1.25},
-        "treats":     {"stats": {"fullness": 2, "affection": 2}, "eating_speed": 1.25},
-        "pumpkin":    {"stats": {"fullness": 3, "affection": 1.5}, "eating_speed": 1},
-        "carrots":    {"stats": {"fullness": 3, "affection": 1.5}, "eating_speed": 1},
+        "carrots":    {"stats": {"fullness": 2, "affection": 1}, "eating_speed": 1},
+        "pumpkin":    {"stats": {"fullness": 3, "fitness": 2}, "eating_speed": 1},
+        "treats":     {"stats": {"fullness": 2, "affection": 3, "playfulness": 1}, "eating_speed": 1.25},
+        "fish_bite":  {"stats": {"fullness": 4, "affection": 2, "playfulness": 1, "curiosity": 2}, "eating_speed": 1.25},
+        "eggs":       {"stats": {"fullness": 8, "energy": 3, "fitness": 3}, "eating_speed": 1.25},
+        "nugget":     {"stats": {"fullness": 12, "energy": 3, "affection": 2}, "eating_speed": 1.25},
+        "milk":       {"stats": {"fullness": 8, "affection": 3, "comfort": 5, "mischievousness": 1}, "eating_speed": 1.5},
+        "chew_stick": {"stats": {"fullness": 6, "fitness": 1, "playfulness": 2, "comfort": 3}, "eating_speed": 1.0},
+        "puree":      {"stats": {"fullness": 8, "affection": 4, "comfort": 4, "fulfillment": 2}, "eating_speed": 1.5},
     }
     DEFAULT_FOOD_CONFIG = {"stats": {"fullness": 8}, "eating_speed": 0.4}
 

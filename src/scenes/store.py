@@ -12,63 +12,69 @@ _FOOD_USES = 5
 
 # (display_name, food_stock_key, cost)
 _MEAL_ITEMS = (
-    ("Chicken",  "chicken",  8),
-    ("Salmon",   "salmon",   7),
-    ("Tuna",     "tuna",     6),
-    ("Shrimp",   "shrimp",   5),
-    ("Trout",    "trout",    6),
-    ("Herring",  "herring",  7),
-    ("Haddock",  "haddock",  7),
-    ("Cod",      "cod",      7),
-    ("Turkey",   "turkey",   6),
-    ("Kibble",   "kibble",   4),
-    ("Beef",     "beef",     8),
-    ("Lamb",     "lamb",     8),
-    ("Liver",    "liver",    8),
+    ("Kibble",   "kibble",    5),
+    ("Cod",      "cod",       6),
+    ("Haddock",  "haddock",   7),
+    ("Trout",    "trout",     8),
+    ("Shrimp",   "shrimp",    9),
+    ("Herring",  "herring",  10),
+    ("Turkey",   "turkey",   10),
+    ("Tuna",     "tuna",     12),
+    ("Salmon",   "salmon",   12),
+    ("Chicken",  "chicken",  13),
+    ("Liver",    "liver",    14),
+    ("Beef",     "beef",     14),
+    ("Lamb",     "lamb",     15),
 )
 
 _SNACK_ITEMS = (
-    ("Treats",     "treats",      4),
-    ("Nuggets",    "nugget",      2),
-    ("Puree",      "puree",       4),
-    ("Milk",       "milk",        3),
-    ("Sticks",     "chew_stick",  3),
-    ("Bytes",      "fish_bite",   2),
-    ("Eggs",       "eggs",        2),
-    ("Pumpkin",    "pumpkin",     2),
     ("Carrots",    "carrots",     2),
+    ("Pumpkin",    "pumpkin",     2),
+    ("Treats",     "treats",      3),
+    ("Bytes",      "fish_bite",   4),
+    ("Eggs",       "eggs",        5),
+    ("Nuggets",    "nugget",      5),
+    ("Milk",       "milk",        6),
+    ("Sticks",     "chew_stick",  6),
+    ("Puree",      "puree",       8),
 )
 
 # (store_label, full_name, variant, cost)
 _TOY_ITEMS = (
-    ("Yarn",    "Yarn Ball",      "ball",   10),
-    ("Laser",   "Laser Pointer",  "laser",  15),
-    ("Feather", "Feather",        "toy",     8),
-    ("String",  "String",         "string",  5),
+    ("String",  "String",         "string",  20),
+    ("Feather", "Feather",        "toy",     35),
+    ("Yarn",    "Yarn Ball",      "ball",    50),
+    ("Laser",   "Laser Pointer",  "laser",   75),
 )
 
 # (display_name, full_name, inventory_key, cost)
 _POT_ITEMS = (
-    ("Small",   "Small pot",   "small",    3),
-    ("Medium",  "Medium pot",  "medium",   6),
-    ("Large",   "Large pot",   "large",   10),
-    ("Planter", "Planter box", "planter", 12),
+    ("Small",   "Small pot",   "small",    15),
+    ("Medium",  "Medium pot",  "medium",   25),
+    ("Large",   "Large pot",   "large",    40),
+    ("Planter", "Planter box", "planter",  55),
 )
 
 _SEEDS_PER_PACK = 3
 
 # (display_name, full_name, inventory_key, cost per pack)
 _SEED_ITEMS = (
-    ("Grass",   "Cat Grass",  "cat_grass",  2),
-    ("Freesia", "Freesia",    "freesia",    5),
-    ("Sun", "Sunflower",  "sunflower",  5),
-    ("Rose",    "Rose",       "rose",       6),
+    ("Grass",   "Cat Grass",  "cat_grass",   4),
+    ("Freesia", "Freesia",    "freesia",    10),
+    ("Sun",     "Sunflower",  "sunflower",  12),
+    ("Rose",    "Rose",       "rose",       15),
 )
 
 # (display_name, full_name, inventory_key, cost)
 _TOOL_ITEMS = (
-    ("W. Can", "Watering Can", "watering_can", 15),
-    ("Spade",  "Spade",        "spade",        12),
+    ("Spade",  "Spade",        "spade",        40),
+    ("W. Can", "Watering Can", "watering_can", 50),
+)
+
+# (display_name, stat_changes, cost, completion_msg)
+_SERVICE_ITEMS = (
+    ("Groom", {"cleanliness": 40, "sociability": 8, "courage": 6},   50,  "A luxurious spa day!"),
+    ("Train", {"maturity": 5, "sociability": 5, "intelligence": 8, "fitness": 6, "mischievousness": -8}, 100, "Professional training done!"),
 )
 
 # Width of the menu panel (left half of 128px screen)
@@ -119,11 +125,14 @@ class StoreScene(Scene):
             MenuItem("Seeds", submenu=seed_items),
             MenuItem("Tools", submenu=tool_items),
         ]
+        service_items = [self._service_item(name, stats, cost, msg)
+                         for name, stats, cost, msg in _SERVICE_ITEMS]
         return [
             MenuItem("Food",    submenu=food_items),
             MenuItem("Snacks",  submenu=snack_items),
             MenuItem("Toys",    submenu=toy_items),
             MenuItem("Garden",  submenu=gardening_items),
+            MenuItem("Service", submenu=service_items),
             MenuItem("Exit",    action=("leave",)),
         ]
 
@@ -155,6 +164,12 @@ class StoreScene(Scene):
             return MenuItem(label, action=("buy_seeds", full, key, cost),
                             confirm=f"{full}x{_SEEDS_PER_PACK}: {cost}c")
         return MenuItem(label, action=("no_funds",), confirm="Can't afford!")
+
+    def _service_item(self, name, stats, cost, msg):
+        if self.context.coins >= cost:
+            return MenuItem(name, action=("buy_service", name, stats, cost, msg),
+                            confirm=f"{name}: {cost}c")
+        return MenuItem(name, action=("no_funds",), confirm="Can't afford!")
 
     def _tool_item(self, label, full, key, cost):
         owned = self.context.inventory['tools'].get(key, False)
@@ -311,6 +326,17 @@ class StoreScene(Scene):
                 self.context.inventory['tools'][key] = True
                 print(f"[Store] Bought tool {key} for {cost}c")
                 self._purchase_msg = f"{full} bought!"
+                self._popup.set_text(self._purchase_msg, center=True)
+            else:
+                self.menu.open(self._build_menu())
+
+        elif kind == "buy_service":
+            _, name, stats, cost, msg = action
+            if self.context.coins >= cost:
+                self.context.coins -= cost
+                self.context.apply_stat_changes(stats)
+                print(f"[Store] Used service {name} for {cost}c")
+                self._purchase_msg = msg
                 self._popup.set_text(self._purchase_msg, center=True)
             else:
                 self.menu.open(self._build_menu())
