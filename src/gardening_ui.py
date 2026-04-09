@@ -133,16 +133,14 @@ class PlacementMode:
         sx = self._cursor_x - int(environment.camera_x * parallax)
         bounce_offset = 0 if self._bounce_t < self._BOUNCE_PERIOD else 2
 
-        pot_spr = POT_SPRITES.get(self._pot_type)
-        if pot_spr is not None:
-            sy = surf['y_snap'] - pot_spr['height']
-            renderer.draw_sprite_obj(pot_spr, sx, sy)
-            icon_x = sx + pot_spr['width'] // 2 - PLACE_DOWN_ICON['width'] // 2
-        elif self._pot_type == 'ground':
+        if self._pot_type == 'ground':
             sy = surf['y_snap']
             icon_x = sx - PLACE_DOWN_ICON['width'] // 2
         else:
-            return
+            pot_spr = POT_SPRITES[self._pot_type]
+            sy = surf['y_snap'] - pot_spr['height']
+            renderer.draw_sprite_obj(pot_spr, sx, sy)
+            icon_x = sx + pot_spr['width'] // 2 - PLACE_DOWN_ICON['width'] // 2
 
         icon_y = sy - PLACE_DOWN_ICON['height'] - 2 + bounce_offset
         renderer.draw_sprite_obj(PLACE_DOWN_ICON, icon_x, icon_y)
@@ -317,15 +315,15 @@ class PlantSelectionMode:
         layer = plant.get('layer', 'foreground')
         parallax = PARALLAX_FACTORS.get(layer, 1.0)
 
-        pot_type = plant.get('pot', 'small')
+        pot_type = plant['pot']
         if pot_type != 'ground':
-            pot_spr = POT_SPRITES.get(pot_type)
-            pot_h = pot_spr['height'] if pot_spr else 0
-            pot_w = pot_spr['width'] if pot_spr else 0
+            pot_spr = POT_SPRITES[pot_type]
+            pot_h = pot_spr['height']
+            pot_w = pot_spr['width']
         else:
             pot_w = 0
             # Use the plant sprite height so the icon sits above the plant top.
-            plant_spr = PLANT_SPRITES.get((plant.get('type'), plant.get('stage', '')))
+            plant_spr = PLANT_SPRITES[(plant['type'], plant['stage'])]
             pot_h = plant_spr['height'] if plant_spr else 0
 
         sx = plant['x'] - int(environment.camera_x * parallax)

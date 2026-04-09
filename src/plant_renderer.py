@@ -96,14 +96,13 @@ def draw_plants_layer(scene, renderer, camera_x, parallax, layer):
         pot_h = 0
         pot_w = 0
         if pot_type != 'ground':
-            pot_spr = pot_sprites.get(pot_type)
-            if pot_spr:
-                pot_h = pot_spr['height']
-                pot_w = pot_spr['width']
-                renderer.draw_sprite_obj(pot_spr, screen_x, y_snap - pot_h, mirror_h=mirror)
+            pot_spr = pot_sprites[pot_type]
+            pot_h = pot_spr['height']
+            pot_w = pot_spr['width']
+            renderer.draw_sprite_obj(pot_spr, screen_x, y_snap - pot_h, mirror_h=mirror)
 
         if stage not in ('empty_pot', 'dead', 'dormant') and stage is not None:
-            plant_spr = plant_sprites.get((plant['type'], stage))
+            plant_spr = plant_sprites[(plant['type'], stage)]
             if plant_spr:
                 cx = screen_x + pot_w // 2
                 plant_x = cx - plant_spr['width'] // 2

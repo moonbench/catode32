@@ -55,7 +55,7 @@ def _get_icon(weather, hour):
     is_night = hour >= 20 or hour < 6
     if is_night and weather in _NIGHT_ICONS:
         return _NIGHT_ICONS[weather]
-    return _DAY_ICONS.get(weather, WEATHER_CLEAR)
+    return _DAY_ICONS[weather]
 
 
 def _build_slots(forecast, cur_hour, cur_min):

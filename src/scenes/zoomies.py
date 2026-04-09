@@ -7,7 +7,7 @@ import random
 from scene import Scene
 from assets.minigame_character import RUNCAT1, SITCAT1, SMALL_BIRD1
 from assets.nature import SMALLTREE1, CLOUD1, CLOUD2, CLOUD3
-from assets.plants import PLANT1, PLANT2, PLANT6
+from assets.plants import PLANT1, PLANT2, PLANT6, SUNFLOWER_YOUNG, ROSE_GROWING, FREESIA_GROWING, ROSE_MATURE, FREESIA_MATURE, FREESIA_THRIVING
 from ui import Popup
 
 # Ground decor type constants (int for fast comparison)
@@ -56,7 +56,7 @@ class ZoomiesScene(Scene):
 
         # Animation
         self.run_anim = 0.0
-        self.run_speed = 8  # Frames per second
+        self.run_speed = 12  # Frames per second
 
         # Obstacles: list of {"sprite": sprite, "x": float}
         self.obstacles = []
@@ -73,6 +73,9 @@ class ZoomiesScene(Scene):
         # Clouds: list of {"sprite": sprite, "x": float, "y": int}
         self.clouds = []
         self._init_clouds()
+
+        # Bonus texts: list of [x_float, y_float, timer]
+        self.bonus_texts = []
 
         # Score and speed
         self.score = 0
@@ -178,16 +181,23 @@ class ZoomiesScene(Scene):
             if self.run_anim >= len(RUNCAT1["frames"]):
                 self.run_anim -= len(RUNCAT1["frames"])
 
-        # Update obstacles: move, animate, filter off-screen in one pass
+        # Update obstacles: move, animate, detect bird jumps, filter off-screen
         speed_dt = self.current_speed * dt
         anim_dt = dt * 8
         keep = []
         for obs in self.obstacles:
             obs[1] -= speed_dt
-            if obs[3] >= 0:
+            if obs[3] >= 0:  # bird
                 obs[3] += anim_dt
+                # Mark if player was jumping while bird overlapped player's x-range
+                if not obs[4] and self.is_jumping:
+                    bird_right = obs[1] + obs[0]["width"]
+                    if obs[1] < self.PLAYER_X + RUNCAT1["width"] and bird_right > self.PLAYER_X:
+                        obs[4] = True
             if obs[1] > -20:
                 keep.append(obs)
+            elif obs[3] >= 0 and obs[4]:  # bird cleared screen and was jumped over
+                self._award_bird_jump_bonus()
         self.obstacles = keep
 
         # Spawn new obstacles
@@ -233,20 +243,44 @@ class ZoomiesScene(Scene):
         if rightmost < config.DISPLAY_WIDTH:
             self._add_cloud_at(rightmost + random.randint(60, 100))
 
+        # Update bonus texts: rise upward and expire
+        keep = []
+        for bt in self.bonus_texts:
+            bt[1] -= 18.0 * dt
+            bt[2] -= dt
+            if bt[2] > 0:
+                keep.append(bt)
+        self.bonus_texts = keep
+
         # Check collisions
         self._check_collisions()
 
     def _spawn_obstacle(self):
         """Spawn a new obstacle on the right side.
-        List format: [sprite, x, y, anim]  y=-1 = ground level, anim=-1 = no animation"""
+        List format: [sprite, x, y, anim, jumped]  y=-1 = ground level, anim=-1 = no animation
+        jumped: True if player was in the air while this bird overlapped the player (birds only)"""
         if random.random() < self.BIRD_CHANCE:
             y = float(random.choice([self.BIRD_Y_LOW, self.BIRD_Y_HIGH]))
-            self.obstacles.append([SMALL_BIRD1, float(config.DISPLAY_WIDTH + 5), y, 0.0])
+            self.obstacles.append([SMALL_BIRD1, float(config.DISPLAY_WIDTH + 5), y, 0.0, False])
         else:
-            options = [SMALLTREE1, PLANT1, PLANT2]
+            options = [
+                ('SMALLTREE1',     SMALLTREE1),
+                ('PLANT1',         PLANT1),
+                ('PLANT2',         PLANT2),
+                ('SUNFLOWER_YOUNG', SUNFLOWER_YOUNG),
+                ('ROSE_GROWING',   ROSE_GROWING),
+                ('FREESIA_GROWING', FREESIA_GROWING),
+            ]
             if self.current_speed > 110:
-                options.append(PLANT6)
-            self.obstacles.append([random.choice(options), float(config.DISPLAY_WIDTH + 5), -1.0, -1.0])
+                options += [
+                    ('PLANT6',          PLANT6),
+                    ('ROSE_MATURE',     ROSE_MATURE),
+                    ('FREESIA_MATURE',  FREESIA_MATURE),
+                    ('FREESIA_THRIVING', FREESIA_THRIVING),
+                ]
+            name, chosen = random.choice(options)
+            print(f"[zoomies] spawn: {name}")
+            self.obstacles.append([chosen, float(config.DISPLAY_WIDTH + 5), -1.0, -1.0, False])
 
     def _check_collisions(self):
         """Check for collisions between player and obstacles"""
@@ -282,6 +316,13 @@ class ZoomiesScene(Scene):
                     self.is_new_best = False
                 return
 
+    def _award_bird_jump_bonus(self):
+        """Award +100 score bonus for jumping over a bird and spawn floating text"""
+        self.score += 100
+        # Center "+100" (4 chars * 8px = 32px wide) on the player
+        text_x = float(self.PLAYER_X + RUNCAT1["width"] // 2 - 16)
+        self.bonus_texts.append([text_x, float(int(self.player_y) - 2), 0.8])
+
     def draw(self):
 
         # Draw clouds (background, behind everything)
@@ -309,12 +350,16 @@ class ZoomiesScene(Scene):
         # Draw player
         self._draw_player()
 
+        # Draw floating bonus texts
+        for bt in self.bonus_texts:
+            self.renderer.draw_text("+100", int(bt[0]), int(bt[1]))
+
         # Draw score
         self._draw_score()
 
         # Draw start/game over message
         if not self.game_started:
-            self.start_popup.set_text("A to start\nA to jump\n\nHold for\nhigh jumps!",  wrap=False, center=True)
+            self.start_popup.set_text("A to jump\n\nHold for\nhigh jumps!",  wrap=False, center=True)
             self.start_popup.draw(show_scroll_indicators=False)
         elif self.is_hit:
             if self.is_new_best:

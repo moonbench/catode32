@@ -480,7 +480,7 @@ class SkyRenderer:
 
     def _update_precipitation(self):
         """Update precipitation based on weather"""
-        precip = WEATHER_PRECIPITATION.get(self.weather)
+        precip = WEATHER_PRECIPITATION[self.weather]
         if precip:
             self.precipitation_type = precip[0]
             self.precipitation_intensity = precip[1]
@@ -565,7 +565,7 @@ class SkyRenderer:
         # Set up moon state (drawn via _draw_moon custom draw, not as a layer sprite,
         # so shooting stars can render in front of it)
         moon_sprite = self._get_moon_sprite()
-        moon_frame = MOON_PHASE_FRAMES.get(self.moon_phase)
+        moon_frame = MOON_PHASE_FRAMES[self.moon_phase]
         mx, my = _calc_moon_position(self._hours_f)
         self._moon_obj = {
             "sprite": moon_sprite,

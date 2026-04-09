@@ -42,7 +42,7 @@ class BreakoutScene(Scene):
     CAT_Y = config.DISPLAY_HEIGHT - CAT_AVATAR1["height"]  # 64 - 18 = 46
 
     # Ball physics
-    BALL_SPEED = 45  # Pixels per second
+    BALL_SPEED = 36  # Pixels per second
 
     # Brick grid layout
     BRICK_ROWS = 5

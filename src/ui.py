@@ -390,7 +390,7 @@ def draw_heard_bubble(renderer, bubble_type, corner='left', y_offset=0):
     renderer.draw_sprite_obj(SPEECH_BUBBLE, bubble_x, bubble_y,
                              mirror_v=True, mirror_h=mirror_h)
 
-    content_sprite = BUBBLE_SPRITES.get(bubble_type)
+    content_sprite = BUBBLE_SPRITES[bubble_type]
     if content_sprite:
         # The body occupies the lower ~13 rows of the flipped sprite; offset
         # down past the tail (rows 0-3) to centre the icon in the body.
@@ -430,7 +430,7 @@ def draw_bubble(renderer, bubble_type, char_x, char_y, progress=0.0, mirror=Fals
     renderer.draw_sprite_obj(SPEECH_BUBBLE, bubble_x, bubble_y, mirror_h=mirror)
 
     # Draw content sprite centered inside bubble (inverted)
-    content_sprite = BUBBLE_SPRITES.get(bubble_type)
+    content_sprite = BUBBLE_SPRITES[bubble_type]
     if content_sprite:
         content_x = bubble_x + 4
         content_y = bubble_y + 2

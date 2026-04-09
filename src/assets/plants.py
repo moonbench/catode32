@@ -59,14 +59,6 @@ GROUND_PLANT_OFFSET = 0
 # Plant sprites
 # ---------------------------------------------------------------------------
 
-PLANT3 = {
-    "width": 9,
-    "height": 7,
-    "frames": [
-        b"\x60\x00\xf0\x00\x70\x00\x38\x00\x08\x80\x09\x00\x09\x00"
-    ]
-}
-
 PLANT1 = {
     "width": 14,
     "height": 17,
@@ -434,47 +426,16 @@ FREESIA_THRIVING_DEAD = {
 # ---------------------------------------------------------------------------
 # PLANT_SPRITES lookup: (plant_type, stage) -> sprite dict
 # ---------------------------------------------------------------------------
-# Stub assignments use existing sprites grouped by visual size.
-# Replace individual entries per plant type as real sprites are delivered.
-# Stage-specific dead keys (e.g. 'young_dead') are used by the debug scene
-# and will be used by the plant system once death-stage tracking is added.
-#
-# Stubs (non-sunflower):
-#   seedling        → PLANT_SEEDLING  ( 9x7)  — shared sprout
-#   young           → PLANT3         ( 9x7)  — still small
-#   growing         → PLANT1         (14x17) — mid-size leafy
-#   mature          → PLANT2         (19x10) — spreading / bushy
-#   thriving        → PLANT6         (20x23) — large statement plant
-#   *_wilted        → same as base   (no separate wilted art yet)
-#   *_dead          → None           (no dead art yet for non-sunflower)
-#   dead/dormant/empty_pot → None
-
-def _stage_sprite(base):
-    if base == 'seedling': return PLANT_SEEDLING
-    if base == 'young':    return PLANT3
-    if base == 'growing':  return PLANT1
-    if base == 'mature':   return PLANT2
-    if base == 'thriving': return PLANT6
-    return None
-
-
-_TYPES = ('cat_grass', 'freesia', 'rose', 'sunflower')
-_BASES = ('seedling', 'young', 'growing', 'mature', 'thriving')
 
 PLANT_SPRITES = {}
 
-for _t in _TYPES:
-    for _b in _BASES:
-        _s = _stage_sprite(_b)
-        PLANT_SPRITES[(_t, _b)]             = _s   # healthy
-        PLANT_SPRITES[(_t, _b + '_wilted')] = _s   # wilted stub
-        PLANT_SPRITES[(_t, _b + '_dead')]   = None # dead stub
-
+# Intentionally sprite-less states (no art needed)
+for _t in ('cat_grass', 'freesia', 'rose', 'sunflower'):
     PLANT_SPRITES[(_t, 'dead')]      = None
     PLANT_SPRITES[(_t, 'dormant')]   = None
     PLANT_SPRITES[(_t, 'empty_pot')] = None
 
-# --- Cat grass real sprites (override stubs set above) ---
+# --- Cat grass real sprites ---
 _cg = 'cat_grass'
 PLANT_SPRITES[(_cg, 'seedling')]         = GRASS_SEEDLING
 PLANT_SPRITES[(_cg, 'seedling_wilted')]  = GRASS_SEEDLING_WILTED

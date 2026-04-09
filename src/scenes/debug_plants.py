@@ -66,8 +66,8 @@ class DebugPlantsScene(Scene):
         plant_type = _PLANT_TYPES[self._plant_idx]
         stage_key  = self._stage_key()
 
-        pot_spr   = POT_SPRITES.get(pot_type)
-        plant_spr = PLANT_SPRITES.get((plant_type, stage_key))
+        pot_spr   = POT_SPRITES[pot_type]
+        plant_spr = PLANT_SPRITES[(plant_type, stage_key)]
 
         cx = 64  # horizontal centre of display
 

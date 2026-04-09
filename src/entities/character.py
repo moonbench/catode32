@@ -14,11 +14,7 @@ def get_pose(pose_name):
         print(f"[character] Invalid pose format: '{pose_name}' (expected 'position.direction.emotion')")
         return None
     position, direction, emotion = parts
-    try:
-        return POSES[position][direction][emotion]
-    except KeyError:
-        print(f"[character] Pose not found: '{pose_name}'")
-        return None
+    return POSES[position][direction][emotion]
 
 
 def get_all_pose_names():
@@ -84,17 +80,14 @@ class CharacterEntity(Entity):
     def set_pose(self, pose_name):
         """Change the character's pose using dot notation (e.g., 'sitting.side.neutral')."""
         pose = get_pose(pose_name)
-        if pose is not None:
-            self.pose_name = pose_name
-            self._pose = pose
-            self._mirror_cache = {}
-            self._inv_fill_cache = {}
-            self.anim_body = random.uniform(0, self._get_total_frames(pose["body"]))
-            self.anim_head = random.uniform(0, self._get_total_frames(pose["head"]))
-            self.anim_eyes = random.uniform(0, self._get_total_frames(pose["eyes"]))
-            self.anim_tail = random.uniform(0, self._get_total_frames(pose["tail"]))
-        else:
-            print(f"[character] Failed to set pose: '{pose_name}', keeping current pose")
+        self.pose_name = pose_name
+        self._pose = pose
+        self._mirror_cache = {}
+        self._inv_fill_cache = {}
+        self.anim_body = random.uniform(0, self._get_total_frames(pose["body"]))
+        self.anim_head = random.uniform(0, self._get_total_frames(pose["head"]))
+        self.anim_eyes = random.uniform(0, self._get_total_frames(pose["eyes"]))
+        self.anim_tail = random.uniform(0, self._get_total_frames(pose["tail"]))
 
     def _get_point(self, sprite, key, frame=0, mirror=False):
         """Get a point value from a sprite, handling both static (int) and animated (list) values.

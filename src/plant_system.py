@@ -115,8 +115,8 @@ def _can_advance(plant, ptype):
     next_idx = idx + 1
 
     # Pot cap
-    pot_cap = _POT_CAPS.get(plant['pot'], 'young')
-    if next_idx > _STAGE_INDEX.get(pot_cap, 0):
+    pot_cap = _POT_CAPS[plant['pot']]
+    if next_idx > _STAGE_INDEX[pot_cap]:
         return False
 
     # Sunflower indoor cap
