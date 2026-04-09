@@ -73,6 +73,7 @@ class LightsOutScene(Scene):
             coins = int(3 * self._session_wins)
             if coins > 0:
                 self.context.coins += coins
+                print(f"[LightsOut] Awarded {coins} coins (total: {self.context.coins})")
 
     # -------------------------------------------------------------------------
     # Game logic

@@ -212,6 +212,7 @@ class PipeScene(Scene):
             coins = int(2 * self._session_wins)
             if coins > 0:
                 self.context.coins += coins
+                print(f"[Pipes] Awarded {coins} coins (total: {self.context.coins})")
 
     # -------------------------------------------------------------------------
     # Game logic
