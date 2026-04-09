@@ -2,7 +2,7 @@
 
 Plants are stored as dicts in context.plants.  Each dict has:
     id, type, scene, layer, x, pot, stage, age_hours,
-    water_debt_hours, planted_day
+    water_debt_hours, planted_day, fertilizer
 
 Ticking is global: tick_plants(context) is called from MainScene.on_update
 once per in-game hour and advances *all* plants, not just the active scene.
@@ -62,6 +62,32 @@ _STAGE_INDEX = {s: i for i, s in enumerate(_STAGE_ORDER)}
 # Stages where time-based ticking is skipped entirely.
 _INERT_STAGES = frozenset(('empty_pot', 'dead'))
 
+# Fertilizer level thresholds and decay.
+# Each application adds 100 (capped at 200). Decays 0.015/hour.
+# At 100→20 takes ~5333 hours (~3.7 real days) — ideal re-apply window.
+# Applying daily (1440h) leaves ~78 remaining before top-up → 178 → Over.
+_FERT_DECAY = 0.015
+_FERT_NO_MAX  =   5.0   # ≤5  → No
+_FERT_LOW_MAX =  20.0   # ≤20 → Low
+_FERT_OK_MAX  = 120.0   # ≤120 → OK;  >120 → Over
+_FERT_ADD     = 100.0
+_FERT_CAP     = 200.0
+
+
+def _fert_ok(fert):
+    """Return True if fertilizer level is in the OK range (enables thriving)."""
+    return _FERT_LOW_MAX < fert <= _FERT_OK_MAX
+
+
+def _fert_label(fert):
+    if fert <= _FERT_NO_MAX:
+        return 'No'
+    elif fert <= _FERT_LOW_MAX:
+        return 'Low'
+    elif fert <= _FERT_OK_MAX:
+        return 'OK'
+    return 'Over'
+
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -97,6 +123,11 @@ def _can_advance(plant, ptype):
     indoor_max = ptype.get('indoor_max')
     if indoor_max and plant['scene'] != 'outside':
         if next_idx > _STAGE_INDEX.get(indoor_max, 0):
+            return False
+
+    # Fertilizer gate: mature → thriving requires OK fertilizer level
+    if next_stage == 'thriving':
+        if not _fert_ok(plant.get('fertilizer', 0.0)):
             return False
 
     return True
@@ -156,6 +187,7 @@ def tick_plant(plant, season, weather='Clear'):
     # --- Normal hour accumulation ---
     plant['age_hours'] = plant.get('age_hours', 0) + 1
     plant['water_debt_hours'] = plant.get('water_debt_hours', 0) + 1
+    plant['fertilizer'] = max(0.0, plant.get('fertilizer', 0.0) - _FERT_DECAY)
 
     # --- Rain / storm watering for outdoor plants ---
     if plant['scene'] == 'outside':
@@ -196,6 +228,11 @@ def tick_plant(plant, season, weather='Clear'):
             return True
 
     else:
+        # Thriving knockback: if fertilizer leaves OK range, drop back to mature.
+        if stage == 'thriving' and not _fert_ok(plant.get('fertilizer', 0.0)):
+            plant['stage'] = 'mature'
+            return True
+
         # Wilt check.
         if debt > ptype['wilt']:
             plant['stage'] = stage + '_wilted'
@@ -259,6 +296,11 @@ def water_plant(plant):
     plant['water_debt_hours'] = 0
 
 
+def fertilize_plant(plant):
+    """Apply one unit of fertilizer to a plant (adds 100, capped at 200)."""
+    plant['fertilizer'] = min(_FERT_CAP, plant.get('fertilizer', 0.0) + _FERT_ADD)
+
+
 def plant_seed(context, pot_id, plant_type):
     """Plant a seed into an existing empty pot, identified by pot_id.
 
@@ -279,6 +321,7 @@ def plant_seed(context, pot_id, plant_type):
             plant['stage'] = 'seedling'
             plant['age_hours'] = 0
             plant['water_debt_hours'] = 0
+            plant['fertilizer'] = 0.0
             plant['planted_day'] = context.environment.get('day_number', 0)
             plant['mirror'] = bool(random.getrandbits(1))
             return plant
@@ -312,6 +355,7 @@ def place_empty_pot(context, scene, layer, x, y_snap, pot_type):
         'stage': 'empty_pot',
         'age_hours': 0,
         'water_debt_hours': 0,
+        'fertilizer': 0.0,
         'planted_day': None,
         'mirror': bool(random.getrandbits(1)),
     }
@@ -346,6 +390,7 @@ def plant_in_ground(context, scene, layer, x, y_snap, plant_type):
         'stage': 'seedling',
         'age_hours': 0,
         'water_debt_hours': 0,
+        'fertilizer': 0.0,
         'planted_day': context.environment.get('day_number', 0),
         'mirror': bool(random.getrandbits(1)),
     }
@@ -535,7 +580,8 @@ def inspect_lines(plant):
             water_label = 'Urgent'
         status = 'Water: ' + water_label
 
-    return [type_label, pot_line, stage_line, status]
+    fert_line = 'Fert: ' + _fert_label(plant.get('fertilizer', 0.0))
+    return [type_label, pot_line, stage_line, status, fert_line]
 
 
 def stage_display_name(stage):

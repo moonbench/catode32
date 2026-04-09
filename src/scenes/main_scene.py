@@ -3,9 +3,9 @@ import config
 from scene import Scene
 from entities.character import CharacterEntity
 from menu import Menu, MenuItem
-from plant_system import (tick_plants, plant_seed, water_plant, remove_plant,
-                          repot_plant, move_plant, get_plant_by_id, inspect_lines,
-                          plant_in_ground)
+from plant_system import (tick_plants, plant_seed, water_plant, fertilize_plant,
+                          remove_plant, repot_plant, move_plant, get_plant_by_id,
+                          inspect_lines, plant_in_ground)
 from plant_renderer import register_plant_draws, invalidate_plant_cache
 from gardening_ui import PlacementMode, PlantSelectionMode
 from assets.icons import (TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON,
@@ -230,7 +230,7 @@ class MainScene(Scene):
     # Tend submenu actions that should re-enter plant selection when done.
     # tend_move_here is intentionally absent: placement-mode ending handles
     # the re-entry for within-scene moves (see handle_input placement block).
-    _TEND_REENTER_ACTIONS = ('tend_pluck', 'tend_repot', 'inspect_dismiss')
+    _TEND_REENTER_ACTIONS = ('tend_pluck', 'tend_repot', 'tend_water', 'tend_fertilize', 'inspect_dismiss')
 
     def handle_input(self):
         if self._popup_msg is not None:
@@ -484,6 +484,19 @@ class MainScene(Scene):
                         for i in range(4)
                     ]
                 }
+        elif action_type == "tend_fertilize":
+            plant = get_plant_by_id(self.context, action[1])
+            if plant:
+                fertilize_plant(plant)
+                inv = self.context.inventory
+                inv['fertilizer'] = max(0, inv.get('fertilizer', 0) - 1)
+                self._plant_bursts[plant['id']] = {
+                    'timer': 0.0,
+                    'bursts': [
+                        {'dx': random.randint(-12, 12), 'dy': random.randint(-25, 5), 'delay': i * 0.4 + random.uniform(0.0, 0.2)}
+                        for i in range(4)
+                    ]
+                }
         elif action_type == "gardening_tend":
             self._in_tend_mode = True
             if not self._reenter_tend_selection():
@@ -529,6 +542,8 @@ class MainScene(Scene):
         stage = plant.get('stage', '')
         if stage not in ('empty_pot', 'dead'):
             items.append(MenuItem("Water", icon=TREES_ICON, action=("tend_water", plant['id'])))
+            if self.context.inventory.get('fertilizer', 0) > 0:
+                items.append(MenuItem("Fertilize", icon=TREES_ICON, action=("tend_fertilize", plant['id'])))
 
         # Move (not available for ground plants)
         if plant.get('pot') != 'ground':

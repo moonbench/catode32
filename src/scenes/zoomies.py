@@ -27,14 +27,14 @@ class ZoomiesScene(Scene):
     GRAVITY = 250  # Pixels per second squared
     JUMP_VELOCITY = -140  # Initial jump velocity (negative = up)
     BASE_SPEED = 48  # Starting speed (pixels per second)
-    MAX_SPEED = 120  # Maximum speed
+    MAX_SPEED = 132  # Maximum speed
     SPEED_INCREASE_INTERVAL = 5  # Points between speed increases
     SPAWN_MIN = 1.3  # Minimum seconds between obstacles
-    SPAWN_MAX = 3.2  # Maximum seconds between obstacles
+    SPAWN_MAX = 3.0  # Maximum seconds between obstacles
     CLOUD_SPEED_RATIO = 0.2  # Cloud speed as ratio of ground speed
     BIRD_CHANCE = 0.2  # Chance to spawn a bird instead of ground obstacle
     BIRD_Y_LOW = 38  # Bird y position when low (jump over)
-    BIRD_Y_HIGH = 21  # Bird y position when high (duck under / stay on ground)
+    BIRD_Y_HIGH = 24  # Bird y position when high (duck under / stay on ground)
 
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)
@@ -56,7 +56,7 @@ class ZoomiesScene(Scene):
 
         # Animation
         self.run_anim = 0.0
-        self.run_speed = 12  # Frames per second
+        self.run_speed = 8  # Frames per second
 
         # Obstacles: list of {"sprite": sprite, "x": float}
         self.obstacles = []

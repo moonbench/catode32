@@ -65,6 +65,8 @@ _SEED_ITEMS = (
     ("Rose",    "Rose",       "rose",       15),
 )
 
+_FERTILIZER_COST = 25
+
 # (display_name, full_name, inventory_key, cost)
 _TOOL_ITEMS = (
     ("Spade",  "Spade",        "spade",        40),
@@ -121,9 +123,10 @@ class StoreScene(Scene):
         tool_items  = [self._tool_item(label, full, key, cost)
                        for label, full, key, cost in _TOOL_ITEMS]
         gardening_items = [
-            MenuItem("Pots",  submenu=pot_items),
-            MenuItem("Seeds", submenu=seed_items),
-            MenuItem("Tools", submenu=tool_items),
+            MenuItem("Pots",       submenu=pot_items),
+            MenuItem("Seeds",      submenu=seed_items),
+            MenuItem("Tools",      submenu=tool_items),
+            self._fertilizer_item(),
         ]
         service_items = [self._service_item(name, stats, cost, msg)
                          for name, stats, cost, msg in _SERVICE_ITEMS]
@@ -164,6 +167,13 @@ class StoreScene(Scene):
             return MenuItem(label, action=("buy_seeds", full, key, cost),
                             confirm=f"{full}x{_SEEDS_PER_PACK}: {cost}c")
         return MenuItem(label, action=("no_funds",), confirm="Can't afford!")
+
+    def _fertilizer_item(self):
+        cost = _FERTILIZER_COST
+        if self.context.coins >= cost:
+            return MenuItem("Fertilizer", action=("buy_fertilizer", cost),
+                            confirm=f"Fertilizer: {cost}c")
+        return MenuItem("Fertilizer", action=("no_funds",), confirm="Can't afford!")
 
     def _service_item(self, name, stats, cost, msg):
         if self.context.coins >= cost:
@@ -326,6 +336,17 @@ class StoreScene(Scene):
                 self.context.inventory['tools'][key] = True
                 print(f"[Store] Bought tool {key} for {cost}c")
                 self._purchase_msg = f"{full} bought!"
+                self._popup.set_text(self._purchase_msg, center=True)
+            else:
+                self.menu.open(self._build_menu())
+
+        elif kind == "buy_fertilizer":
+            _, cost = action
+            if self.context.coins >= cost:
+                self.context.coins -= cost
+                self.context.inventory['fertilizer'] = self.context.inventory.get('fertilizer', 0) + 1
+                print(f"[Store] Bought fertilizer for {cost}c")
+                self._purchase_msg = "Fertilizer bought!"
                 self._popup.set_text(self._purchase_msg, center=True)
             else:
                 self.menu.open(self._build_menu())

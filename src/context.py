@@ -120,6 +120,7 @@ class GameContext:
                 'pots': self.inventory["pots"],
                 'seeds': self.inventory["seeds"],
                 'tools': self.inventory["tools"],
+                'fertilizer': self.inventory.get("fertilizer", 0),
                 'plants': self.plants,
                 'next_plant_id': self.next_plant_id,
                 'pet_seed': self.pet_seed,
@@ -181,6 +182,8 @@ class GameContext:
                 self.inventory['seeds'].update(data['seeds'])
             if 'tools' in data:
                 self.inventory['tools'].update(data['tools'])
+            if 'fertilizer' in data:
+                self.inventory['fertilizer'] = data['fertilizer']
             # Plants: if absent from save (old save file), keep the starter plants
             # that reset() already populated.
             if 'plants' in data:

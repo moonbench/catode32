@@ -68,6 +68,7 @@ def _make_starter_plants():
             'stage': stage,
             'age_hours': age_hours,
             'water_debt_hours': 0,
+            'fertilizer': 0.0,
             'planted_day': 0,
             'mirror': mirror,
         }
@@ -149,7 +150,7 @@ def do_reset(ctx, delete_save):
     # Quantities of food purchased from the store (uses per type)
     ctx.food_stock = {
         "chicken": 0, "salmon": 0, "tuna": 0, "shrimp": 0, "mackerel": 0, "kibble": 5,
-        "chew_stick": 0, "nugget": 3, "cream": 0, "milk": 0, "fish_bite": 0,
+        "chew_stick": 0, "nugget": 3, "puree": 0, "milk": 0, "fish_bite": 0,
     }
 
     # Inventory of owned items
@@ -157,9 +158,10 @@ def do_reset(ctx, delete_save):
         "toys": [
             {"name": "Feather", "variant": "toy"},
         ],
-        "pots":  {"small": 0, "medium": 0, "large": 0, "planter": 0},
-        "seeds": {"cat_grass": 0, "sunflower": 0, "rose": 0, "tulip": 0},
-        "tools": {"watering_can": False, "spade": False},
+        "pots":       {"small": 0, "medium": 0, "large": 0, "planter": 0},
+        "seeds":      {"cat_grass": 0, "sunflower": 0, "rose": 0, "tulip": 0},
+        "tools":      {"watering_can": False, "spade": False},
+        "fertilizer": 0,
     }
 
     # Living plants placed by the player (and the developer-seeded starters).
