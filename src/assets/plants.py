@@ -508,4 +508,4 @@ PLANT_SPRITES[(_sf, 'thriving')]         = SUNFLOWER_THRIVING
 PLANT_SPRITES[(_sf, 'thriving_wilted')]  = SUNFLOWER_THRIVING_WILTED
 PLANT_SPRITES[(_sf, 'thriving_dead')]    = SUNFLOWER_THRIVING_DEAD
 
-del _t, _b, _s, _TYPES, _BASES, _cg, _ro, _fr, _sf
+del _t, _cg, _ro, _fr, _sf
