@@ -27,6 +27,9 @@ VARIANTS = {
 POUNCE_SLIDE_SPEED = 28       # pixels per second during the leap slide
 POUNCE_SLIDE_DURATION = 0.9   # seconds the slide lasts
 
+# Session constants
+PLAY_MIN_DURATION = 15.0       # seconds before a B-button exit counts as completed
+
 # Ball variant constants
 BALL_PUSH_FORCE = 140          # pixels/s² acceleration when player holds a direction
 BALL_MAX_SPEED = 65            # max ball speed in pixels per second
@@ -38,8 +41,8 @@ BALL_CATCH_DURATION = 1.5      # seconds of celebration after the final pounce
 BALL_RECOVER_DURATION = 0.8   # seconds the cat sits happy between pounces
 BALL_POUNCE_DELAY_MIN = 2.5   # minimum seconds before each pounce
 BALL_POUNCE_DELAY_MAX = 6.0   # maximum seconds before each pounce
-BALL_POUNCE_COUNT_MIN = 2     # fewest pounces per session
-BALL_POUNCE_COUNT_MAX = 4     # most pounces per session
+BALL_POUNCE_COUNT_MIN = 4     # fewest pounces per session
+BALL_POUNCE_COUNT_MAX = 8     # most pounces per session
 
 # Laser variant constants
 LASER_WOBBLE_AMPLITUDE = 8     # pixels of auto-oscillation around user-controlled position
@@ -51,8 +54,8 @@ LASER_CATCH_DURATION = 1.5     # seconds of celebration after the final pounce
 LASER_RECOVER_DURATION = 0.8   # seconds the cat sits happy between pounces
 LASER_POUNCE_DELAY_MIN = 2.0   # minimum seconds before each pounce
 LASER_POUNCE_DELAY_MAX = 5.0   # maximum seconds before each pounce
-LASER_POUNCE_COUNT_MIN = 2     # fewest pounces per session
-LASER_POUNCE_COUNT_MAX = 4     # most pounces per session
+LASER_POUNCE_COUNT_MIN = 4     # fewest pounces per session
+LASER_POUNCE_COUNT_MAX = 8     # most pounces per session
 LASER_DOT_RADIUS = 2           # radius in pixels → 5×5 filled circle
 LASER_LINE_TOP_Y = -64         # y coordinate of the off-screen line origin
 
@@ -67,8 +70,8 @@ STRING_ANCHOR_RANGE = 60       # max horizontal offset from cat center for the a
 STRING_ANCHOR_Y = -70          # screen-y offset from char_y → anchor sits just above screen
 STRING_POUNCE_DELAY_MIN = 2.0
 STRING_POUNCE_DELAY_MAX = 8.0
-STRING_POUNCE_COUNT_MIN = 2
-STRING_POUNCE_COUNT_MAX = 6
+STRING_POUNCE_COUNT_MIN = 4
+STRING_POUNCE_COUNT_MAX = 8
 STRING_RECOVER_DURATION = 0.8
 STRING_CATCH_DURATION = 1.5
 
@@ -173,6 +176,9 @@ class PlayingBehavior(BaseBehavior):
         # Shared pounce state
         self._pounce_direction = 1
 
+        # Session timer — used to decide if B-button exit earns a reward
+        self._session_timer = 0.0
+
         # Eye frame override — exposed as a property and read by CharacterEntity.draw()
         self._eye_frame_override = None
 
@@ -200,6 +206,7 @@ class PlayingBehavior(BaseBehavior):
         super().start(on_complete)
         self._variant = variant if variant in VARIANTS else "string"
         self._eye_frame_override = None
+        self._session_timer = 0.0
 
         if self._variant == "ball":
             self._start_ball()
@@ -265,6 +272,15 @@ class PlayingBehavior(BaseBehavior):
         if not self._active:
             return
         self._phase_timer += dt
+        self._session_timer += dt
+
+        # B button ends the session early; reward given only if enough time has passed
+        inp = getattr(self._character.context, 'input', None)
+        if inp and inp.was_just_pressed('b'):
+            if self._session_timer < PLAY_MIN_DURATION:
+                self._progress = 0.0  # no reward for cutting it short
+            self.stop(completed=True)
+            return
 
         if self._variant == "ball":
             self._update_ball(dt)
@@ -300,6 +316,31 @@ class PlayingBehavior(BaseBehavior):
     # --- Ball variant ---
 
     def _update_ball(self, dt):
+        inp = getattr(self._character.context, 'input', None)
+        if inp:
+            if inp.is_pressed('left'):
+                self._ball_vel_x -= BALL_PUSH_FORCE * dt
+            if inp.is_pressed('right'):
+                self._ball_vel_x += BALL_PUSH_FORCE * dt
+            if self._ball_vel_x > BALL_MAX_SPEED:
+                self._ball_vel_x = BALL_MAX_SPEED
+            elif self._ball_vel_x < -BALL_MAX_SPEED:
+                self._ball_vel_x = -BALL_MAX_SPEED
+        self._ball_vel_x *= BALL_FRICTION ** dt
+        self._ball_offset_x += self._ball_vel_x * dt
+        ball_radius = YARN_BALL["width"] / 2.0
+        angle_delta = self._ball_vel_x * dt / ball_radius * (180.0 / math.pi)
+        self._ball_rotation = (self._ball_rotation + angle_delta) % 360.0
+        if self._ball_offset_x >= BALL_ROLL_RANGE:
+            self._ball_offset_x = BALL_ROLL_RANGE
+            self._ball_vel_x = -abs(self._ball_vel_x) * BALL_BOUNCE_DAMPING
+        elif self._ball_offset_x <= -BALL_ROLL_RANGE:
+            self._ball_offset_x = -BALL_ROLL_RANGE
+            self._ball_vel_x = abs(self._ball_vel_x) * BALL_BOUNCE_DAMPING
+        self._eye_frame_override = _compute_eye_frame(
+            self._ball_offset_x, self._character.mirror
+        )
+
         if self._phase == "watching":
             self._update_ball_rolling(dt)
         elif self._phase == "pouncing":
@@ -313,42 +354,7 @@ class PlayingBehavior(BaseBehavior):
                 self.stop(completed=True)
 
     def _update_ball_rolling(self, dt):
-        """Player knocks the ball left/right; it rolls with friction and bounces."""
-        # D-pad applies a push force
-        inp = getattr(self._character.context, 'input', None)
-        if inp:
-            if inp.is_pressed('left'):
-                self._ball_vel_x -= BALL_PUSH_FORCE * dt
-            if inp.is_pressed('right'):
-                self._ball_vel_x += BALL_PUSH_FORCE * dt
-            if self._ball_vel_x > BALL_MAX_SPEED:
-                self._ball_vel_x = BALL_MAX_SPEED
-            elif self._ball_vel_x < -BALL_MAX_SPEED:
-                self._ball_vel_x = -BALL_MAX_SPEED
-
-        # Friction (exponential decay)
-        self._ball_vel_x *= BALL_FRICTION ** dt
-
-        # Move and update rotation
-        self._ball_offset_x += self._ball_vel_x * dt
-        ball_radius = YARN_BALL["width"] / 2.0
-        angle_delta = self._ball_vel_x * dt / ball_radius * (180.0 / math.pi)
-        self._ball_rotation = (self._ball_rotation + angle_delta) % 360.0
-
-        # Bounce off boundaries
-        if self._ball_offset_x >= BALL_ROLL_RANGE:
-            self._ball_offset_x = BALL_ROLL_RANGE
-            self._ball_vel_x = -abs(self._ball_vel_x) * BALL_BOUNCE_DAMPING
-        elif self._ball_offset_x <= -BALL_ROLL_RANGE:
-            self._ball_offset_x = -BALL_ROLL_RANGE
-            self._ball_vel_x = abs(self._ball_vel_x) * BALL_BOUNCE_DAMPING
-
-        # Eye tracking
-        self._eye_frame_override = _compute_eye_frame(
-            self._ball_offset_x, self._character.mirror
-        )
-
-        # Pounce countdown
+        """Count down to the next pounce."""
         self._ball_pounce_timer -= dt
         if self._ball_pounce_timer <= 0:
             self._begin_ball_pounce()
@@ -611,6 +617,24 @@ class PlayingBehavior(BaseBehavior):
     # --- Laser variant ---
 
     def _update_laser(self, dt):
+        # Input and dot position always update so the player can move the laser
+        # at any time. Skip during pouncing: slide compensation owns _laser_offset_x
+        # for that phase.
+        inp = getattr(self._character.context, 'input', None)
+        if inp:
+            if inp.is_pressed('left'):
+                self._laser_user_x -= LASER_USER_SPEED * dt
+            if inp.is_pressed('right'):
+                self._laser_user_x += LASER_USER_SPEED * dt
+            self._laser_user_x = max(-LASER_USER_RANGE, min(LASER_USER_RANGE, self._laser_user_x))
+
+        self._laser_wobble_phase += LASER_WOBBLE_SPEED * dt
+        self._laser_offset_x = (self._laser_user_x
+                                 + LASER_WOBBLE_AMPLITUDE * math.sin(self._laser_wobble_phase))
+        self._eye_frame_override = _compute_eye_frame(
+            self._laser_offset_x, self._character.mirror
+        )
+
         if self._phase == "watching":
             self._update_laser_rolling(dt)
         elif self._phase == "pouncing":
@@ -624,26 +648,7 @@ class PlayingBehavior(BaseBehavior):
                 self.stop(completed=True)
 
     def _update_laser_rolling(self, dt):
-        """Move the laser via D-pad + wobble and count down to the next pounce."""
-        # Player controls the base position with left/right
-        inp = getattr(self._character.context, 'input', None)
-        if inp:
-            if inp.is_pressed('left'):
-                self._laser_user_x -= LASER_USER_SPEED * dt
-            if inp.is_pressed('right'):
-                self._laser_user_x += LASER_USER_SPEED * dt
-            self._laser_user_x = max(-LASER_USER_RANGE, min(LASER_USER_RANGE, self._laser_user_x))
-
-        # Auto-wobble oscillates around the user-controlled position
-        self._laser_wobble_phase += LASER_WOBBLE_SPEED * dt
-        self._laser_offset_x = (self._laser_user_x
-                                 + LASER_WOBBLE_AMPLITUDE * math.sin(self._laser_wobble_phase))
-
-        # Update eye tracking
-        self._eye_frame_override = _compute_eye_frame(
-            self._laser_offset_x, self._character.mirror
-        )
-
+        """Count down to the next pounce."""
         # Count down to pounce
         self._laser_pounce_timer -= dt
         if self._laser_pounce_timer <= 0:
@@ -684,8 +689,6 @@ class PlayingBehavior(BaseBehavior):
                 self._phase = "catching"
                 self._phase_timer = 0.0
             else:
-                # Reset user position so the laser starts back near center
-                self._laser_user_x = 0.0
                 self._laser_pounce_timer = random.uniform(
                     LASER_POUNCE_DELAY_MIN, LASER_POUNCE_DELAY_MAX
                 )

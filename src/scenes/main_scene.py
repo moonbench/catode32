@@ -284,7 +284,6 @@ class MainScene(Scene):
             behavior
             and getattr(behavior, 'active', False)
             and getattr(behavior, '_variant', None) in ('laser', 'ball', 'string', 'feather')
-            and getattr(behavior, '_phase', None) == 'watching'
         )
         dx, dy = self.input.get_direction()
         if dx != 0 and not player_controls_toy:
