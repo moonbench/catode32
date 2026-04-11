@@ -109,11 +109,58 @@ class PlayingBehavior(BaseBehavior):
     1. watching  - Yarn ball rolls back and forth; cat tracks it with its eyes
     2. pouncing  - Cat leaps toward the stopped ball (pose + forward slide)
     3. catching  - Brief celebration after landing
+
+    Rejection phase (any variant):
+    1. rejecting - Cat ignores the toy; holds a disinterested pose, then meanders away
     """
 
     NAME = "playing"
 
+    # Poses used when the cat is not in the mood to play.
+    REJECTION_POSES = (
+        "standing.side.neutral_looking_down",
+        "sitting.side.looking_down",
+        "laying.side.neutral2",
+        "laying.side.bored",
+        "sitting_silly.side.neutral",
+        "standing.side.annoyed",
+        "laying.side.annoyed",
+        "laying.side.content",
+        "sitting_licking.side.licking_leg",
+    )
+
+    # Minimum stat values below which rejection becomes increasingly likely.
+    _REJECTION_THRESHOLDS = {
+        "energy":       35,
+        "playfulness":  35,
+        "fullness":     25,
+        "comfort":      30,
+        "focus":        25,
+        "curiosity":    25,
+        "affection":    30,
+        "sociability":  25,
+        "courage":      25,
+    }
+
+    @classmethod
+    def _rejection_chance(cls, context):
+        """Return probability (0.0-1.0) that the cat refuses to play.
+
+        Uses a probabilistic OR across all stat deficits: each stat below its
+        threshold contributes independently, and multiple low stats compound
+        upward without any single one being suppressed.
+        """
+        complement = 1.0
+        for stat, threshold in cls._REJECTION_THRESHOLDS.items():
+            val = getattr(context, stat, 100)
+            if val < threshold:
+                deficit = (threshold - val) / threshold
+                complement *= (1.0 - deficit)
+        return 1.0 - complement
+
     def get_completion_bonus(self, context):
+        if self._rejecting:
+            return {}
         bonus = dict(VARIANTS[self._variant].get("stats", {}))
         return self.apply_location_bonus(context, bonus)
 
@@ -126,8 +173,15 @@ class PlayingBehavior(BaseBehavior):
             bonus['fitness'] = bonus.get('fitness', 0) + 0.01
         return bonus
 
+    def next(self, context):
+        if self._rejecting:
+            return 'meandering'
+        return None
+
     def __init__(self, character):
         super().__init__(character)
+        self._rejecting = False
+        self._rejection_timeout = 15.0
 
         # Default variant timing
         self.excited_duration = random.uniform(1.0, 3.0)
@@ -197,6 +251,13 @@ class PlayingBehavior(BaseBehavior):
         self._eye_frame_override = None
         self._session_timer = 0.0
 
+        context = self._character.context
+        if context:
+            chance = self._rejection_chance(context)
+            self._rejecting = random.random() < chance
+        else:
+            self._rejecting = False
+
         if self._variant == "ball":
             self._start_ball()
         elif self._variant == "laser":
@@ -208,6 +269,10 @@ class PlayingBehavior(BaseBehavior):
             self._bubble = config.get("bubble")
             self._phase = "excited"
             self._character.set_pose("sitting.side.happy")
+
+        if self._rejecting:
+            self._character.set_pose(random.choice(self.REJECTION_POSES))
+            self._rejection_timeout = random.uniform(10.0, 20.0)
 
     def _start_laser(self):
         """Initialise the laser variant state and enter the watching phase."""
@@ -262,6 +327,10 @@ class PlayingBehavior(BaseBehavior):
             return
         self._phase_timer += dt
         self._session_timer += dt
+
+        if self._rejecting and self._session_timer >= self._rejection_timeout:
+            self.stop(completed=True)
+            return
 
         # B button ends the session early; reward given only if enough time has passed
         inp = getattr(self._character.context, 'input', None)
@@ -343,9 +412,11 @@ class PlayingBehavior(BaseBehavior):
         """Count down to the next pounce."""
         self._pounce_timer -= dt
         if self._pounce_timer <= 0:
-            self._pounces_done += 1
-            self._begin_pounce(self._ball_offset_x)
-            return
+            if not self._rejecting:
+                self._pounces_done += 1
+                self._begin_pounce(self._ball_offset_x)
+                return
+            self._pounce_timer = random.uniform(BALL_POUNCE_DELAY_MIN, BALL_POUNCE_DELAY_MAX)
 
         self._progress = self._pounces_done / self._pounces_total
 
@@ -526,9 +597,11 @@ class PlayingBehavior(BaseBehavior):
         if self._phase == "watching":
             self._pounce_timer -= dt
             if self._pounce_timer <= 0:
-                self._pounces_done += 1
-                self._begin_pounce(self._str_px[n - 1] - char_x)
-                return
+                if not self._rejecting:
+                    self._pounces_done += 1
+                    self._begin_pounce(self._str_px[n - 1] - char_x)
+                    return
+                self._pounce_timer = random.uniform(STRING_POUNCE_DELAY_MIN, STRING_POUNCE_DELAY_MAX)
             self._progress = self._pounces_done / self._pounces_total
 
     def _update_string_pounce(self, dt):
@@ -593,9 +666,11 @@ class PlayingBehavior(BaseBehavior):
         """Count down to the next pounce."""
         self._pounce_timer -= dt
         if self._pounce_timer <= 0:
-            self._pounces_done += 1
-            self._begin_pounce(self._laser_offset_x)
-            return
+            if not self._rejecting:
+                self._pounces_done += 1
+                self._begin_pounce(self._laser_offset_x)
+                return
+            self._pounce_timer = random.uniform(LASER_POUNCE_DELAY_MIN, LASER_POUNCE_DELAY_MAX)
 
         self._progress = self._pounces_done / self._pounces_total
 
