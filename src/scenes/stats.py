@@ -162,7 +162,7 @@ class StatsScene(Scene):
             )
 
         # Progress bar (same for selected and unselected)
-        bar_w = int(value / 100 * 13)
+        bar_w = int(value / 100 * (CELL_W - 2))
         if bar_w > 0:
             self.renderer.draw_rect(bx + 1, by + 17, bar_w, 2, filled=True, color=1)
 
