@@ -20,6 +20,9 @@ class SceneManager:
         'assets.character',
         'assets.items',
         'assets.plants',
+        'assets.furniture',
+        'assets.nature',
+        'sky',
     }
 
     def __init__(self, context, renderer, input_handler):
@@ -50,6 +53,7 @@ class SceneManager:
             duration=config.TRANSITION_DURATION
         )
         self.pending_scene_class = None
+        self.pending_scene_name = None
 
         # Accumulates MODULES_TO_KEEP from every scene ever instantiated,
         # so we know which modules are "scene-specific" and can purge them
@@ -123,10 +127,24 @@ class SceneManager:
             gc.collect()
 
     def change_scene_by_name(self, name):
-        """Change scene using registered name"""
-        scene_class = self._get_scene_class(name)
-        if scene_class:
-            self.change_scene(scene_class)
+        """Change scene using registered name, deferring the import to the transition midpoint."""
+        if name not in self._scene_registry:
+            return
+
+        # Don't start a new transition if one is already active
+        if self.transitions.active:
+            return
+
+        # If no current scene, import and switch immediately (initial load)
+        if self.current_scene is None:
+            scene_class = self._get_scene_class(name)
+            if scene_class:
+                self._perform_scene_switch(scene_class)
+            return
+
+        # Store pending name and start transition; import deferred to midpoint
+        self.pending_scene_name = name
+        self.transitions.start(on_midpoint=self._on_transition_midpoint)
 
     def change_scene(self, scene_class):
         """Start a transition to a new scene"""
@@ -148,7 +166,12 @@ class SceneManager:
 
     def _on_transition_midpoint(self):
         """Called at transition midpoint to perform the scene switch."""
-        if self.pending_scene_class:
+        if self.pending_scene_name:
+            scene_class = self._get_scene_class(self.pending_scene_name)
+            self.pending_scene_name = None
+            if scene_class:
+                self._perform_scene_switch(scene_class)
+        elif self.pending_scene_class:
             self._perform_scene_switch(self.pending_scene_class)
             self.pending_scene_class = None
 
@@ -383,10 +406,7 @@ class SceneManager:
         action_type = action[0]
 
         if action_type == 'scene':
-            scene_name = action[1]
-            scene_class = self._get_scene_class(scene_name)
-            if scene_class:
-                self.change_scene(scene_class)
+            self.change_scene_by_name(action[1])
         elif action_type == 'context':
             if action[1] == 'save':
                 self.context.save()
