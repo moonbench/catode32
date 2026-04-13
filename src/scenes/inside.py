@@ -10,7 +10,6 @@ from clock import ClockWidget
 
 class InsideScene(MainScene):
     SCENE_NAME = 'inside'
-    MODULES_TO_KEEP = ['assets.furniture', 'assets.nature', 'assets.plants', 'sky', 'clock']
 
     # Valid surfaces for plant placement.
     # x_exclude: (x_min, x_max) world range where placement is blocked (behind bookshelf).

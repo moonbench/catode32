@@ -101,8 +101,6 @@ _HL_H = _ICON_Y + 17 - _HL_Y   # top of rect to bottom of icon
 class ForecastScene(Scene):
     """Horizontally-scrollable 3-hourly weather forecast (72 hours)."""
 
-    MODULES_TO_KEEP = ['weather_system']
-
     def __init__(self, context, renderer, input_handler):
         super().__init__(context, renderer, input_handler)
         self._slots = []

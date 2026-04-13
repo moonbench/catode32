@@ -142,8 +142,6 @@ def _format_time(secs):
 # ---------------------------------------------------------------------------
 
 class HanjieScene(Scene):
-    MODULES_TO_KEEP = []
-
     def __init__(self, context, renderer, input_handler):
         super().__init__(context, renderer, input_handler)
         self.character = None

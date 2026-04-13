@@ -7,7 +7,6 @@ from ui_keyboard import OnScreenKeyboard
 
 class PetInfoScene(Scene):
     SCENE_NAME = 'pet_info'
-    MODULES_TO_KEEP = ['ui_keyboard']
 
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)

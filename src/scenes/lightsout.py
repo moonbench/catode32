@@ -31,7 +31,7 @@ WIN_RESET_DELAY = 3.0  # seconds before auto-reset after win
 class LightsOutScene(Scene):
     """Lights Out puzzle minigame"""
 
-    MODULES_TO_KEEP = []
+
 
     def __init__(self, context, renderer, input_handler):
         super().__init__(context, renderer, input_handler)

@@ -8,7 +8,6 @@ from sky import SkyRenderer
 
 class TreehouseScene(MainScene):
     SCENE_NAME = 'treehouse'
-    MODULES_TO_KEEP = ['assets.nature', 'assets.plants', 'assets.furniture', 'sky']
 
     PLANT_SURFACES = [
         {'y_snap': 63, 'layer': 'foreground'},

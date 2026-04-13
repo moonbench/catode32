@@ -44,7 +44,6 @@ _CRITTER_SPECS = [
 
 class OutsideScene(MainScene):
     SCENE_NAME = 'outside'
-    MODULES_TO_KEEP = ['assets.nature', 'assets.plants', 'sky', 'entities.butterfly', 'entities.jumper']
 
     PLANT_SURFACES = [
         {'y_snap': 63, 'layer': 'foreground'},

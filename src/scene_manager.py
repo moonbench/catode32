@@ -12,18 +12,39 @@ from assets.icons import WRENCH_ICON, SUN_ICON, HOUSE_ICON, STATS_ICON, MINIGAME
 class SceneManager:
     """Manages scene loading, unloading, and transitions"""
 
-    # Modules always kept in memory regardless of which scenes are active.
-    # These are imported by core modules (ui, scene_manager, entity behaviors).
-    _GLOBAL_MODULES_TO_KEEP = {
-        'assets.icons',
+    # Modules that survive every scene transition once loaded.
+    # Includes heavy asset data and the shared infrastructure that every
+    # location scene depends on — purging and reimporting these each transition
+    # is pure churn with no memory benefit.
+    _PINNED_MODULES = frozenset({
+        # Asset data
+        'assets.character',     # 109 KB sprite data
         'assets.effects',
-        'assets.character',
         'assets.items',
         'assets.plants',
         'assets.furniture',
         'assets.nature',
+        # Sky / environment
         'sky',
-    }
+        'environment',
+        'clock',
+        # Scene base classes
+        'scene',
+        'scenes',               # namespace package, registered on any scenes.* import
+        'scenes.main_scene',
+        # Entity / behavior system
+        'entities',
+        'entities.entity',
+        'entities.character',
+        'entities.behaviors',
+        'entities.behaviors.base',
+        'entities.behaviors.idle',
+        'behavior_manager',
+        # Plant / gardening system
+        'plant_system',
+        'plant_renderer',
+        'gardening_ui',
+    })
 
     def __init__(self, context, renderer, input_handler):
         self.context = context
@@ -32,11 +53,6 @@ class SceneManager:
 
         self.current_scene = None
         self.next_scene_class = None
-
-        # Track loaded scenes for memory management
-        self.scene_cache = {}
-        self.scene_access_order = []  # Track LRU order explicitly
-        self.max_cached_scenes = 2  # Limit cached scenes for memory
 
         # Overlay management (menus, settings, dialogs)
         self.overlays = OverlayManager()
@@ -47,18 +63,13 @@ class SceneManager:
         self._scene_registry = self._build_scene_registry()
 
         # Transition manager
-        self.transitions = TransitionManager(
-            renderer,
-            transition_type=config.TRANSITION_TYPE,
-            duration=config.TRANSITION_DURATION
-        )
+        self.transitions = TransitionManager(renderer, duration=config.TRANSITION_DURATION)
         self.pending_scene_class = None
         self.pending_scene_name = None
 
-        # Accumulates MODULES_TO_KEEP from every scene ever instantiated,
-        # so we know which modules are "scene-specific" and can purge them
-        # when no cached scene claims them.
-        self._known_scene_modules = set()
+        # Snapshot of sys.modules after all core infrastructure is loaded.
+        # Anything not in this set is fair game to purge on scene exit.
+        self._baseline_modules = frozenset(sys.modules)
 
     def _build_scene_registry(self):
         """Build registry of scene names to (module_path, class_name) tuples.
@@ -105,12 +116,7 @@ class SceneManager:
         """Return a scene class by name, importing it lazily if needed."""
         if name not in self._scene_registry:
             return None
-
         module_path, class_name = self._scene_registry[name]
-
-        # Defragment before import so the module has the best chance of finding
-        # a contiguous block large enough for its bytecode.
-        gc.collect()
         module = __import__(module_path, None, None, [class_name])
         return getattr(module, class_name)
 
@@ -124,7 +130,6 @@ class SceneManager:
         if module_path in sys.modules:
             print(f"Unloading module: {module_path}")
             del sys.modules[module_path]
-            gc.collect()
 
     def change_scene_by_name(self, name):
         """Change scene using registered name, deferring the import to the transition midpoint."""
@@ -167,83 +172,46 @@ class SceneManager:
     def _on_transition_midpoint(self):
         """Called at transition midpoint to perform the scene switch."""
         if self.pending_scene_name:
-            scene_class = self._get_scene_class(self.pending_scene_name)
+            name = self.pending_scene_name
             self.pending_scene_name = None
-            if scene_class:
-                self._perform_scene_switch(scene_class)
+            self._perform_scene_switch(scene_name=name)
         elif self.pending_scene_class:
-            self._perform_scene_switch(self.pending_scene_class)
+            scene_class = self.pending_scene_class
             self.pending_scene_class = None
+            self._perform_scene_switch(scene_class=scene_class)
 
-    def _perform_scene_switch(self, scene_class):
+    def _perform_scene_switch(self, scene_class=None, scene_name=None):
         """Actually switch to a new scene (called at transition midpoint)"""
-        # Exit current scene
+        # Exit and unload current scene first to maximise free heap before import
         if self.current_scene:
             self.current_scene.exit()
-
-        # Check if we have this scene cached
-        scene_name = scene_class.__name__
-
-        if scene_name in self.scene_cache:
-            # Reuse cached scene
-            print(f"Reusing cached scene: {scene_name}")
-            self.current_scene = self.scene_cache[scene_name]
-            # Move to end of access order (most recently used)
-            self.scene_access_order.remove(scene_name)
-            self.scene_access_order.append(scene_name)
-        else:
-            # Create new scene instance
-            print(f"Creating new scene: {scene_name}")
-            self.current_scene = scene_class(
-                self.context, self.renderer, self.input
-            )
-            self.current_scene.load()
-
-            # Track which modules this scene declares as scene-specific
-            self._known_scene_modules.update(scene_class.MODULES_TO_KEEP)
-
-            # Add to cache and access order
-            self.scene_cache[scene_name] = self.current_scene
-            self.scene_access_order.append(scene_name)
-
-            # Check cache size and clean if needed
-            self._manage_cache()
-
-        # Enter the new scene
-        self.current_scene.enter()
-        
-    def _manage_cache(self):
-        """Remove old scenes if cache is too large"""
-        evicted = False
-        while len(self.scene_cache) > self.max_cached_scenes:
-            # Remove the least recently used scene (first in access order)
-            oldest_class_name = self.scene_access_order.pop(0)
-            print(f"Unloading cached scene: {oldest_class_name}")
-            self.scene_cache[oldest_class_name].unload()
-            del self.scene_cache[oldest_class_name]
-
-            # Also unload the module to free memory
-            # Find the registry name for this class
+            self.current_scene.unload()
+            scene_class_name = type(self.current_scene).__name__
             for reg_name, (_, class_name) in self._scene_registry.items():
-                if class_name == oldest_class_name:
+                if class_name == scene_class_name:
                     self._unload_scene_module(reg_name)
                     break
-            evicted = True
+            self.current_scene = None
+            self._purge_scene_modules()  # includes gc.collect()
 
-        if evicted:
-            self._purge_unused_scene_modules()
+        # Import new scene module now, with maximum free heap
+        if scene_name and scene_class is None:
+            scene_class = self._get_scene_class(scene_name)
 
-    def _purge_unused_scene_modules(self):
-        """Remove scene-specific modules from sys.modules not needed by any cached scene."""
-        keep = set(self._GLOBAL_MODULES_TO_KEEP)
-        for scene in self.scene_cache.values():
-            keep.update(type(scene).MODULES_TO_KEEP)
+        if not scene_class:
+            return
 
+        # Create new scene instance
+        print(f"Creating new scene: {scene_class.__name__}")
+        self.current_scene = scene_class(self.context, self.renderer, self.input)
+        self.current_scene.load()
+        self.current_scene.enter()
+
+    def _purge_scene_modules(self):
+        """Remove any modules loaded after startup, except pinned asset modules."""
         to_remove = [
             mod for mod in sys.modules
-            if mod not in keep and (
-                mod.startswith('assets.') or mod in self._known_scene_modules
-            )
+            if mod not in self._baseline_modules and mod not in self._PINNED_MODULES
         ]
         for mod_name in to_remove:
             print(f"Purging module: {mod_name}")
@@ -414,9 +382,7 @@ class SceneManager:
                 self.context.reset()
 
     def unload_all(self):
-        """Unload all cached scenes - call this on shutdown"""
-        for scene_name, scene in self.scene_cache.items():
-            print(f"Unloading scene: {scene_name}")
-            scene.unload()
-        self.scene_cache.clear()
-        self.scene_access_order.clear()
+        """Unload current scene - call this on shutdown"""
+        if self.current_scene:
+            self.current_scene.unload()
+            self.current_scene = None

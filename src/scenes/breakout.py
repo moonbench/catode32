@@ -17,7 +17,7 @@ BRICK_SPECIAL = 2
 class BreakoutScene(Scene):
     """Breakout/brick breaker minigame"""
 
-    MODULES_TO_KEEP = ['assets.minigame_character', 'assets.minigame_assets']
+
 
     # Brick dimensions
     BRICK_WIDTH = 6

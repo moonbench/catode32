@@ -105,7 +105,6 @@ def _generate_icons(count):
 
 
 class MemoryScene(Scene):
-    MODULES_TO_KEEP = []
 
     def __init__(self, context, renderer, input_handler):
         super().__init__(context, renderer, input_handler)

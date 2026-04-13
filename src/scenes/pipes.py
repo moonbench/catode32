@@ -151,8 +151,6 @@ def _gen_solution(ptypes_out, rots_out, on_path_out):
 class PipeScene(Scene):
     """Pipe routing minigame"""
 
-    MODULES_TO_KEEP = ['assets.minigame_assets']
-
     def __init__(self, context, renderer, input_handler):
         super().__init__(context, renderer, input_handler)
         self.options_menu = Menu(renderer, input_handler)

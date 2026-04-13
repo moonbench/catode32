@@ -5,8 +5,6 @@ from settings import Settings, SettingItem
 class EnvironmentSettingsScene(Scene):
     """Scene for editing environment settings (time of day, season, weather, etc.)"""
 
-    MODULES_TO_KEEP = ['settings']
-
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)
         self.settings = Settings(renderer, input)

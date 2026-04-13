@@ -79,8 +79,7 @@ FPS = 12  # Target frames per second
 FRAME_TIME_MS = 1000 // FPS  # Milliseconds per frame
 
 # Transition Settings
-TRANSITION_TYPE = 'fade'        # 'fade', 'wipe', 'iris'
-TRANSITION_DURATION = 0.4       # seconds per half-transition (total is 2x this)
+TRANSITION_DURATION = 0.25      # seconds per half-transition (total is 2x this)
 
 # Panning Settings
 PAN_SPEED = 2  # pixels per frame when D-pad held

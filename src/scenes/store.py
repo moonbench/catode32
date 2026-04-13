@@ -86,7 +86,6 @@ _ART_X = 64
 
 
 class StoreScene(Scene):
-    MODULES_TO_KEEP = []
 
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)

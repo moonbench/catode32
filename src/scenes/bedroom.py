@@ -8,7 +8,6 @@ from assets.items import YARN_BALL
 
 class BedroomScene(MainScene):
     SCENE_NAME = 'bedroom'
-    MODULES_TO_KEEP = ['assets.furniture', 'assets.nature', 'assets.plants', 'assets.items']
 
     PLANT_SURFACES = [
         {'y_snap': 63, 'layer': 'foreground', 'x_min': 34,  'x_max': 182},

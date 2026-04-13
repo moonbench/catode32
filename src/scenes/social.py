@@ -30,7 +30,6 @@ _ST_VISITING = 3   # visit active; showing leave option
 
 class SocialScene(Scene):
     SCENE_NAME = 'social'
-    MODULES_TO_KEEP = []
 
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)

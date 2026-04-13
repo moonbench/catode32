@@ -8,7 +8,6 @@ from clock import ClockWidget
 
 class KitchenScene(MainScene):
     SCENE_NAME = 'kitchen'
-    MODULES_TO_KEEP = ['assets.furniture', 'assets.nature', 'assets.plants']
 
     PLANT_SURFACES = [
         {'y_snap': 63, 'layer': 'foreground', 'x_min': 0,  'x_max': 180},

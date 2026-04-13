@@ -19,8 +19,6 @@ WALL_W = 8
 class MazeScene(Scene):
     """Maze minigame - guide cat to fish through a maze"""
 
-    MODULES_TO_KEEP = ['assets.minigame_character']
-
     # Grid constants
     GRID_WIDTH = 25
     GRID_HEIGHT = 12

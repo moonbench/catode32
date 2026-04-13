@@ -10,7 +10,7 @@ _STEP = 16
 class DebugLedScene(Scene):
     """Debug scene to control the onboard WS2812 RGB LED on GPIO8."""
 
-    MODULES_TO_KEEP = ['settings']
+
 
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)

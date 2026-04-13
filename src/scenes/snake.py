@@ -28,8 +28,6 @@ STATE_LOSE    = 3
 
 
 class SnakeScene(Scene):
-    MODULES_TO_KEEP = ['assets.minigame_assets']
-
     def enter(self):
         self._init_game()
 
