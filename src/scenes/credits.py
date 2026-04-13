@@ -5,6 +5,8 @@ Up/Down to scroll, B or Menu to exit.
 from scene import Scene
 from ui import Popup
 
+VERSION = "0.0.1"
+
 CREDITS = """\
    Catode 32   
 ===============
@@ -115,8 +117,7 @@ Made with love!
  \__________/
 
 ===============
-\
-"""
+""" + f"   v{VERSION}"
 
 
 class CreditsScene(Scene):
