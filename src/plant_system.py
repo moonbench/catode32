@@ -24,25 +24,40 @@ _PLANT_TYPES = {
     'cat_grass': {
         'wilt': 1440, 'death': 4320, 'recover': 240,  # 1 day / 3 days
         'stage_hours': (2880, 3600, 4320, 5040),       # 2, 2.5, 3, 3.5 real days
+        'water_rate': 0.5,   # slow consumer; effective wilt ~2 real days at thriving
     },
     'freesia': {
         'wilt': 1440, 'death': 4320, 'recover': 120,  # 1 day / 3 days
         'stage_hours': (4320, 5040, 6480, 7200),       # 3, 3.5, 4.5, 5 real days
         'dormant_in_winter': True,
+        'water_rate': 0.75,  # moderate consumer
     },
     'rose': {
         'wilt': 1440, 'death': 4320, 'recover': 120,  # 1 day / 3 days
         'stage_hours': (5040, 6480, 7200, 7200),       # 3.5, 4.5, 5, 5 real days
+        'water_rate': 1.0,   # most demanding; matches current baseline
     },
     'sunflower': {
         'wilt': 2880, 'death': 5760, 'recover': 240,  # 2 days / 4 days
         'stage_hours': (2880, 4320, 5760, 7200, 7200), # 2, 3, 4, 5 real days (last unused)
         'indoor_max': 'growing',
+        'water_rate': 1.0,   # already more tolerant via higher wilt threshold
         # Annuals die naturally: wilt after 19 real days, dead 2 days later.
         # Outdoor: reaches thriving at ~14d; spends ~5d there before end of life.
         'max_age_hours': 27360,        # 19 real days
         'max_age_death_window': 2880,  # 2 real days in wilted state before dead
     },
+}
+
+# Water debt multiplier per growth stage.
+# Applied on top of the type's water_rate when the plant is healthy.
+# Wilted plants always accumulate at a flat rate of 1.0/hr regardless of these.
+_STAGE_WATER_MULT = {
+    'seedling': 0.4,
+    'young':    0.6,
+    'growing':  0.8,
+    'mature':   0.9,
+    'thriving': 1.0,
 }
 
 # Maximum growth stage permitted per pot type.
@@ -186,7 +201,14 @@ def tick_plant(plant, season, weather='Clear'):
 
     # --- Normal hour accumulation ---
     plant['age_hours'] = plant.get('age_hours', 0) + 1
-    plant['water_debt_hours'] = plant.get('water_debt_hours', 0) + 1
+    # Wilted plants drain at a flat 1.0/hr so the wilt→death window stays
+    # consistent regardless of type or stage.  Healthy plants use a per-type
+    # base rate multiplied by a per-stage factor (smaller plants need less water).
+    if _is_wilted(stage):
+        debt_inc = 1.0
+    else:
+        debt_inc = ptype.get('water_rate', 1.0) * _STAGE_WATER_MULT.get(stage, 1.0)
+    plant['water_debt_hours'] = plant.get('water_debt_hours', 0) + debt_inc
     plant['fertilizer'] = max(0.0, plant.get('fertilizer', 0.0) - _FERT_DECAY)
 
     # --- Rain / storm watering for outdoor plants ---
