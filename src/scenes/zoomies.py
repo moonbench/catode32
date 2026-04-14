@@ -21,18 +21,18 @@ class ZoomiesScene(Scene):
 
     # Game constants
     GROUND_Y = 54  # Y position of the ground line
-    PLAYER_X = 4  # Fixed X position of player
-    GRAVITY = 250  # Pixels per second squared
-    JUMP_VELOCITY = -140  # Initial jump velocity (negative = up)
+    PLAYER_X = 2  # Fixed X position of player
+    GRAVITY = 207  # Pixels per second squared
+    JUMP_VELOCITY = -136  # Initial jump velocity (negative = up)
     BASE_SPEED = 48  # Starting speed (pixels per second)
-    MAX_SPEED = 132  # Maximum speed
-    SPEED_INCREASE_INTERVAL = 5  # Points between speed increases
-    SPAWN_MIN = 1.3  # Minimum seconds between obstacles
-    SPAWN_MAX = 3.0  # Maximum seconds between obstacles
-    CLOUD_SPEED_RATIO = 0.2  # Cloud speed as ratio of ground speed
-    BIRD_CHANCE = 0.2  # Chance to spawn a bird instead of ground obstacle
-    BIRD_Y_LOW = 38  # Bird y position when low (jump over)
-    BIRD_Y_HIGH = 24  # Bird y position when high (duck under / stay on ground)
+    MAX_SPEED = 144  # Maximum speed
+    SPEED_INCREASE_INTERVAL = 7  # Points between speed increases
+    SPAWN_MIN = 0.75  # Minimum seconds between obstacles
+    SPAWN_MAX = 2.25  # Maximum seconds between obstacles
+    CLOUD_SPEED_RATIO = 0.3  # Cloud speed as ratio of ground speed
+    BIRD_CHANCE = 0.22  # Chance to spawn a bird instead of ground obstacle
+    BIRD_Y_LOW = 40  # Bird y position when low (jump over)
+    BIRD_Y_HIGH = 25  # Bird y position when high (duck under / stay on ground)
 
     def __init__(self, context, renderer, input):
         super().__init__(context, renderer, input)
@@ -92,7 +92,7 @@ class ZoomiesScene(Scene):
 
     def _add_decor_at(self, x):
         """Add a decoration element at the given x position"""
-        self.ground_decor.append([float(x), random.randint(0, 2)])
+        self.ground_decor.append([float(x), random.randint(1, 4)])
 
     def _init_ground_bumps(self):
         """Initialize ground bumps on the ground line"""
@@ -162,7 +162,7 @@ class ZoomiesScene(Scene):
 
         # Update player physics
         if self.is_jumping:
-            gravity_mult = 1.0 if (self.input.is_pressed('a') or self.input.is_pressed('up')) else 1.5
+            gravity_mult = 1.0 if (self.input.is_pressed('a') or self.input.is_pressed('up')) else 2.0
             self.player_vy += self.GRAVITY * gravity_mult * dt
             self.player_y += self.player_vy * dt
 
@@ -202,10 +202,12 @@ class ZoomiesScene(Scene):
         self.spawn_timer -= dt
         if self.spawn_timer <= 0:
             self._spawn_obstacle()
-            if self.current_speed < 80:
-                self.spawn_timer = random.uniform(self.SPAWN_MIN, self.SPAWN_MAX)
+            if self.current_speed < (self.BASE_SPEED + 40):
+                self.spawn_timer = random.uniform(self.SPAWN_MIN * 1.5, self.SPAWN_MAX * 1.25)
+            elif self.current_speed > (self.MAX_SPEED -20):
+                self.spawn_timer = random.uniform(self.SPAWN_MIN * 1.0, self.SPAWN_MAX * 0.75)
             else:
-                self.spawn_timer = random.uniform(self.SPAWN_MIN * 0.6, self.SPAWN_MAX * 0.8)
+                self.spawn_timer = random.uniform(self.SPAWN_MIN, self.SPAWN_MAX)
 
         # Update ground decorations: move and filter in one pass
         keep = []
@@ -277,7 +279,6 @@ class ZoomiesScene(Scene):
                     ('FREESIA_THRIVING', FREESIA_THRIVING),
                 ]
             name, chosen = random.choice(options)
-            print(f"[zoomies] spawn: {name}")
             self.obstacles.append([chosen, float(config.DISPLAY_WIDTH + 5), -1.0, -1.0, False])
 
     def _check_collisions(self):
