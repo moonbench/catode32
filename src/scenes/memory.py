@@ -1,18 +1,20 @@
 """
-Memory minigame - find matching pairs on an 11x8 grid
+Memory minigame - find matching pairs. Board grows over rounds:
+  round 1: 9x6, round 2: 10x7, round 3+: 11x8
 """
 import random
 from scene import Scene
 from entities.character import CharacterEntity
 from ui import Popup
 
-COLS = 11
-ROWS = 8
+MAX_COLS = 11
+MAX_ROWS = 8
 CELL = 8            # pixels per cell
-TOTAL = COLS * ROWS  # 88
-PAIRS = TOTAL // 2  # 44
+MAX_TOTAL = MAX_COLS * MAX_ROWS  # 88 - used as reward cap
+MAX_PAIRS = MAX_TOTAL // 2       # 44
 
-PANEL_X = COLS * CELL  # 88 - right panel starts here
+# Board sizes per round (0-indexed): 9x6, 10x7, 11x8+
+_BOARD_SIZES = ((9, 6), (10, 7), (11, 8))
 
 # Cell states
 _HIDDEN         = 0
@@ -111,7 +113,7 @@ class MemoryScene(Scene):
         self.character = None
         self.icons = []
         self.cell_icons = []
-        self.cell_state = bytearray(TOTAL)
+        self.cell_state = bytearray(MAX_TOTAL)
         self.cursor = 0
         self.first_flipped = -1
         self.second_flipped = -1
@@ -123,6 +125,13 @@ class MemoryScene(Scene):
         self.match_show_timer = 0.0
         self.recently_solved = []
         self.win_timer = 0.0
+        self.game_count = 0
+        # Board dimensions — set properly in _init_game
+        self.cols = MAX_COLS
+        self.rows = MAX_ROWS
+        self.total = MAX_TOTAL
+        self.pairs = MAX_PAIRS
+        self.panel_x = MAX_COLS * CELL
 
     def load(self):
         super().load()
@@ -140,7 +149,7 @@ class MemoryScene(Scene):
     def exit(self):
         total_solved = self.total_solved + self.solved_count
         if total_solved > 0:
-            progress = (total_solved / (PAIRS * 2)) ** 0.5
+            progress = min(1.0, total_solved / MAX_TOTAL) ** 0.5
             self.context.apply_stat_changes({
                 'intelligence': 5 * progress,
                 'focus':        4 * progress,
@@ -153,16 +162,26 @@ class MemoryScene(Scene):
 
     def _init_game(self):
         self.total_solved += self.solved_count
-        self.icons = _generate_icons(PAIRS)
+
+        # Board grows with each successive game in the session
+        cols, rows = _BOARD_SIZES[min(self.game_count, len(_BOARD_SIZES) - 1)]
+        self.cols = cols
+        self.rows = rows
+        self.total = cols * rows
+        self.pairs = self.total // 2
+        self.panel_x = cols * CELL
+        self.game_count += 1
+
+        self.icons = _generate_icons(self.pairs)
 
         # Two copies of each icon index, shuffled
-        assign = list(range(PAIRS)) + list(range(PAIRS))
-        for i in range(TOTAL - 1, 0, -1):
+        assign = list(range(self.pairs)) + list(range(self.pairs))
+        for i in range(self.total - 1, 0, -1):
             j = random.randint(0, i)
             assign[i], assign[j] = assign[j], assign[i]
 
         self.cell_icons = assign
-        self.cell_state = bytearray(TOTAL)
+        self.cell_state = bytearray(self.total)
         self.cursor = 0
         self.first_flipped = -1
         self.second_flipped = -1
@@ -186,18 +205,18 @@ class MemoryScene(Scene):
                 self._init_game()
             return
 
-        col = self.cursor % COLS
-        row = self.cursor // COLS
+        col = self.cursor % self.cols
+        row = self.cursor // self.cols
         inp = self.input
 
         if inp.was_just_pressed('left') and col > 0:
             self.cursor -= 1
-        elif inp.was_just_pressed('right') and col < COLS - 1:
+        elif inp.was_just_pressed('right') and col < self.cols - 1:
             self.cursor += 1
         elif inp.was_just_pressed('up') and row > 0:
-            self.cursor -= COLS
-        elif inp.was_just_pressed('down') and row < ROWS - 1:
-            self.cursor += COLS
+            self.cursor -= self.cols
+        elif inp.was_just_pressed('down') and row < self.rows - 1:
+            self.cursor += self.cols
 
         if inp.was_just_pressed('a'):
             self._try_flip(self.cursor)
@@ -228,7 +247,7 @@ class MemoryScene(Scene):
                 self.first_flipped = -1
                 self.character.set_pose("sitting.side.happy")
 
-                if self.solved_count == TOTAL:
+                if self.solved_count == self.total:
                     best = self.context.memory_best_score
                     if best < 0 or self.score < best:
                         self.context.memory_best_score = self.score
@@ -278,9 +297,9 @@ class MemoryScene(Scene):
     def draw(self):
         r = self.renderer
 
-        for i in range(TOTAL):
-            col = i % COLS
-            row = i // COLS
+        for i in range(self.total):
+            col = i % self.cols
+            row = i // self.cols
             cx = col * CELL
             cy = row * CELL
             st = self.cell_state[i]
@@ -308,14 +327,14 @@ class MemoryScene(Scene):
                   self.second_flipped if self.state == STATE_MISMATCH else -1):
             if i < 0:
                 continue
-            cx = (i % COLS) * CELL
-            cy = (i // COLS) * CELL
+            cx = (i % self.cols) * CELL
+            cy = (i // self.cols) * CELL
             r.draw_rect(cx - 2, cy - 2, 12, 12, filled=True, color=0)
             r.draw_sprite(self.icons[self.cell_icons[i]], 8, 8, cx, cy)
             r.draw_rect(cx - 2, cy - 2, 12, 12, filled=False)
 
         # Right panel: score at top
-        r.draw_text(str(self.score), PANEL_X + 4, 2)
+        r.draw_text(str(self.score), self.panel_x + 4, 2)
 
         # Cat avatar
         if self.character:
