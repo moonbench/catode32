@@ -5,7 +5,8 @@ Up/Down to scroll, B or Menu to exit.
 from scene import Scene
 from ui import Popup
 
-VERSION = "0.0.1"
+YEAR = "2026"
+VERSION = "0.0.2"
 
 CREDITS = """\
    Catode 32   
@@ -24,21 +25,15 @@ _______________
 This pet was
 inspired by my
 two wonderful
-cats.
-
-My sweet and
+cats. My sweet
+and very
 intelligent
 tortoiseshell
 girl, Bean,
 and her cute,
 rambunctious,
-adopted younger
 black sister,
 Juno.
-
-They are both
-full of so
-much love.
 
 I started to
 create the art
@@ -52,29 +47,25 @@ into reality
 after adopting
 Juno.
 
-Their great
+Their sweet
 personalities
 inspired the
-cat in this toy
-and it wouldn't
+pet in this
+virtual toy.
+It wouldn't
 exist without
-them!
+them and their
+love.
 
-I took so many
-breaks while
-working on this
-to give them
-lots of love
-and attention!
 _______________
 
-I also want
-to give thanks
-to my friends
-and family who
+I want to give
+thanks to my
+friends and
+family who
 helped test
 this and who
-provided warm
+provided their
 encouragment
 and support.
 _______________
@@ -87,17 +78,18 @@ the projects
 that this was
 built upon.
 
-The source code
+In that spirit,
+the source code
 for this pet is
 available. Just
 search for
 "catode32".
 _______________
 
-Oh, and if you
-have the time
-and space, then
-please consider
+If you have the
+time and space,
+then I hope you
+will consider
 adopting a real
 pet from your
 local animal
@@ -107,17 +99,17 @@ of love too!
 _______________
 
 
-Made with love!
-
 |\          /|
 | \________/ |
 |            |
 |  /\    /\  |
-\    ,__,    /
- \__________/
+==          ==
+ \   ,__,   /
+  \________/
 
 ===============
-""" + f"   v{VERSION}"
+
+""" + f"Catode32 - {YEAR}\nv{VERSION}"
 
 
 class CreditsScene(Scene):
