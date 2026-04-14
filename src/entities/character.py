@@ -61,7 +61,9 @@ class CharacterEntity(Entity):
         if context:
             from behavior_manager import BehaviorManager
             self.behavior_manager = BehaviorManager(self)
+            _prior = getattr(context, 'current_behavior_name', None)
             self.behavior_manager.trigger('idle')
+            context.current_behavior_name = _prior
 
     def trigger(self, name, **kwargs):
         """Interrupt the current behavior and start a player-initiated one.

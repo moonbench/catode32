@@ -65,7 +65,13 @@ class MainScene(Scene):
         if self.SCENE_NAME:
             self.context.last_main_scene = self.SCENE_NAME
         if self.character:
-            self.character.x = self.ENTRY_X
+            saved_x = getattr(self.context, 'saved_cat_x', None)
+            x_min = getattr(self.context, 'scene_x_min', 10)
+            x_max = getattr(self.context, 'scene_x_max', 118)
+            if saved_x is not None and x_min <= saved_x <= x_max:
+                self.character.x = saved_x
+            else:
+                self.character.x = self.ENTRY_X
 
         # Offset cats to opposite sides when a visit is active
         if self.context.visit is not None:
@@ -94,7 +100,7 @@ class MainScene(Scene):
                     move_plant(self.context, _pid, self.SCENE_NAME, layer, x, y_snap)
                 self._placement.enter(plant['pot'], self, on_confirm=_on_cross_scene_move)
 
-        if self.character and not self.character.current_behavior.active:
+        if self.character:
             self.character.behavior_manager.resume_prior_behavior()
 
     def on_enter(self):
@@ -104,6 +110,7 @@ class MainScene(Scene):
     def exit(self):
         tick_plants(self.context)
         if self.character:
+            self.context.saved_cat_x = self.character.x
             self.character.behavior_manager.stop_current()
         self.environment.custom_draws.clear()
         vm = getattr(self.context, 'visit_manager', None)
