@@ -48,30 +48,7 @@ mp() {
     fi
 }
 
-echo "Step 1: Checking connection..."
-if mp fs ls / > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ Connected to device${NC}"
-else
-    echo -e "${RED}✗ Failed to connect to device${NC}"
-    echo ""
-    echo "  If boot.py is installed, hold A+B while running this script"
-    echo "  to stay in REPL mode during the initial connection."
-    exit 1
-fi
-
-# Remove boot.py immediately so subsequent mpremote reconnects don't trigger
-# a game start (no boot.py = device falls to REPL on any soft reset).
-# It will be re-uploaded at the end of this script.
-mp fs rm /boot.py 2>/dev/null || true
-echo "  (boot.py removed - will be restored at end)"
-
-echo ""
-echo "Step 2: Installing dependencies..."
-mp mip install ssd1306
-echo -e "${GREEN}✓ SSD1306 library installed${NC}"
-
-echo ""
-echo -e "${YELLOW}Step 3: Compiling .py to .mpy...${NC}"
+echo -e "${YELLOW}Step 1: Compiling .py to .mpy...${NC}"
 echo "  (skipping src/assets/ — frozen into firmware, not needed on filesystem)"
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
@@ -91,6 +68,29 @@ while read -r pyfile; do
     fi
 done < <(find "$SRC_DIR" -name "*.py" -not -path "$SRC_DIR/assets/*")
 echo -e "${GREEN}✓ Compilation complete${NC}"
+
+echo ""
+echo "Step 2: Checking connection..."
+if mp fs ls / > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ Connected to device${NC}"
+else
+    echo -e "${RED}✗ Failed to connect to device${NC}"
+    echo ""
+    echo "  If boot.py is installed, hold A+B while running this script"
+    echo "  to stay in REPL mode during the 1s startup window."
+    exit 1
+fi
+
+# Remove boot.py immediately so subsequent mpremote reconnects don't trigger
+# a game start (no boot.py = device falls to REPL on any soft reset).
+# It will be re-uploaded at the end of this script.
+mp fs rm /boot.py 2>/dev/null || true
+echo "  (boot.py removed - will be restored at end)"
+
+echo ""
+echo "Step 3: Installing dependencies..."
+mp mip install ssd1306
+echo -e "${GREEN}✓ SSD1306 library installed${NC}"
 
 echo ""
 echo -e "${YELLOW}Step 4: Cleaning ALL files from device...${NC}"
@@ -165,15 +165,9 @@ mp fs cp boot.py :boot.py
 echo -e "${GREEN}✓ boot.py uploaded${NC}"
 
 echo ""
+echo "Step 8: Restarting device..."
+mp reset
+echo -e "${GREEN}✓ Device restarted${NC}"
+
+echo ""
 echo -e "${GREEN}=== Upload Complete! ===${NC}"
-echo ""
-echo "To run the game:"
-echo "  mpremote exec 'import main; main.main()'"
-echo ""
-echo "To connect interactively:"
-echo "  mpremote"
-echo "  >>> import main"
-echo "  >>> main.main()"
-echo ""
-echo "To reset the device:"
-echo "  mpremote reset"
