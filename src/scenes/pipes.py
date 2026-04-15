@@ -206,6 +206,7 @@ class PipeScene(Scene):
             self.context.apply_stat_changes({
                 'intelligence': 3 * scale,
                 'focus':        4 * scale,
+                'loyalty':      0.5 * scale,
             })
             coins = int(2 * self._session_wins)
             if coins > 0:

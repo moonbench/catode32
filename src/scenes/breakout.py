@@ -156,8 +156,9 @@ class BreakoutScene(Scene):
             changes = {
                 'playfulness': 5 * brick_reward,
                 'focus':       3 * brick_reward + 4 * paw_reward,
-                'fitness':      4 * brick_reward,
+                'fitness':      6 * brick_reward,
                 'sociability':  3 * paw_reward,
+                'loyalty':      1.0 * brick_reward,
             }
             if self._session_won:
                 changes['fulfillment'] = 4 * brick_reward

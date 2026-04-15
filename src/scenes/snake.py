@@ -42,8 +42,9 @@ class SnakeScene(Scene):
             self.context.apply_stat_changes({
                 'focus':       5 * progress,
                 'playfulness': 4 * progress,
-                'fitness':      3 * progress,
+                'fitness':      5 * progress,
                 'sociability':  3 * progress + 0.5,
+                'loyalty':      0.5 * progress,
             })
             coins = int(5 * progress)
             if coins > 0:

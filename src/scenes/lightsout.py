@@ -69,6 +69,7 @@ class LightsOutScene(Scene):
             self.context.apply_stat_changes({
                 'intelligence': 5 * scale,
                 'focus':        5 * scale,
+                'loyalty':      0.5 * scale,
             })
             coins = int(3 * self._session_wins)
             if coins > 0:

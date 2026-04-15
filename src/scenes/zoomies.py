@@ -263,11 +263,12 @@ class ZoomiesScene(Scene):
             print(f"Reward scale: {progress}")
             self.context.apply_stat_changes({
                 'energy':      -5 * progress,
-                'fitness':      5 * progress,
+                'fitness':      8 * progress,
                 'fulfillment':  3 * progress,
                 'fullness':    -3 * progress,
                 'playfulness':  3 * progress,
                 'sociability':   3 * progress,
+                'loyalty':      1.0 * progress,
             })
             coins = int(5 * progress)
             if coins > 0:

@@ -181,6 +181,7 @@ class HanjieScene(Scene):
                 'focus':        3 * reward,
                 'serenity':     3 * reward,
                 'sociability':  2,
+                'loyalty':      0.5 * reward,
             })
             coins = int(5 * reward)
             if coins > 0:

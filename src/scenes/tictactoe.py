@@ -119,6 +119,7 @@ class TicTacToeScene(Scene):
                 'intelligence':  4 * scale,
                 'focus':         3 * scale,
                 'fulfillment':   3 * scale,
+                'loyalty':       1.0 * scale,
             })
             coins = 2 * total_rounds
             if coins > 0:

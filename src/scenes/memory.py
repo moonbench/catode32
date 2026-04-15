@@ -154,6 +154,7 @@ class MemoryScene(Scene):
                 'intelligence': 5 * progress,
                 'focus':        4 * progress,
                 'sociability':  3 * progress + 0.5,
+                'loyalty':      1.0 * progress,
             })
             coins = int(5 * progress)
             if coins > 0:

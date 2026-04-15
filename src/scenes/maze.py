@@ -362,6 +362,7 @@ class MazeScene(Scene):
                 'curiosity':    3 * scale,
                 'focus':        3 * scale,
                 'sociability':   2,
+                'loyalty':      1.0 * scale,
             })
             coins = int(5 * scale) + getattr(self, '_reward_coins_earned', 0)
             if coins > 0:

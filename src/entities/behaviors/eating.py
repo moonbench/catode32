@@ -157,6 +157,9 @@ class EatingBehavior(BaseBehavior):
                     bonus[stat] = bonus[stat] * multiplier
             print("[Eating] variety multiplier %.2f (repeat=%d, appeal=%.2f)" % (multiplier, repeat_count, appeal))
 
+        if self._food_type not in self.SNACK_TYPES:
+            bonus['loyalty'] = 0.5 if repeat_count == 0 else 0.15
+
         context.record_meal(self._food_type)
         return self.apply_location_bonus(context, bonus)
 
