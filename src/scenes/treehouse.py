@@ -37,8 +37,7 @@ class TreehouseScene(MainScene):
         self.sky.add_to_environment(self.environment, LAYER_BACKGROUND)
         self._last_weather = env_settings.get('weather', 'Clear')
 
-        self.environment.add_custom_draw(LAYER_MIDGROUND, self.sky.make_precipitation_drawer(0.6, 1))
-        self.environment.add_custom_draw(LAYER_FOREGROUND, self.sky.make_precipitation_drawer(1.0, 2))
+        self.environment.add_custom_draw(LAYER_BACKGROUND, self.sky.make_precipitation_drawer(0.3, 0))
         self.environment.add_custom_draw(LAYER_FOREGROUND, self._draw_platform)
         self.environment.add_custom_draw(LAYER_MIDGROUND, self._draw_platform_mid)
         self.context.cat_bed_x = 150  # foreground world-x of the cat bed interior (tunable)
