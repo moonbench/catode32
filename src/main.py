@@ -75,6 +75,7 @@ class Game:
             self.sleep_manager = None
         self._sleep_pending = False   # True while transition-out is playing pre-sleep
         self._woke_from_sleep = False  # True on the first frame after waking
+        self._last_sleep_debug = time.ticks_ms()
 
     def _on_sleep_midpoint(self):
         """Called at the transition-out midpoint: enter sleep, then let transition-in play on wake."""
@@ -158,13 +159,19 @@ class Game:
 
             # Begin sleep if inactive long enough — but not during a visit or
             # while another transition is already running.
-            if (self.sleep_manager
-                    and not self._sleep_pending
-                    and not self.scene_manager.transitions.active
-                    and getattr(self.context, 'visit', None) is None
-                    and self.sleep_manager.should_sleep()):
-                self._sleep_pending = True
-                self.scene_manager.transitions.start(on_midpoint=self._on_sleep_midpoint)
+            if self.sleep_manager and not self._sleep_pending:
+                if time.ticks_diff(time.ticks_ms(), self._last_sleep_debug) >= 60_000:
+                    self._last_sleep_debug = time.ticks_ms()
+                    elapsed = time.ticks_diff(time.ticks_ms(), self.sleep_manager._last_activity)
+                    print(f"[Sleep] inactive={elapsed//1000}s/{config.SLEEP_TIMEOUT_SEC}s"
+                          f" transition={self.scene_manager.transitions.active}"
+                          f" visit={getattr(self.context, 'visit', None)}"
+                          f" should_sleep={self.sleep_manager.should_sleep()}")
+                if (not self.scene_manager.transitions.active
+                        and getattr(self.context, 'visit', None) is None
+                        and self.sleep_manager.should_sleep()):
+                    self._sleep_pending = True
+                    self.scene_manager.transitions.start(on_midpoint=self._on_sleep_midpoint)
 
 
 def main():

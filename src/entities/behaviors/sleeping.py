@@ -26,7 +26,7 @@ class SleepingBehavior(BaseBehavior):
 
         # Medium changers
         "curiosity": 0.2,
-        "cleanliness": -2.5,
+        "cleanliness": -1.9,
         "intelligence": -0.05,
 
         # Slow changers
