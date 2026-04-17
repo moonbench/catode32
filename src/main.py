@@ -84,6 +84,11 @@ class Game:
 
         self.sleep_manager.enter_sleep(self._sleep_update)
 
+        # If the pet navigated to a different location during sleep, switch scenes
+        # now while the screen is still black so the transition-in reveals the
+        # correct scene directly.
+        self.scene_manager.apply_pending_scene_after_sleep()
+
         # Kick off the reveal transition and reset housekeeping state
         self.scene_manager.transitions.start_in_only()
         self.scene_manager.reset_idle_timer()

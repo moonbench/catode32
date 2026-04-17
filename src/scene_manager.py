@@ -412,6 +412,17 @@ class SceneManager:
         if self.current_scene:
             self.current_scene.update(dt)
 
+    def apply_pending_scene_after_sleep(self):
+        """If a scene change was queued during sleep, apply it immediately (no transition).
+
+        Called after waking but before the transition-in starts, so the reveal
+        animation shows the correct scene directly rather than the stale one.
+        """
+        if self.context.pending_scene:
+            name = self.context.pending_scene
+            self.context.pending_scene = None
+            self._perform_scene_switch(scene_name=name)
+
     def reset_idle_timer(self):
         """Reset the inactivity timer (e.g. immediately after waking from sleep)."""
         self._idle_timer = 0.0
