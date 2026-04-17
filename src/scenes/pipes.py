@@ -3,6 +3,7 @@ Pipes minigame — rotate pipe pieces to route water from inlet to outlet.
 Water flows automatically; arrange pieces ahead of the flow to win.
 """
 import random
+import framebuf as _fb
 from scene import Scene
 from assets.minigame_assets import (
     PIPE_STRAIGHT, PIPE_CORNER, PIPE_FAT,
@@ -10,6 +11,13 @@ from assets.minigame_assets import (
 )
 from menu import Menu, MenuItem
 from ui import Popup
+
+
+def _blit_sprite(fb, data, x, y):
+    """Blit a 9×9 pipe sprite into a FrameBuffer with black (0) transparent."""
+    if not isinstance(data, bytearray):
+        data = bytearray(data)
+    fb.blit(_fb.FrameBuffer(data, 9, 9, _fb.MONO_HLSB), x, y, 0)
 
 # Grid dimensions
 CELL      = 9        # pixel size per cell
@@ -192,9 +200,19 @@ class PipeScene(Scene):
     def load(self):
         super().load()
         self.result_popup = Popup(self.renderer, x=10, y=4, width=108, height=46)
+        # Grid cache: pre-render all pipe sprites into a secondary FrameBuffer so
+        # each frame only needs one blit instead of 84+ individual sprite calls.
+        # Only re-rendered when a cell changes (rotation, fill, or game reset).
+        _w = TOTAL_COLS * CELL   # 126 px
+        _h = PLAY_ROWS  * CELL   # 63 px
+        self._grid_buf  = bytearray((_w + 7) // 8 * _h)   # ~1 008 bytes
+        self._grid_fb   = _fb.FrameBuffer(self._grid_buf, _w, _h, _fb.MONO_HLSB)
+        self._grid_dirty = True
 
     def unload(self):
         super().unload()
+        self._grid_fb  = None
+        self._grid_buf = None
 
     def enter(self):
         self._session_wins = 0
@@ -281,10 +299,12 @@ class PipeScene(Scene):
         self.state         = STATE_FLOWING
         self.cur_row       = OUTLET_ROW
         self.cur_col       = 0
+        self._grid_dirty   = True
 
     def _advance_flow(self):
         """Mark current cell filled and move flow to the next cell."""
         self.cell_filled[self.flow_row * TOTAL_COLS + self.flow_col] = 1
+        self._grid_dirty = True
         self.flow_progress -= CELL
 
         dr = _DELTA_ROW[self.flow_exit]
@@ -335,6 +355,7 @@ class PipeScene(Scene):
 
     def _set_win(self):
         self.cell_filled[self.flow_row * TOTAL_COLS + self.flow_col] = 1
+        self._grid_dirty = True
         self.state = STATE_WIN
         self.end_timer = 0.0
         self._session_wins += 1
@@ -383,6 +404,7 @@ class PipeScene(Scene):
                     ptype = self.ptypes[pi]
                     max_r = 4 if ptype == P_CORNER else 2
                     self.rots[pi] = (self.rots[pi] + 1) % max_r
+                    self._grid_dirty = True
 
         self.speed_mult = 7.0 if self.input.is_pressed('b') else 1.0
 
@@ -445,28 +467,33 @@ class PipeScene(Scene):
 
         self._draw_inlet_rise(r)
 
-    def _draw_pipes(self, r):
-        """Draw all pipe sprites, filled or empty based on flow progress."""
-        # Left/right border lines
+    def _render_grid_cache(self):
+        """Render all pipe sprites and border lines into the secondary FrameBuffer.
+
+        Called only when _grid_dirty is True — i.e. when a cell is rotated,
+        filled, or the board is reset.  All other frames just blit the cache.
+        """
+        fb = self._grid_fb
+        fb.fill(0)
         grid_h = PLAY_ROWS * CELL
-        r.draw_line(GRID_X+1, GRID_Y, GRID_X+1, GRID_Y + grid_h - 1)
-        r.draw_line(GRID_X+6, GRID_Y, GRID_X+6, GRID_Y + 28)
-        r.draw_line(GRID_X+6, GRID_Y + 36, GRID_X+6, GRID_Y + grid_h - 1)
-        r.draw_line(GRID_X + TOTAL_COLS * CELL - 2, GRID_Y, GRID_X + TOTAL_COLS * CELL - 2, GRID_Y + grid_h - 1)
-        r.draw_line(GRID_X + TOTAL_COLS * CELL - 7, GRID_Y, GRID_X + TOTAL_COLS * CELL - 7, GRID_Y + 28)
-        r.draw_line(GRID_X + TOTAL_COLS * CELL - 7, GRID_Y + 36, GRID_X + TOTAL_COLS * CELL - 7, GRID_Y + grid_h - 1)
 
-        # Inlet (right-facing outlet: wall on left, opens right)
+        # Border lines (left inlet channel, right outlet channel)
+        fb.line(GRID_X+1, GRID_Y, GRID_X+1, GRID_Y + grid_h - 1, 1)
+        fb.line(GRID_X+6, GRID_Y, GRID_X+6, GRID_Y + 28, 1)
+        fb.line(GRID_X+6, GRID_Y + 36, GRID_X+6, GRID_Y + grid_h - 1, 1)
+        fb.line(GRID_X + TOTAL_COLS * CELL - 2, GRID_Y, GRID_X + TOTAL_COLS * CELL - 2, GRID_Y + grid_h - 1, 1)
+        fb.line(GRID_X + TOTAL_COLS * CELL - 7, GRID_Y, GRID_X + TOTAL_COLS * CELL - 7, GRID_Y + 28, 1)
+        fb.line(GRID_X + TOTAL_COLS * CELL - 7, GRID_Y + 36, GRID_X + TOTAL_COLS * CELL - 7, GRID_Y + grid_h - 1, 1)
+
+        # Inlet (right-facing: wall on left, opens right)
         filled = self.cell_filled[OUTLET_ROW * TOTAL_COLS + INLET_COL]
-        cx = GRID_X + INLET_COL * CELL
-        cy = GRID_Y + OUTLET_ROW * CELL
-        r.draw_sprite(PIPE_OUTLET_RIGHT["frames"][filled], 9, 9, cx, cy, transparent=True)
+        _blit_sprite(fb, PIPE_OUTLET_RIGHT["frames"][filled],
+                     GRID_X + INLET_COL * CELL, GRID_Y + OUTLET_ROW * CELL)
 
-        # Outlet (left-facing outlet: wall on right, opens left)
+        # Outlet (left-facing: wall on right, opens left)
         filled = self.cell_filled[OUTLET_ROW * TOTAL_COLS + OUTLET_COL]
-        cx = GRID_X + OUTLET_COL * CELL
-        cy = GRID_Y + OUTLET_ROW * CELL
-        r.draw_sprite(PIPE_OUTLET_LEFT["frames"][filled], 9, 9, cx, cy, transparent=True)
+        _blit_sprite(fb, PIPE_OUTLET_LEFT["frames"][filled],
+                     GRID_X + OUTLET_COL * CELL, GRID_Y + OUTLET_ROW * CELL)
 
         # Play cells
         for row in range(PLAY_ROWS):
@@ -478,10 +505,16 @@ class PipeScene(Scene):
                 max_r = 4 if ptype == P_CORNER else 2
                 rot_c = rot % max_r
                 filled = self.cell_filled[row * TOTAL_COLS + grid_col]
-                frame = rot_c + (4 if ptype == P_CORNER else 2) if filled else rot_c
-                cx = GRID_X + grid_col * CELL
-                cy = GRID_Y + row * CELL
-                r.draw_sprite(_SPRITES[ptype]["frames"][frame], 9, 9, cx, cy, transparent=True)
+                frame  = rot_c + (4 if ptype == P_CORNER else 2) if filled else rot_c
+                _blit_sprite(fb, _SPRITES[ptype]["frames"][frame],
+                             GRID_X + grid_col * CELL, GRID_Y + row * CELL)
+
+    def _draw_pipes(self, r):
+        """Blit the cached grid to the display, re-rendering the cache if dirty."""
+        if self._grid_dirty:
+            self._render_grid_cache()
+            self._grid_dirty = False
+        r.display.blit(self._grid_fb, GRID_X, GRID_Y)
 
     def _draw_water(self, r):
         """Draw water animation overlay for the currently-flowing cell."""
