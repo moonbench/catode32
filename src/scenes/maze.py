@@ -78,7 +78,8 @@ class MazeScene(Scene):
         self._max_camera_x = self._extra_cols * self.CELL_WIDTH
         self._camera_x = 0  # start showing the left (cat area)
 
-        # Generate maze with reserved open areas for sprites
+        # Pick goal area position based on round, then generate maze
+        self._goal_area = self._pick_goal_area()
         self.maze = self.generate_maze()
 
         # On even rounds, carve reward rooms into the generated maze
@@ -106,9 +107,9 @@ class MazeScene(Scene):
         self.player_x = 4
         self.player_y = self._grid_height - 1
 
-        # Goal state (top-right)
-        self.goal_x = self.GRID_WIDTH - 1
-        self.goal_y = 0
+        # Goal state (position varies by round)
+        self.goal_x = self._goal_area['x']
+        self.goal_y = self._goal_area['y']
 
         # Path tracking (list for ordered traversal, set for O(1) backtrack lookup)
         self.path = [(self.player_x, self.player_y)]
@@ -161,8 +162,9 @@ class MazeScene(Scene):
                 ry = random.randint(1, self._grid_height - 4)
                 in_start = (rx < self.START_CLEAR_WIDTH and
                             ry + 2 >= self._grid_height - self.START_CLEAR_HEIGHT)
-                in_goal = (rx + 2 >= self._grid_width - self.GOAL_CLEAR_WIDTH and
-                           ry < self.GOAL_CLEAR_HEIGHT)
+                ga = self._goal_area
+                in_goal = (rx + 2 >= ga['x'] and rx < ga['x'] + ga['w'] and
+                           ry + 2 >= ga['y'] and ry < ga['y'] + ga['h'])
                 # Require at least 4-cell separation from other reward areas
                 too_close = any(abs(rx - px) < 4 and abs(ry - py) < 4 for px, py in placed)
                 if not in_start and not in_goal and not too_close:
@@ -182,6 +184,27 @@ class MazeScene(Scene):
                         self.maze[cy][cx - 1] &= ~WALL_E
             self._reward_cells.append((rx + 1, ry + 1))
 
+    def _pick_goal_area(self):
+        """Choose a goal area position based on the current round."""
+        gw = self._grid_width
+        gh = self._grid_height
+        gcw = self.GOAL_CLEAR_WIDTH
+        gch = self.GOAL_CLEAR_HEIGHT
+
+        if self._session_round >= self.WIDE_MODE_ROUND:
+            choice = random.choice(['top_mid', 'top_right', 'mid_right'])
+        elif self._session_round >= self.HARD_MODE_ROUND:
+            choice = random.choice(['top_mid', 'top_right'])
+        else:
+            choice = 'top_right'
+
+        if choice == 'top_right':
+            return {'x': gw - gcw, 'y': 0, 'w': gcw, 'h': gch, 'entry': 'left'}
+        elif choice == 'top_mid':
+            return {'x': (gw - gcw) // 2, 'y': 0, 'w': gcw, 'h': gch, 'entry': 'bottom'}
+        else:  # mid_right
+            return {'x': gw - gcw, 'y': (gh - gch) // 2, 'w': gcw, 'h': gch, 'entry': 'left'}
+
     def generate_maze(self):
         """Generate a perfect maze using Prim's algorithm (more branching, harder mazes)"""
         # Initialize grid: each cell is a bitmask of present walls (all walls = 15)
@@ -190,15 +213,12 @@ class MazeScene(Scene):
 
         visited = [[False] * self._grid_width for _ in range(self._grid_height)]
 
-        # Define start area (bottom-left) and goal area (top-right)
+        # Define start area (bottom-left) and goal area (position varies by round)
         start_area = {
             'x': 0, 'y': self._grid_height - self.START_CLEAR_HEIGHT,
             'w': self.START_CLEAR_WIDTH, 'h': self.START_CLEAR_HEIGHT
         }
-        goal_area = {
-            'x': self._grid_width - self.GOAL_CLEAR_WIDTH, 'y': 0,
-            'w': self.GOAL_CLEAR_WIDTH, 'h': self.GOAL_CLEAR_HEIGHT
-        }
+        goal_area = self._goal_area
 
         # Clear internal walls in start and goal areas, mark as visited
         for area in [start_area, goal_area]:
@@ -250,11 +270,18 @@ class MazeScene(Scene):
                 visited[ny][nx] = True
                 add_frontier(nx, ny)
 
-        # Connect goal area to the maze (open wall on left side of goal area)
-        goal_entry_x = goal_area['x'] - 1
-        goal_entry_y = goal_area['y'] + goal_area['h'] - 1
-        maze[goal_entry_y][goal_entry_x] &= ~WALL_E
-        maze[goal_entry_y][goal_entry_x + 1] &= ~WALL_W
+        # Connect goal area to the maze
+        entry = goal_area['entry']
+        if entry == 'left':
+            ex = goal_area['x'] - 1
+            ey = goal_area['y'] + goal_area['h'] - 1
+            maze[ey][ex] &= ~WALL_E
+            maze[ey][ex + 1] &= ~WALL_W
+        elif entry == 'bottom':
+            ex = goal_area['x'] + goal_area['w'] // 2
+            ey = goal_area['y'] + goal_area['h']
+            maze[ey][ex] &= ~WALL_N
+            maze[ey - 1][ex] &= ~WALL_S
 
         return maze
 
@@ -335,9 +362,10 @@ class MazeScene(Scene):
             self._reward_collected.add(pos)
             self._reward_coins_earned = getattr(self, '_reward_coins_earned', 0) + 1
 
-        # Check win - player enters the goal area (top-right clear zone)
-        in_goal_x = self.player_x >= self._grid_width - self.GOAL_CLEAR_WIDTH
-        in_goal_y = self.player_y < self.GOAL_CLEAR_HEIGHT
+        # Check win - player enters the goal area
+        ga = self._goal_area
+        in_goal_x = ga['x'] <= self.player_x < ga['x'] + ga['w']
+        in_goal_y = ga['y'] <= self.player_y < ga['y'] + ga['h']
         if in_goal_x and in_goal_y:
             self.state = self.STATE_WIN
             self.win_display_timer = 0.0
@@ -456,7 +484,10 @@ class MazeScene(Scene):
 
     def draw_goal(self):
         """Draw fish at goal position (may be off-screen until player scrolls there)"""
-        self.renderer.draw_sprite_obj(FISH1, 108 + self._max_camera_x - self._camera_x, 4 - self._camera_y)
+        ga = self._goal_area
+        px = self.GRID_OFFSET_X + ga['x'] * self.CELL_WIDTH + 2 - self._camera_x
+        py = self.GRID_OFFSET_Y + ga['y'] * self.CELL_HEIGHT + 2 - self._camera_y
+        self.renderer.draw_sprite_obj(FISH1, px, py)
 
     def draw_player(self):
         """Draw cat at the start-area position, offset by camera"""

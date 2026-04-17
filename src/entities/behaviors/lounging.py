@@ -41,7 +41,7 @@ class LoungeingBehavior(BaseBehavior):
         "laying.side.neutral2",
     )
 
-    # Added when fullness>=65, comfort>=50, affection>=75, serenity>=70 (all)
+    # Added when fullness>=50, comfort>=50, affection>=60, serenity>=60 (all)
     HAPPY_LOUNGE_POSES = NEUTRAL_LOUNGE_POSES + (
         "laying.side.aloof",
         "laying.side.happy",
@@ -108,8 +108,8 @@ class LoungeingBehavior(BaseBehavior):
 
     def _pick_lounge_pose(self):
         ctx = self._character.context
-        if ctx is not None and (ctx.fullness >= 65 and ctx.comfort >= 50
-                and ctx.affection >= 75 and ctx.serenity >= 70):
+        if ctx is not None and (ctx.fullness >= 50 and ctx.comfort >= 50
+                and ctx.affection >= 60 and ctx.serenity >= 60):
             poses = self.HAPPY_LOUNGE_POSES
         else:
             poses = self.NEUTRAL_LOUNGE_POSES

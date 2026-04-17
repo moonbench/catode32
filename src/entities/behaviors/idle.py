@@ -28,7 +28,7 @@ class IdleBehavior(BaseBehavior):
         "standing.side.neutral_looking_down",
     )
 
-    # Added when fullness>=65, comfort>=50, affection>=75, serenity>=70 (all)
+    # Added when fullness>=50, comfort>=50, affection>=60, serenity>=60 (all)
     HAPPY_POSES = NEUTRAL_POSES + (
         "standing.side.happy",
         "sitting.forward.aloof",
@@ -124,8 +124,8 @@ class IdleBehavior(BaseBehavior):
     def _get_pose_set(self):
         ctx = self._character.context
         if ctx is not None:
-            if (ctx.fullness >= 65 and ctx.comfort >= 50
-                    and ctx.affection >= 75 and ctx.serenity >= 70):
+            if (ctx.fullness >= 50 and ctx.comfort >= 50
+                    and ctx.affection >= 60 and ctx.serenity >= 60):
                 return self.HAPPY_POSES
             if (ctx.fullness <= 25 or ctx.comfort <= 20
                     or ctx.affection <= 25 or ctx.serenity <= 15):
