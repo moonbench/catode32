@@ -1,19 +1,24 @@
 """
 Prowl - platformer minigame
 Character controller: walk, jump, solid blocks, one-way platforms, camera scrolling.
+Combat: cat swipe attack, slime enemies.
 """
+import random
 from scene import Scene
 from sprite_transform import mirror_sprite_h
 from assets.minigame_character import (
     PLATFORMER_CAT_RUN,
     PLATFORMER_CAT_SIT,
     PLATFORMER_CAT_JUMP,
+    PLATFORMER_CAT_SIT_SWIPE,
+    PLATFORMER_SLIME_IDLE,
+    PLATFORMER_STRIKE,
 )
 
 # Physics
-GRAVITY   = 500
+GRAVITY   = 400
 JUMP_VEL  = -185
-RUN_SPEED = 85
+RUN_SPEED = 84
 
 # Cat logical hitbox (centered on self.x / self.feet_y)
 CAT_HALF_W = 6
@@ -49,6 +54,39 @@ CAM_Y_MAX = 0
 IDLE_FPS        = 6
 RUN_FPS         = 10
 JUMP_PEAK_RANGE = 70
+
+# Cat combat
+CAT_START_HP     = 2
+CAT_BLINK_DUR    = 1.5    # invincibility + blink duration after taking damage
+CAT_BLINK_INT    = 0.1    # visibility toggle interval while blinking
+CAT_KNOCKBACK_VX = 90.0
+CAT_KNOCKBACK_VY = -130.0
+
+# Swipe attack
+SWIPE_FPS    = 12          # advance one frame per game tick
+SWIPE_FRAMES = 5
+ATTACK_FRAME = 2           # frame 2 (0-indexed, 3rd) is the contact frame
+ATK_REACH    = 16          # px of reach ahead of the cat body edge
+STRIKE_VX    = 55          # px/s the strike effect drifts forward
+
+# Slime
+SLIME_SPEED          = 18
+SLIME_HALF_W         = 8
+SLIME_H              = 8
+SLIME_START_HP       = 2
+SLIME_HIT_FLASH      = 0.15   # seconds to show fill frame after being hit
+SLIME_ANIM_SPF       = 0.5    # seconds per frame (2 FPS)
+SLIME_PATROL_RADIUS  = 48
+
+# Slime spawn positions: (world_x, feet_y)
+SLIME_SPAWNS = (
+    (90,  56),   # chunk 0, ground floor
+    (195, 56),   # chunk 1, ground floor
+    (262, 28),   # chunk 2, on elevated group B
+    (440, 56),   # chunk 3, ground floor
+    (546, 44),   # chunk 4, on elevated block
+    (700, 56),   # chunk 5, ground floor
+)
 
 
 def _make_level():
@@ -139,6 +177,26 @@ def _make_level():
 SOLID_CHUNKS, PLATFORMS = _make_level()
 
 
+def _supported(x, feet_y, half_w):
+    """Return True if (x, feet_y) is resting on any solid block or platform."""
+    fy  = int(feet_y)
+    cl  = int(x) - half_w
+    cr  = int(x) + half_w
+    row = fy // CHUNK_H
+    col0 = (cl - BLOCK_W + 1) // CHUNK_W
+    col1 = (cr - 1) // CHUNK_W
+    for col in range(col0, col1 + 1):
+        bucket = SOLID_CHUNKS.get((col, row))
+        if bucket:
+            for bx, by in bucket:
+                if by == fy and cl < bx + BLOCK_W and cr > bx:
+                    return True
+    for px, py, pw in PLATFORMS:
+        if py == fy and cl < px + pw and cr > px:
+            return True
+    return fy >= GROUND_Y
+
+
 def _precompute_frames(sprite):
     """Return (right_frames, left_frames) as lists of bytearrays."""
     w, h = sprite["width"], sprite["height"]
@@ -147,13 +205,52 @@ def _precompute_frames(sprite):
     return right, left
 
 
+class Slime:
+    def __init__(self, x, feet_y):
+        self.x        = float(x)
+        self.feet_y   = float(feet_y)
+        self.chunk_col = int(x) // CHUNK_W
+        # Patrol range: ±SLIME_PATROL_RADIUS from spawn, clamped to spawn chunk
+        cx_min = float(self.chunk_col * CHUNK_W + SLIME_HALF_W + 1)
+        cx_max = float((self.chunk_col + 1) * CHUNK_W - SLIME_HALF_W - 1)
+        self.patrol_min = max(float(int(x) - SLIME_PATROL_RADIUS), cx_min)
+        self.patrol_max = min(float(int(x) + SLIME_PATROL_RADIUS), cx_max)
+        self.vx        = float(SLIME_SPEED)
+        self.hp        = SLIME_START_HP
+        self.alive     = True
+        self.anim_frame = 0
+        self.anim_timer = 0.0
+        self.hit_timer  = 0.0   # > 0: show fill frame (white flash)
+        self.dir_timer  = 1.0 + random.random() * 2.0
+
+
 class PlatformerScene(Scene):
 
     def enter(self):
         # Precompute mirrored frames — no per-frame allocation
-        self._run_r,  self._run_l  = _precompute_frames(PLATFORMER_CAT_RUN)
-        self._sit_r,  self._sit_l  = _precompute_frames(PLATFORMER_CAT_SIT)
-        self._jump_r, self._jump_l = _precompute_frames(PLATFORMER_CAT_JUMP)
+        self._run_r,   self._run_l   = _precompute_frames(PLATFORMER_CAT_RUN)
+        self._sit_r,   self._sit_l   = _precompute_frames(PLATFORMER_CAT_SIT)
+        self._jump_r,  self._jump_l  = _precompute_frames(PLATFORMER_CAT_JUMP)
+        self._swipe_r, self._swipe_l = _precompute_frames(PLATFORMER_CAT_SIT_SWIPE)
+
+        # Strike effect frames: default faces right, mirrored faces left
+        stw, sth = PLATFORMER_STRIKE["width"], PLATFORMER_STRIKE["height"]
+        self._strike_r = [bytearray(f) for f in PLATFORMER_STRIKE["frames"]]
+        self._strike_l = [mirror_sprite_h(f, stw, sth) for f in PLATFORMER_STRIKE["frames"]]
+
+        # Slime frames: default faces right, mirrored faces left
+        sw, sh = PLATFORMER_SLIME_IDLE["width"], PLATFORMER_SLIME_IDLE["height"]
+        self._slime_r      = [bytearray(f) for f in PLATFORMER_SLIME_IDLE["frames"]]
+        self._slime_l      = [mirror_sprite_h(f, sw, sh) for f in PLATFORMER_SLIME_IDLE["frames"]]
+        # fill_inv: pre-inverted fill — drawn with transparent_color=1 to get a
+        # black silhouette (same technique as draw_sprite_obj)
+        self._slime_fill_inv_r = [bytearray(b ^ 0xFF for b in f)
+                                  for f in PLATFORMER_SLIME_IDLE["fill_frames"]]
+        self._slime_fill_inv_l = [mirror_sprite_h(f, sw, sh)
+                                  for f in self._slime_fill_inv_r]
+        # fill (un-inverted): white blob used for the hit flash
+        self._slime_fill_r = [bytearray(f) for f in PLATFORMER_SLIME_IDLE["fill_frames"]]
+        self._slime_fill_l = [mirror_sprite_h(f, sw, sh) for f in self._slime_fill_r]
 
         # self.x = hitbox centre x;  self.feet_y = hitbox bottom
         self.x        = 20.0
@@ -170,17 +267,36 @@ class PlatformerScene(Scene):
         self.anim_timer = 0.0
         self.anim_frame = 0
 
+        # Combat state
+        self._cat_hp         = CAT_START_HP
+        self._cat_blink_timer = 0.0   # > 0: cat blinks and is invincible
+        self._swipe_frame    = -1     # -1 = idle; 0..4 = current swipe frame
+        self._swipe_timer    = 0.0
+        self._strike_active  = False  # impact effect spawned on ATTACK_FRAME
+        self._strike_x       = 0.0
+        self._strike_y       = 0.0
+        self._strike_vx      = 0.0
+        self._strike_right   = True   # which mirror set to use
+
+        # Enemies
+        self._slimes = [Slime(x, fy) for x, fy in SLIME_SPAWNS]
+
         # Camera: world coord of top-left of screen
-        # camera_y=0 → floor (y=56) sits near the bottom of the screen
         self.camera_x      = 0.0
         self.camera_y      = 0.0
         self.target_cam_x  = 0.0
         self.target_cam_y  = 0.0
 
     def exit(self):
-        self._run_r = self._run_l = None
-        self._sit_r = self._sit_l = None
-        self._jump_r = self._jump_l = None
+        self._run_r   = self._run_l   = None
+        self._sit_r   = self._sit_l   = None
+        self._jump_r  = self._jump_l  = None
+        self._swipe_r  = self._swipe_l  = None
+        self._strike_r = self._strike_l = None
+        self._slime_r = self._slime_l = None
+        self._slime_fill_r = self._slime_fill_l = None
+        self._slime_fill_inv_r = self._slime_fill_inv_l = None
+        self._slimes  = None
 
     # ------------------------------------------------------------------
     # Update
@@ -215,8 +331,8 @@ class PlatformerScene(Scene):
             if self.feet_y > py + PLAT_H:
                 self._drop_platform = -1
 
-        # Ground animation
-        if self.on_ground:
+        # Ground animation (suppressed while swiping)
+        if self.on_ground and self._swipe_frame < 0:
             fps = RUN_FPS if abs(self.vx) > 1 else IDLE_FPS
             self.anim_timer += dt
             if self.anim_timer >= 1.0 / fps:
@@ -225,15 +341,189 @@ class PlatformerScene(Scene):
                      else len(PLATFORMER_CAT_SIT["frames"]))
                 self.anim_frame = (self.anim_frame + 1) % n
 
+        # Swipe animation — advance one frame per tick, fire hit on frame 2
+        if self._swipe_frame >= 0:
+            old_frame = self._swipe_frame
+            self._swipe_timer += dt
+            if self._swipe_timer >= 1.0 / SWIPE_FPS:
+                self._swipe_timer -= 1.0 / SWIPE_FPS
+                self._swipe_frame += 1
+            if old_frame < ATTACK_FRAME <= self._swipe_frame:
+                self._apply_cat_attack()
+            if self._swipe_frame >= SWIPE_FRAMES:
+                self._swipe_frame  = -1
+                self.anim_frame    = 0
+                self._strike_active = False
+
+        # Drift the strike effect forward while active
+        if self._strike_active:
+            self._strike_x += self._strike_vx * dt
+
+        # Blink / invincibility countdown
+        if self._cat_blink_timer > 0:
+            self._cat_blink_timer -= dt
+
+        # Update slimes — only those in visible chunks
+        cam_col0 = int(self.camera_x) // CHUNK_W
+        cam_col1 = (int(self.camera_x) + 127) // CHUNK_W
+        for slime in self._slimes:
+            if slime.alive and cam_col0 <= slime.chunk_col <= cam_col1:
+                self._update_slime(slime, dt)
+
+        # Check slime-cat contact damage
+        self._check_slime_cat_contact()
+
         self._update_camera(dt)
+
+    # ------------------------------------------------------------------
+    # Enemy logic
+    # ------------------------------------------------------------------
+
+    def _update_slime(self, slime, dt):
+        # Random direction change
+        slime.dir_timer -= dt
+        if slime.dir_timer <= 0:
+            slime.vx      = SLIME_SPEED if random.random() > 0.5 else -SLIME_SPEED
+            slime.dir_timer = 1.0 + random.random() * 2.0
+
+        # Edge detection: probe just past the leading foot edge
+        look_x = slime.x + ((SLIME_HALF_W + 2) if slime.vx > 0 else -(SLIME_HALF_W + 2))
+        if not _supported(look_x, slime.feet_y, 1):
+            slime.vx = -slime.vx
+
+        # Move and clamp to patrol bounds
+        next_x = slime.x + slime.vx * dt
+        if next_x <= slime.patrol_min:
+            next_x   = slime.patrol_min
+            slime.vx = SLIME_SPEED
+        elif next_x >= slime.patrol_max:
+            next_x   = slime.patrol_max
+            slime.vx = -SLIME_SPEED
+        slime.x = next_x
+
+        # Animation at 2 FPS
+        slime.anim_timer += dt
+        if slime.anim_timer >= SLIME_ANIM_SPF:
+            slime.anim_timer -= SLIME_ANIM_SPF
+            slime.anim_frame ^= 1
+
+        # Hit flash countdown
+        if slime.hit_timer > 0:
+            slime.hit_timer -= dt
+
+    # ------------------------------------------------------------------
+    # Combat
+    # ------------------------------------------------------------------
+
+    def _apply_cat_attack(self):
+        """Deal 1 damage to every slime inside the attack zone on swipe frame 2."""
+        # Cat body is left-aligned (facing right) or right-aligned (facing left)
+        # during a swipe; attack zone is ATK_REACH px beyond that edge.
+        if self.facing_right:
+            atk_cl = int(self.x) + CAT_H          # body right edge
+            atk_cr = atk_cl + ATK_REACH
+        else:
+            atk_cr = int(self.x) - CAT_H          # body left edge
+            atk_cl = atk_cr - ATK_REACH
+
+        # Spawn strike effect at the start of the attack zone, drifting forward
+        self._strike_active = True
+        self._strike_x      = float(atk_cl if self.facing_right else atk_cr)
+        self._strike_y      = float(int(self.feet_y) - CAT_H // 2)
+        self._strike_vx     = STRIKE_VX if self.facing_right else -STRIKE_VX
+        self._strike_right  = self.facing_right
+        atk_ct = int(self.feet_y) - CAT_H
+        atk_cb = int(self.feet_y)
+
+        for slime in self._slimes:
+            if not slime.alive:
+                continue
+            scl = int(slime.x) - SLIME_HALF_W
+            scr = int(slime.x) + SLIME_HALF_W
+            sct = int(slime.feet_y) - SLIME_H
+            scb = int(slime.feet_y)
+            if scl >= atk_cr or scr <= atk_cl:
+                continue
+            if sct >= atk_cb or scb <= atk_ct:
+                continue
+            slime.hp -= 1
+            slime.hit_timer = SLIME_HIT_FLASH
+            if slime.hp <= 0:
+                slime.alive = False
+
+    def _check_slime_cat_contact(self):
+        """If any live slime touches the cat, deal 1 damage and knock the cat back."""
+        if self._cat_blink_timer > 0:
+            return  # invincible during blink
+
+        # During a swipe the cat's damage hitbox shifts:
+        #   facing right → left-aligned  (cl = self.x,   cr = self.x + CAT_H)
+        #   facing left  → right-aligned (cl = self.x - CAT_H, cr = self.x)
+        # This gives a margin so the cat isn't trivially hit while attacking.
+        if self._swipe_frame >= 0:
+            if self.facing_right:
+                ccl = int(self.x)
+                ccr = int(self.x) + CAT_H
+            else:
+                ccl = int(self.x) - CAT_H
+                ccr = int(self.x)
+        else:
+            ccl = int(self.x) - CAT_HALF_W
+            ccr = int(self.x) + CAT_HALF_W
+        cct = int(self.feet_y) - CAT_H
+        ccb = int(self.feet_y)
+
+        for slime in self._slimes:
+            if not slime.alive:
+                continue
+            scl = int(slime.x) - SLIME_HALF_W
+            scr = int(slime.x) + SLIME_HALF_W
+            sct = int(slime.feet_y) - SLIME_H
+            scb = int(slime.feet_y)
+            if ccl >= scr or ccr <= scl:
+                continue
+            if cct >= scb or ccb <= sct:
+                continue
+            # Contact — take damage and knock back away from the slime
+            self._cat_hp -= 1
+            self._cat_blink_timer = CAT_BLINK_DUR
+            self.vx = CAT_KNOCKBACK_VX if self.x >= slime.x else -CAT_KNOCKBACK_VX
+            self.vy = CAT_KNOCKBACK_VY
+            if self.on_ground:
+                self.on_ground    = False
+                self._on_platform = -1
+            if self._cat_hp <= 0:
+                self._respawn_cat()
+            break  # one slime contact per frame is enough
+
+    def _respawn_cat(self):
+        self.x        = 20.0
+        self.feet_y   = 56.0
+        self.vx       = 0.0
+        self.vy       = 0.0
+        self.on_ground    = True
+        self._on_platform = -1
+        self._drop_platform = -1
+        self.facing_right = True
+        self.camera_x      = 0.0
+        self.camera_y      = 0.0
+        self.target_cam_x  = 0.0
+        self.target_cam_y  = 0.0
+        self._cat_hp         = CAT_START_HP
+        self._cat_blink_timer = CAT_BLINK_DUR
+        self._swipe_frame    = -1
+        self.anim_frame      = 0
+
+    # ------------------------------------------------------------------
+    # Terrain queries
+    # ------------------------------------------------------------------
 
     def _is_supported(self):
         fy = int(self.feet_y)
         cl = int(self.x) - CAT_HALF_W
         cr = int(self.x) + CAT_HALF_W
 
-        # Query only the chunk row that has blocks at y == fy
-        row = fy // CHUNK_H
+        row  = fy // CHUNK_H
         col0 = (cl - BLOCK_W + 1) // CHUNK_W
         col1 = (cr - 1) // CHUNK_W
         for col in range(col0, col1 + 1):
@@ -256,7 +546,6 @@ class PlatformerScene(Scene):
         ct = int(self.feet_y) - CAT_H
         cb = int(self.feet_y)
 
-        # Tight chunk bounds: blocks that can overlap [cl,cr) × [ct,cb)
         col0 = (cl - BLOCK_W + 1) // CHUNK_W
         col1 = (cr - 1) // CHUNK_W
         row0 = (ct - BLOCK_H + 1) // CHUNK_H
@@ -295,7 +584,7 @@ class PlatformerScene(Scene):
         col1 = (cr - 1) // CHUNK_W
 
         if self.vy >= 0:  # descending
-            row0 = prev_feet // CHUNK_H
+            row0 = int(prev_feet) // CHUNK_H
             row1 = int(self.feet_y) // CHUNK_H
             for col in range(col0, col1 + 1):
                 for row in range(row0, row1 + 1):
@@ -336,7 +625,6 @@ class PlatformerScene(Scene):
         else:  # ascending — solid block ceilings only
             prev_head = prev_feet - CAT_H
             curr_head = self.feet_y - CAT_H
-            # by = bb - BLOCK_H; bb in (curr_head, prev_head]
             row0 = int(curr_head - BLOCK_H + 1) // CHUNK_H
             row1 = int(prev_head - BLOCK_H) // CHUNK_H
             for col in range(col0, col1 + 1):
@@ -357,19 +645,16 @@ class PlatformerScene(Scene):
         cat_sx = self.x      - self.camera_x
         cat_sy = self.feet_y - self.camera_y
 
-        # Horizontal: direction-aware deadband
         if self.facing_right and cat_sx > RIGHT_SCROLL_PX:
             self.target_cam_x = self.x - RIGHT_SCROLL_PX
         elif not self.facing_right and cat_sx < LEFT_SCROLL_PX:
             self.target_cam_x = self.x - LEFT_SCROLL_PX
 
-        # Vertical: scroll up when cat is high; drift back to 0 when grounded
         if cat_sy < TOP_SCROLL_PX:
             self.target_cam_y = self.feet_y - TOP_SCROLL_PX
         elif cat_sy > BOT_SCROLL_PX:
             self.target_cam_y = self.feet_y - BOT_SCROLL_PX
 
-        # Clamp targets to world bounds
         if self.target_cam_x < CAM_X_MIN:
             self.target_cam_x = float(CAM_X_MIN)
         elif self.target_cam_x > CAM_X_MAX:
@@ -379,7 +664,6 @@ class PlatformerScene(Scene):
         elif self.target_cam_y > CAM_Y_MAX:
             self.target_cam_y = float(CAM_Y_MAX)
 
-        # Smooth lerp toward target
         self.camera_x += (self.target_cam_x - self.camera_x) * CAM_LERP * dt
         self.camera_y += (self.target_cam_y - self.camera_y) * CAM_LERP * dt
 
@@ -388,6 +672,17 @@ class PlatformerScene(Scene):
     # ------------------------------------------------------------------
 
     def handle_input(self):
+        # Movement locked during swipe; B can chain a new swipe once the hit
+        # frame has fired (frame 2+), skipping the remaining followthrough.
+        if self._swipe_frame >= 0:
+            self.vx = 0.0
+            if self._swipe_frame >= ATTACK_FRAME and self.input.was_just_pressed('b'):
+                self._swipe_frame  = 0
+                self._swipe_timer  = 0.0
+                self.anim_frame    = 0
+                self._strike_active = False
+            return
+
         moving = False
 
         if self.input.is_pressed('left'):
@@ -422,6 +717,14 @@ class PlatformerScene(Scene):
             self.anim_frame     = 0
             self.anim_timer     = 0.0
 
+        # Swipe: only when standing still on the ground
+        if (self.input.was_just_pressed('b')
+                and self.on_ground
+                and not moving):
+            self._swipe_frame = 0
+            self._swipe_timer = 0.0
+            self.anim_frame   = 0
+
     # ------------------------------------------------------------------
     # Draw
     # ------------------------------------------------------------------
@@ -451,32 +754,76 @@ class PlatformerScene(Scene):
                     sx = bx - cam_x
                     sy = by - cam_y
                     if -BLOCK_W < sx < 128 and -BLOCK_H < sy < 64:
-                        self.renderer.draw_rect(sx, sy, BLOCK_W, BLOCK_H,
-                                                filled=True, color=1)
+                        self.renderer.draw_rect(sx, sy, BLOCK_W, BLOCK_H, color=1)
 
-        # Platforms — only 13 total, cheap to iterate flat
+        # Platforms — 13 total, cheap to iterate flat
         for px, py, pw in PLATFORMS:
             sx = px - cam_x
             sy = py - cam_y
             if -pw < sx < 128 and -PLAT_H < sy < 64:
-                self.renderer.draw_rect(sx, sy, pw, PLAT_H, filled=True, color=1)
+                self.renderer.draw_rect(sx, sy, pw, PLAT_H, color=1)
 
-        # Cat sprite
-        if not self.on_ground or self.just_landed:
-            frames_r, frames_l = self._jump_r, self._jump_l
-            sprite = PLATFORMER_CAT_JUMP
-            frame = self._jump_frame() if not self.on_ground else 2
-        elif abs(self.vx) > 1:
-            frames_r, frames_l = self._run_r, self._run_l
-            sprite = PLATFORMER_CAT_RUN
-            frame = self.anim_frame % len(frames_r)
+        # Slimes — only those in visible chunks
+        sw = PLATFORMER_SLIME_IDLE["width"]
+        sh = PLATFORMER_SLIME_IDLE["height"]
+        for slime in self._slimes:
+            if not slime.alive:
+                continue
+            if not (col0 <= slime.chunk_col <= col1):
+                continue
+            sx = int(slime.x) - sw // 2 - cam_x
+            sy = int(slime.feet_y) - sh - cam_y
+            facing_right = slime.vx >= 0
+            fi = slime.anim_frame
+            if slime.hit_timer > 0:
+                # Hit flash: solid white blob
+                data = self._slime_fill_r[fi] if facing_right else self._slime_fill_l[fi]
+                self.renderer.draw_sprite(data, sw, sh, sx, sy)
+            else:
+                # Normal: black silhouette first, then white outline on top
+                fill = self._slime_fill_inv_r[fi] if facing_right else self._slime_fill_inv_l[fi]
+                self.renderer.draw_sprite(fill, sw, sh, sx, sy, transparent_color=1)
+                outline = self._slime_r[fi] if facing_right else self._slime_l[fi]
+                self.renderer.draw_sprite(outline, sw, sh, sx, sy)
+
+        # Strike effect — frames 0/1/2 map to swipe frames 2/3/4
+        if self._strike_active:
+            strike_frame = self._swipe_frame - ATTACK_FRAME
+            if 0 <= strike_frame < len(PLATFORMER_STRIKE["frames"]):
+                stw = PLATFORMER_STRIKE["width"]
+                sth = PLATFORMER_STRIKE["height"]
+                data = (self._strike_r[strike_frame] if self._strike_right
+                        else self._strike_l[strike_frame])
+                sx = int(self._strike_x) - stw // 2 - cam_x
+                sy = int(self._strike_y) - sth // 2 - cam_y
+                self.renderer.draw_sprite(data, stw, sth, sx, sy)
+
+        # Cat sprite — invisible on even blink intervals while damaged
+        if self._cat_blink_timer > 0:
+            cat_visible = int(self._cat_blink_timer / CAT_BLINK_INT) % 2 == 1
         else:
-            frames_r, frames_l = self._sit_r, self._sit_l
-            sprite = PLATFORMER_CAT_SIT
-            frame = self.anim_frame % len(frames_r)
+            cat_visible = True
 
-        data  = frames_r[frame] if self.facing_right else frames_l[frame]
-        draw_x = int(self.x) - sprite["width"] // 2 - cam_x
-        draw_y = int(self.feet_y) - sprite["height"] - cam_y
+        if cat_visible:
+            if self._swipe_frame >= 0:
+                frames_r, frames_l = self._swipe_r, self._swipe_l
+                sprite = PLATFORMER_CAT_SIT_SWIPE
+                frame  = min(self._swipe_frame, SWIPE_FRAMES - 1)
+            elif not self.on_ground or self.just_landed:
+                frames_r, frames_l = self._jump_r, self._jump_l
+                sprite = PLATFORMER_CAT_JUMP
+                frame  = self._jump_frame() if not self.on_ground else 2
+            elif abs(self.vx) > 1:
+                frames_r, frames_l = self._run_r, self._run_l
+                sprite = PLATFORMER_CAT_RUN
+                frame  = self.anim_frame % len(frames_r)
+            else:
+                frames_r, frames_l = self._sit_r, self._sit_l
+                sprite = PLATFORMER_CAT_SIT
+                frame  = self.anim_frame % len(frames_r)
 
-        self.renderer.draw_sprite(data, sprite["width"], sprite["height"], draw_x, draw_y)
+            data   = frames_r[frame] if self.facing_right else frames_l[frame]
+            draw_x = int(self.x) - sprite["width"] // 2 - cam_x
+            draw_y = int(self.feet_y) - sprite["height"] - cam_y
+            self.renderer.draw_sprite(data, sprite["width"], sprite["height"],
+                                      draw_x, draw_y)
