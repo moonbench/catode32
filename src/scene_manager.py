@@ -97,6 +97,7 @@ class SceneManager:
             'hanjie': ('scenes.hanjie', 'HanjieScene'),
             'lightsout': ('scenes.lightsout', 'LightsOutScene'),
             'pipes': ('scenes.pipes', 'PipeScene'),
+            'platformer': ('scenes.platformer', 'PlatformerScene'),
             'debug_context': ('scenes.debug_context', 'DebugContextScene'),
             'debug_memory': ('scenes.debug_memory', 'DebugMemoryScene'),
             'debug_poses': ('scenes.debug_poses', 'DebugPosesScene'),
@@ -332,6 +333,7 @@ class SceneManager:
 
         # Minigames submenu
         minigame_items = []
+        minigame_items.append(MenuItem("Prowl", icon=MINIGAME_ICONS.get("Prowl"), action=('scene', 'platformer')))
         minigame_items.append(MenuItem("Zoomies", icon=MINIGAME_ICONS.get("Zoomies"), action=('scene', 'zoomies')))
         minigame_items.append(MenuItem("Breakout", icon=MINIGAME_ICONS.get("Breakout"), action=('scene', 'breakout')))
         minigame_items.append(MenuItem("Snake", icon=MINIGAME_ICONS.get("Snake"), action=('scene', 'snake')))
