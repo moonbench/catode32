@@ -11,6 +11,7 @@ from assets.minigame_character import (
     PLATFORMER_CAT_SIT,
     PLATFORMER_CAT_JUMP,
     PLATFORMER_CAT_SIT_SWIPE,
+    PLATFORMER_CAT_RUN_SWIPE,
     PLATFORMER_SLIME_IDLE,
     PLATFORMER_STRIKE,
 )
@@ -69,13 +70,14 @@ JUMP_PEAK_RANGE = 70
 CAT_START_HP     = 2
 CAT_BLINK_DUR    = 1.5    # invincibility + blink duration after taking damage
 CAT_BLINK_INT    = 0.1    # visibility toggle interval while blinking
-CAT_KNOCKBACK_VX = 90.0
-CAT_KNOCKBACK_VY = -130.0
+CAT_KNOCKBACK_VX = 160.0
+CAT_KNOCKBACK_VY = -110.0
 
 # Swipe attack
-SWIPE_FPS    = 12          # advance one frame per game tick
-SWIPE_FRAMES = 5
-ATTACK_FRAME = 2           # frame 2 (0-indexed, 3rd) is the contact frame
+SWIPE_FPS         = 12   # frames per second for swipe animation
+ATTACK_FRAME      = 2    # frame index (0-based) that deals damage
+SIT_SWIPE_FRAMES  = 5    # total frames in PLATFORMER_CAT_SIT_SWIPE
+RUN_SWIPE_FRAMES  = 3    # total frames in PLATFORMER_CAT_RUN_SWIPE
 ATK_REACH    = 16          # px of reach ahead of the cat body edge
 STRIKE_VX    = 55          # px/s the strike effect drifts forward
 
@@ -247,7 +249,8 @@ class PlatformerScene(Scene):
         self._run_r,   self._run_l   = _precompute_frames(PLATFORMER_CAT_RUN)
         self._sit_r,   self._sit_l   = _precompute_frames(PLATFORMER_CAT_SIT)
         self._jump_r,  self._jump_l  = _precompute_frames(PLATFORMER_CAT_JUMP)
-        self._swipe_r, self._swipe_l = _precompute_frames(PLATFORMER_CAT_SIT_SWIPE)
+        self._swipe_r,     self._swipe_l     = _precompute_frames(PLATFORMER_CAT_SIT_SWIPE)
+        self._run_swipe_r, self._run_swipe_l = _precompute_frames(PLATFORMER_CAT_RUN_SWIPE)
 
         # Strike effect frames: default faces right, mirrored faces left
         stw, sth = PLATFORMER_STRIKE["width"], PLATFORMER_STRIKE["height"]
@@ -286,13 +289,16 @@ class PlatformerScene(Scene):
         # Combat state
         self._cat_hp         = CAT_START_HP
         self._cat_blink_timer = 0.0   # > 0: cat blinks and is invincible
-        self._swipe_frame    = -1     # -1 = idle; 0..4 = current swipe frame
+        self._swipe_frame    = -1     # -1 = idle; otherwise current swipe frame index
         self._swipe_timer    = 0.0
+        self._swipe_is_run   = False  # True when using run/jump swipe sprite
         self._strike_active  = False  # impact effect spawned on ATTACK_FRAME
         self._strike_x       = 0.0
         self._strike_y       = 0.0
         self._strike_vx      = 0.0
         self._strike_right   = True   # which mirror set to use
+        self._strike_frame   = 0
+        self._strike_timer   = 0.0
 
         # Enemies
         self._slimes = [Slime(x, fy) for x, fy in SLIME_SPAWNS]
@@ -307,7 +313,8 @@ class PlatformerScene(Scene):
         self._run_r   = self._run_l   = None
         self._sit_r   = self._sit_l   = None
         self._jump_r  = self._jump_l  = None
-        self._swipe_r  = self._swipe_l  = None
+        self._swipe_r      = self._swipe_l      = None
+        self._run_swipe_r  = self._run_swipe_l  = None
         self._strike_r = self._strike_l = None
         self._slime_r = self._slime_l = None
         self._slime_fill_r = self._slime_fill_l = None
@@ -364,6 +371,7 @@ class PlatformerScene(Scene):
 
         # Swipe animation — advance one frame per tick, fire hit on frame 2
         if self._swipe_frame >= 0:
+            total_frames = RUN_SWIPE_FRAMES if self._swipe_is_run else SIT_SWIPE_FRAMES
             old_frame = self._swipe_frame
             self._swipe_timer += dt
             if self._swipe_timer >= 1.0 / SWIPE_FPS:
@@ -371,14 +379,19 @@ class PlatformerScene(Scene):
                 self._swipe_frame += 1
             if old_frame < ATTACK_FRAME <= self._swipe_frame:
                 self._apply_cat_attack()
-            if self._swipe_frame >= SWIPE_FRAMES:
-                self._swipe_frame  = -1
-                self.anim_frame    = 0
-                self._strike_active = False
+            if self._swipe_frame >= total_frames:
+                self._swipe_frame = -1
+                self.anim_frame   = 0
 
-        # Drift the strike effect forward while active
+        # Drift the strike effect forward and advance its own frame counter
         if self._strike_active:
-            self._strike_x += self._strike_vx * dt
+            self._strike_x     += self._strike_vx * dt
+            self._strike_timer += dt
+            if self._strike_timer >= 1.0 / SWIPE_FPS:
+                self._strike_timer -= 1.0 / SWIPE_FPS
+                self._strike_frame += 1
+            if self._strike_frame >= len(PLATFORMER_STRIKE["frames"]):
+                self._strike_active = False
 
         # Blink / invincibility countdown
         if self._cat_blink_timer > 0:
@@ -453,6 +466,8 @@ class PlatformerScene(Scene):
         self._strike_y      = float(int(self.feet_y) - CAT_H // 2)
         self._strike_vx     = STRIKE_VX if self.facing_right else -STRIKE_VX
         self._strike_right  = self.facing_right
+        self._strike_frame  = 0
+        self._strike_timer  = 0.0
         atk_ct = int(self.feet_y) - CAT_H
         atk_cb = int(self.feet_y)
 
@@ -688,15 +703,18 @@ class PlatformerScene(Scene):
     # ------------------------------------------------------------------
 
     def handle_input(self):
-        # Movement locked during swipe; B can chain a new swipe once the hit
-        # frame has fired (frame 2+), skipping the remaining followthrough.
+        # During a run/jump swipe movement is NOT locked — cat keeps momentum.
+        # During a sit swipe movement is locked as before.
+        # B can chain a new swipe once the hit frame has fired (frame 2+).
         if self._swipe_frame >= 0:
-            self.vx = 0.0
+            if not self._swipe_is_run:
+                self.vx = 0.0
             if self._swipe_frame >= ATTACK_FRAME and self.input.was_just_pressed('b'):
+                moving = abs(self.vx) > 1 or not self.on_ground
+                self._swipe_is_run = moving
                 self._swipe_frame  = 0
                 self._swipe_timer  = 0.0
                 self.anim_frame    = 0
-                self._strike_active = False
             return
 
         moving = False
@@ -733,13 +751,12 @@ class PlatformerScene(Scene):
             self.anim_frame     = 0
             self.anim_timer     = 0.0
 
-        # Swipe: only when standing still on the ground
-        if (self.input.was_just_pressed('b')
-                and self.on_ground
-                and not moving):
-            self._swipe_frame = 0
-            self._swipe_timer = 0.0
-            self.anim_frame   = 0
+        # Swipe: standing still uses sit swipe; running or airborne uses run swipe
+        if self.input.was_just_pressed('b'):
+            self._swipe_is_run  = moving or not self.on_ground
+            self._swipe_frame   = 0
+            self._swipe_timer   = 0.0
+            self.anim_frame     = 0
 
     # ------------------------------------------------------------------
     # Draw
@@ -802,17 +819,15 @@ class PlatformerScene(Scene):
                 outline = self._slime_r[fi] if facing_right else self._slime_l[fi]
                 self.renderer.draw_sprite(outline, sw, sh, sx, sy)
 
-        # Strike effect — frames 0/1/2 map to swipe frames 2/3/4
+        # Strike effect — independent frame counter, always plays all 3 frames
         if self._strike_active:
-            strike_frame = self._swipe_frame - ATTACK_FRAME
-            if 0 <= strike_frame < len(PLATFORMER_STRIKE["frames"]):
-                stw = PLATFORMER_STRIKE["width"]
-                sth = PLATFORMER_STRIKE["height"]
-                data = (self._strike_r[strike_frame] if self._strike_right
-                        else self._strike_l[strike_frame])
-                sx = int(self._strike_x) - stw // 2 - cam_x
-                sy = int(self._strike_y) - sth // 2 - cam_y
-                self.renderer.draw_sprite(data, stw, sth, sx, sy)
+            stw = PLATFORMER_STRIKE["width"]
+            sth = PLATFORMER_STRIKE["height"]
+            data = (self._strike_r[self._strike_frame] if self._strike_right
+                    else self._strike_l[self._strike_frame])
+            sx = int(self._strike_x) - stw // 2 - cam_x
+            sy = int(self._strike_y) - sth // 2 - cam_y
+            self.renderer.draw_sprite(data, stw, sth, sx, sy)
 
         # Cat sprite — invisible on even blink intervals while damaged
         if self._cat_blink_timer > 0:
@@ -822,9 +837,14 @@ class PlatformerScene(Scene):
 
         if cat_visible:
             if self._swipe_frame >= 0:
-                frames_r, frames_l = self._swipe_r, self._swipe_l
-                sprite = PLATFORMER_CAT_SIT_SWIPE
-                frame  = min(self._swipe_frame, SWIPE_FRAMES - 1)
+                if self._swipe_is_run:
+                    frames_r, frames_l = self._run_swipe_r, self._run_swipe_l
+                    sprite = PLATFORMER_CAT_RUN_SWIPE
+                    frame  = min(self._swipe_frame, RUN_SWIPE_FRAMES - 1)
+                else:
+                    frames_r, frames_l = self._swipe_r, self._swipe_l
+                    sprite = PLATFORMER_CAT_SIT_SWIPE
+                    frame  = min(self._swipe_frame, SIT_SWIPE_FRAMES - 1)
             elif not self.on_ground or self.just_landed:
                 frames_r, frames_l = self._jump_r, self._jump_l
                 sprite = PLATFORMER_CAT_JUMP
