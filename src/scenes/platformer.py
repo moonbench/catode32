@@ -61,6 +61,9 @@ CAM_X_MAX = WORLD_W - 128   # 672
 CAM_Y_MIN = -128             # max upward scroll
 CAM_Y_MAX = 0
 
+# Player upgrades
+DOUBLE_JUMP_ENABLED = True
+
 # Animation
 IDLE_FPS        = 6
 RUN_FPS         = 10
@@ -280,8 +283,9 @@ class PlatformerScene(Scene):
         self.just_landed  = False
         self.facing_right = True
 
-        self._on_platform   = -1  # platform index cat stands on (-1 = solid/none)
-        self._drop_platform = -1  # platform index being dropped through
+        self._on_platform    = -1   # platform index cat stands on (-1 = solid/none)
+        self._drop_platform  = -1   # platform index being dropped through
+        self._can_double_jump = False  # recharged on each ground touch
 
         self.anim_timer = 0.0
         self.anim_frame = 0
@@ -347,6 +351,10 @@ class PlatformerScene(Scene):
             prev_feet = self.feet_y
             self.feet_y += self.vy * dt
             self._resolve_y(prev_feet)
+
+        # Recharge double jump on landing
+        if self.just_landed:
+            self._can_double_jump = DOUBLE_JUMP_ENABLED
 
         # Fell through a gap — counts as a death
         if self.feet_y > KILL_Y:
@@ -545,10 +553,11 @@ class PlatformerScene(Scene):
         self.camera_y      = 0.0
         self.target_cam_x  = 0.0
         self.target_cam_y  = 0.0
-        self._cat_hp         = CAT_START_HP
+        self._cat_hp          = CAT_START_HP
         self._cat_blink_timer = CAT_BLINK_DUR
-        self._swipe_frame    = -1
-        self.anim_frame      = 0
+        self._swipe_frame     = -1
+        self.anim_frame       = 0
+        self._can_double_jump = DOUBLE_JUMP_ENABLED
 
     # ------------------------------------------------------------------
     # Terrain queries
@@ -734,12 +743,18 @@ class PlatformerScene(Scene):
             if self.anim_frame >= len(PLATFORMER_CAT_SIT["frames"]):
                 self.anim_frame = 0
 
-        if self.input.was_just_pressed('a') and self.on_ground and not self.just_landed:
-            self.vy = JUMP_VEL
-            self.on_ground    = False
-            self._on_platform = -1
-            self.anim_frame   = 0
-            self.anim_timer   = 0.0
+        if self.input.was_just_pressed('a'):
+            if self.on_ground and not self.just_landed:
+                self.vy = JUMP_VEL
+                self.on_ground    = False
+                self._on_platform = -1
+                self.anim_frame   = 0
+                self.anim_timer   = 0.0
+            elif self._can_double_jump:
+                self.vy = JUMP_VEL
+                self._can_double_jump = False
+                self.anim_frame   = 0
+                self.anim_timer   = 0.0
 
         if (self.input.was_just_pressed('down')
                 and self.on_ground
