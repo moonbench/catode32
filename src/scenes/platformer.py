@@ -31,7 +31,17 @@ PLAT_H  = 4
 
 # World dimensions
 WORLD_W  = 800
-GROUND_Y = 64   # hard-floor fallback; also == world bottom
+GROUND_Y = 64   # y-coordinate of the ground tile tops
+KILL_Y   = GROUND_Y + 24  # falling below this respawns the cat
+
+# Gaps in the ground floor — (x_start, x_end) pairs, both at 8-px boundaries.
+# Chosen to avoid ground-level slime spawns and create interesting traversal.
+GROUND_GAPS = (
+    (128, 168),   # 5 blocks (40px) — near start of chunk 1
+    (296, 328),   # 4 blocks (32px) — chunk 2
+    (496, 544),   # 6 blocks (48px) — chunk 4
+    (648, 680),   # 4 blocks (32px) — chunk 5, crossable via elevated shelf
+)
 
 # Chunk dimensions — match screen size so at most 4 chunks are ever on screen
 CHUNK_W = 128
@@ -106,10 +116,16 @@ def _make_level():
             solid[key] = []
         solid[key].append((bx, by))
 
-    # --- Ground floor (y=56, chunk row 0, cols 0-6) ---
+    # --- Ground floor (y=56, chunk row 0, cols 0-6) — gaps skipped ---
     x = 0
     while x < WORLD_W:
-        add_solid(x, 56)
+        in_gap = False
+        for g0, g1 in GROUND_GAPS:
+            if g0 <= x < g1:
+                in_gap = True
+                break
+        if not in_gap:
+            add_solid(x, 56)
         x += BLOCK_W
 
     # --- Chunk col 0 (x: 0..127) ---
@@ -325,6 +341,11 @@ class PlatformerScene(Scene):
             self.feet_y += self.vy * dt
             self._resolve_y(prev_feet)
 
+        # Fell through a gap — counts as a death
+        if self.feet_y > KILL_Y:
+            self._respawn_cat()
+            return
+
         # Clear drop-through once fully below the platform
         if self._drop_platform >= 0:
             _, py, _ = PLATFORMS[self._drop_platform]
@@ -538,7 +559,7 @@ class PlatformerScene(Scene):
             if py == fy and cl < px + pw and cr > px:
                 return True
 
-        return fy >= GROUND_Y
+        return False
 
     def _resolve_x(self):
         cl = int(self.x) - CAT_HALF_W
@@ -615,12 +636,7 @@ class PlatformerScene(Scene):
                     self.just_landed  = True
                     return
 
-            if self.feet_y >= GROUND_Y:
-                self.feet_y   = float(GROUND_Y)
-                self.vy       = 0.0
-                self.on_ground    = True
-                self._on_platform = -1
-                self.just_landed  = True
+            # No hard-floor fallback — gaps are death zones (see KILL_Y check)
 
         else:  # ascending — solid block ceilings only
             prev_head = prev_feet - CAT_H
