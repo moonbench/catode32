@@ -21,6 +21,11 @@ TILE_BOTTOM_RIGHT = 7
 TILE_TOP_BOTTOM       = 8
 TILE_TOP_LEFT_BOTTOM  = 9
 TILE_TOP_RIGHT_BOTTOM = 10
+# Single-cell-wide column variants: left and right edges both visible
+TILE_LEFT_RIGHT            = 11   # column middle (top+bottom buried)
+TILE_LEFT_RIGHT_BOTTOM     = 12   # column bottom
+TILE_TOP_LEFT_RIGHT        = 13   # column top
+TILE_TOP_LEFT_BOTTOM_RIGHT = 14   # fully isolated single block
 
 TERRAIN_TOP = {
     "width": 8, "height": 8,
@@ -77,18 +82,42 @@ TERRAIN_CORNER_TOP_RIGHT_BOTTOM = {
     "frames": [b"\xfe\x01\x75\x75\x01\xa1\x06\xf8"],
 }
 
+TERRAIN_LEFT_RIGHT = {
+    "width": 8, "height": 8,
+    "frames": [b"\x81\x81\x81\x41\x42\x81\x81\x81"],
+}
+
+TERRAIN_LEFT_RIGHT_BOTTOM = {
+    "width": 8, "height": 8,
+    "frames": [b"\x81\x81\x81\x41\x41\x42\x22\x1c"],
+}
+
+TERRAIN_TOP_LEFT_RIGHT = {
+    "width": 8, "height": 8,
+    "frames": [b"\xff\x81\xb5\xb5\x81\xa1\x85\x81"],
+}
+
+TERRAIN_TOP_LEFT_BOTTOM_RIGHT = {
+    "width": 8, "height": 8,
+    "frames": [b"\xff\x81\xb5\xa5\x81\x92\x42\x3c"],
+}
+
 # Indexed by TILE_* constants — TERRAIN_TILES[tile_type][variant_idx] gives the sprite.
 # Add more sprites to an inner tuple to introduce variants for that tile type.
 TERRAIN_TILES = (
-    (TERRAIN_TOP,),
-    (TERRAIN_CORNER_TOP_LEFT,),
-    (TERRAIN_CORNER_TOP_RIGHT,),
-    (TERRAIN_SIDE_LEFT,),
-    (TERRAIN_SIDE_RIGHT,),
-    (TERRAIN_CORNER_BOTTOM,),
-    (TERRAIN_CORNER_BOTTOM_LEFT,),
-    (TERRAIN_CORNER_BOTTOM_RIGHT,),
-    (TERRAIN_TOP_BOTTOM,),
-    (TERRAIN_CORNER_TOP_LEFT_BOTTOM,),
-    (TERRAIN_CORNER_TOP_RIGHT_BOTTOM,),
+    (TERRAIN_TOP,),                      # 0  TILE_TOP
+    (TERRAIN_CORNER_TOP_LEFT,),          # 1  TILE_TOP_LEFT
+    (TERRAIN_CORNER_TOP_RIGHT,),         # 2  TILE_TOP_RIGHT
+    (TERRAIN_SIDE_LEFT,),                # 3  TILE_SIDE_LEFT
+    (TERRAIN_SIDE_RIGHT,),               # 4  TILE_SIDE_RIGHT
+    (TERRAIN_CORNER_BOTTOM,),            # 5  TILE_BOTTOM
+    (TERRAIN_CORNER_BOTTOM_LEFT,),       # 6  TILE_BOTTOM_LEFT
+    (TERRAIN_CORNER_BOTTOM_RIGHT,),      # 7  TILE_BOTTOM_RIGHT
+    (TERRAIN_TOP_BOTTOM,),               # 8  TILE_TOP_BOTTOM
+    (TERRAIN_CORNER_TOP_LEFT_BOTTOM,),   # 9  TILE_TOP_LEFT_BOTTOM
+    (TERRAIN_CORNER_TOP_RIGHT_BOTTOM,),  # 10 TILE_TOP_RIGHT_BOTTOM
+    (TERRAIN_LEFT_RIGHT,),               # 11 TILE_LEFT_RIGHT
+    (TERRAIN_LEFT_RIGHT_BOTTOM,),        # 12 TILE_LEFT_RIGHT_BOTTOM
+    (TERRAIN_TOP_LEFT_RIGHT,),           # 13 TILE_TOP_LEFT_RIGHT
+    (TERRAIN_TOP_LEFT_BOTTOM_RIGHT,),    # 14 TILE_TOP_LEFT_BOTTOM_RIGHT
 )

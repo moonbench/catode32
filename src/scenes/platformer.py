@@ -52,20 +52,6 @@ BLOCK_W = 8
 BLOCK_H = 8
 PLAT_H  = 4
 
-# World dimensions
-WORLD_W  = 800
-GROUND_Y = 64   # y-coordinate of the ground tile tops
-KILL_Y   = GROUND_Y + 24  # falling below this respawns the cat
-
-# Gaps in the ground floor — (x_start, x_end) pairs, both at 8-px boundaries.
-# Chosen to avoid ground-level slime spawns and create interesting traversal.
-GROUND_GAPS = (
-    (128, 168),   # 5 blocks (40px) — near start of chunk 1
-    (296, 328),   # 4 blocks (32px) — chunk 2
-    (496, 544),   # 6 blocks (48px) — chunk 4
-    (648, 680),   # 4 blocks (32px) — chunk 5, crossable via elevated shelf
-)
-
 # Chunk dimensions — match screen size so at most 4 chunks are ever on screen
 CHUNK_W = 128
 CHUNK_H = 64
@@ -76,12 +62,9 @@ RIGHT_SCROLL_PX = 75
 TOP_SCROLL_PX   = 24
 BOT_SCROLL_PX   = 42
 
-# Camera speed and bounds
+# Camera speed and fixed left bound; X_MAX / Y_MIN / Y_MAX derived from level
 CAM_LERP  = 5.0
 CAM_X_MIN = 0
-CAM_X_MAX = WORLD_W - 128   # 672
-CAM_Y_MIN = -128             # max upward scroll
-CAM_Y_MAX = 0
 
 # Player upgrades
 DOUBLE_JUMP_ENABLED = True
@@ -117,168 +100,39 @@ SLIME_ANIM_SPF       = 0.5    # seconds per frame (2 FPS)
 SLIME_BURST_SPF      = 1.0 / 12   # seconds per frame for death burst
 SLIME_PATROL_RADIUS  = 48
 
-# Slime spawn positions: (world_x, feet_y)
-SLIME_SPAWNS = (
-    (90,  56),   # chunk 0, ground floor
-    (195, 56),   # chunk 1, ground floor
-    (262, 28),   # chunk 2, on elevated group B
-    (440, 56),   # chunk 3, ground floor
-    (546, 44),   # chunk 4, on elevated block
-    (700, 56),   # chunk 5, ground floor
-)
-
-
-def _make_level():
-    """Build and return (solid_chunks, platforms).
-
-    solid_chunks: dict {(chunk_col, chunk_row): tuple of (bx, by, tile_type, variant_idx)}
-    platforms:    indexed tuple of (px, py, pw) for one-way platforms
-
-    All block positions are at 8-px offsets, so no block ever straddles
-    two chunks — each block belongs to exactly one chunk bucket.
-    Tile types are specified explicitly per block (see TILE_* constants).
-    """
-    solid = {}
-
-    def add_solid(bx, by, tile_type, variant=0):
-        key = (bx // CHUNK_W, by // CHUNK_H)
-        if key not in solid:
-            solid[key] = []
-        solid[key].append((bx, by, tile_type, variant))
-
-    def add_run(start_x, by, count, has_bottom=False):
-        """Add a horizontal run of blocks: left cap, interior tops, right cap.
-        has_bottom=True for single-cell-tall floating terrain where the bottom edge is visible.
-        """
-        tl = TILE_TOP_LEFT_BOTTOM  if has_bottom else TILE_TOP_LEFT
-        tr = TILE_TOP_RIGHT_BOTTOM if has_bottom else TILE_TOP_RIGHT
-        tm = TILE_TOP_BOTTOM       if has_bottom else TILE_TOP
-        if count == 1:
-            add_solid(start_x, by, tl)
-            return
-        add_solid(start_x, by, tl)
-        for i in range(1, count - 1):
-            add_solid(start_x + i * BLOCK_W, by, tm)
-        add_solid(start_x + (count - 1) * BLOCK_W, by, tr)
-
-    # --- Ground floor (y=56) — runs between GROUND_GAPS ---
-    # Bottom edge not visible (terrain extends to screen edge)
-    add_run(0,   56, 16)   # 0..120    (gap 128..168)
-    add_run(168, 56, 16)   # 168..288  (gap 296..328)
-    add_run(328, 56, 21)   # 328..488  (gap 496..544)
-    add_run(544, 56, 13)   # 544..640  (gap 648..680)
-    add_run(680, 56, 15)   # 680..792
-
-    # --- Chunk col 0 (x: 0..127) ---
-    # Elevated solid group A
-    add_run(56, 20, 8, has_bottom=True)
-
-    # --- Chunks col 1-2 (x: 128..383) ---
-    # Elevated solid group B — straddles cols 1 and 2
-    add_run(240, 28, 6, has_bottom=True)
-
-    # --- Chunk col 2 (x: 256..383) ---
-    add_run(304, 12, 5, has_bottom=True)
-
-    # --- Chunk col 3 (x: 384..511) ---
-    add_run(392, 36, 6, has_bottom=True)
-    add_run(456, 16, 4, has_bottom=True)
-
-    # --- Chunk col 4 (x: 512..639) ---
-    add_run(528, 44, 5, has_bottom=True)
-    add_run(576, 24, 4, has_bottom=True)
-
-    # --- Chunk col 5 (x: 640..767) ---
-    add_run(648, 36, 5, has_bottom=True)
-    # High shelf — row -1 (y: -64..−1)
-    add_run(680, -8, 5, has_bottom=True)
-
-    # --- Chunk col 6 (x: 768..800) ---
-    add_run(768, 40, 4, has_bottom=True)
-
-    # Freeze into tuples for efficient per-frame iteration
-    solid_chunks = {k: tuple(v) for k, v in solid.items()}
-
-    platforms = (
-        # --- Left section ---
-        (8,   28, 32),   # near start
-        (148, 36, 32),   # mid-level
-        (192, 20, 32),   # mid-high
-        (244,  4, 24),   # near screen top
-        (272, -16, 32),  # above screen — requires scrolling up
-        (320, 36, 32),   # far right of first section
-        # --- Extended sections ---
-        (384,  8, 32),   # col 3 entry
-        (448, -8, 32),   # col 3 high
-        (520, 36, 32),   # col 4 low
-        (576,  4, 32),   # col 4 high
-        (640, -24, 40),  # col 5 very high
-        (720, 36, 32),   # col 5 low
-        (760, 16, 24),   # col 6 near end
-    )
-
-    return solid_chunks, platforms
-
-
-# Grass sprite variants: index 0..4 used in GRASS_PLACEMENTS
-# (SEEDLING=0, YOUNG=1, GROWING=2, MATURE=3, THRIVING=4)
+# Grass sprite variants: index 0..4 (SEEDLING=0, YOUNG=1, GROWING=2, MATURE=3, THRIVING=4)
 GRASS_SPRITES = (GRASS_SEEDLING, GRASS_YOUNG, GRASS_GROWING, GRASS_MATURE, GRASS_THRIVING)
 
-# Fixed decoration placements: (world_x, surface_y, sprite_idx)
-# world_x is the horizontal centre; grass bottom sits at surface_y.
-# ~4 per chunk column → at most ~8 visible at once (2 chunks wide viewport).
-GRASS_PLACEMENTS = (
-    # chunk col 0
-    (20,  56, 1),   # ground — near start
-    (72,  56, 0),   # ground
-    (24,  28, 0),   # platform (8, 28)
-    (88,  20, 3),   # elevated group A
-    # chunk col 1
-    (176, 56, 2),   # ground (after first gap)
-    (160, 36, 1),   # platform (148, 36)
-    (208, 20, 0),   # platform (192, 20)
-    (252, 28, 4),   # elevated group B — thriving on wide ledge
-    # chunk col 2
-    (336, 56, 3),   # ground (after second gap)
-    (256,  4, 1),   # platform (244, 4)
-    (316, 12, 2),   # elevated (304..344, y=12)
-    (332, 36, 0),   # platform (320, 36)
-    # chunk col 3
-    (404, 56, 0),   # ground
-    (468, 56, 2),   # ground
-    (396,  8, 1),   # platform (384, 8)
-    (460, -8, 0),   # platform (448, -8)
-    # chunk col 4
-    (552, 56, 1),   # ground (after third gap)
-    (532, 36, 2),   # platform (520, 36)
-    (548, 44, 3),   # elevated (528..560, y=44)
-    (588,  4, 0),   # platform (576, 4)
-    # chunk col 5
-    (644, 56, 2),   # ground (before gap)
-    (688, 56, 0),   # ground (after gap)
-    (656, -24, 1),  # platform (640, -24) — very high
-    (660, 36, 3),   # elevated (648..680, y=36)
-    (692,  -8, 2),  # elevated (680..712, y=-8)
-    # chunk col 6
-    (776, 56, 1),   # ground
-    (780, 40, 0),   # elevated (768..792, y=40)
-)
+# ── Level data globals ────────────────────────────────────────────────────────
+# Populated by load_level(); kept at module scope so _supported() and the draw
+# loop can reference them without threading level data through every call.
+SOLID_CHUNKS = {}
+PLATFORMS    = ()
+GRASS_CHUNKS = {}
+SLIME_SPAWNS = ()
+PLAYER_SPAWN = (8, 8)
+WORLD_W      = 128
+WORLD_H      = 64
 
 
-def _make_grass_chunks():
-    """Bucket GRASS_PLACEMENTS into the same (chunk_col, chunk_row) scheme as SOLID_CHUNKS."""
-    chunks = {}
-    for wx, sy, si in GRASS_PLACEMENTS:
-        key = (wx // CHUNK_W, sy // CHUNK_H)
-        if key not in chunks:
-            chunks[key] = []
-        chunks[key].append((wx, sy, si))
-    return {k: tuple(v) for k, v in chunks.items()}
-
-
-# Build once at import time; freed when scene module is unloaded
-SOLID_CHUNKS, PLATFORMS = _make_level()
-GRASS_CHUNKS = _make_grass_chunks()
+def load_level(name):
+    """Import platformer_levels/<name>.py, copy its data into module globals,
+    then unload the module to recover the RAM its code object occupied."""
+    global SOLID_CHUNKS, PLATFORMS, GRASS_CHUNKS, SLIME_SPAWNS
+    global PLAYER_SPAWN, WORLD_W, WORLD_H
+    import sys
+    full = 'platformer_levels.' + name
+    __import__(full, None, None, (name,))
+    mod = sys.modules[full]
+    SOLID_CHUNKS = mod.SOLID_CHUNKS
+    PLATFORMS    = mod.PLATFORMS
+    GRASS_CHUNKS = mod.GRASS_CHUNKS
+    SLIME_SPAWNS = mod.SLIME_SPAWNS
+    PLAYER_SPAWN = mod.PLAYER_SPAWN
+    WORLD_W      = mod.WORLD_W
+    WORLD_H      = mod.WORLD_H
+    sys.modules.pop(full, None)
+    sys.modules.pop('platformer_levels', None)
 
 
 def _supported(x, feet_y, half_w):
@@ -298,7 +152,7 @@ def _supported(x, feet_y, half_w):
     for px, py, pw in PLATFORMS:
         if py == fy and cl < px + pw and cr > px:
             return True
-    return fy >= GROUND_Y
+    return False
 
 
 def _precompute_frames(sprite):
@@ -334,6 +188,14 @@ class Slime:
 class PlatformerScene(Scene):
 
     def enter(self):
+        load_level('level_01')
+
+        # Camera and kill-zone limits derived from loaded world size
+        self._cam_x_max = max(0, WORLD_W - 128)
+        self._cam_y_min = 0
+        self._cam_y_max = max(0, WORLD_H - 64)
+        self._kill_y    = WORLD_H + 24
+
         # Precompute mirrored frames — no per-frame allocation
         self._run_r,   self._run_l   = _precompute_frames(PLATFORMER_CAT_RUN)
         self._sit_r,   self._sit_l   = _precompute_frames(PLATFORMER_CAT_SIT)
@@ -361,8 +223,9 @@ class PlatformerScene(Scene):
         self._slime_fill_l = [mirror_sprite_h(f, sw, sh) for f in self._slime_fill_r]
 
         # self.x = hitbox centre x;  self.feet_y = hitbox bottom
-        self.x        = 20.0
-        self.feet_y   = 56.0
+        px, py = PLAYER_SPAWN
+        self.x        = float(px)
+        self.feet_y   = float(py)
         self.vx       = 0.0
         self.vy       = 0.0
         self.on_ground    = True
@@ -443,7 +306,7 @@ class PlatformerScene(Scene):
             self._can_double_jump = DOUBLE_JUMP_ENABLED
 
         # Fell through a gap — counts as a death
-        if self.feet_y > KILL_Y:
+        if self.feet_y > self._kill_y:
             self._respawn_cat()
             return
 
@@ -625,8 +488,9 @@ class PlatformerScene(Scene):
             break  # one slime contact per frame is enough
 
     def _respawn_cat(self):
-        self.x        = 20.0
-        self.feet_y   = 56.0
+        px, py = PLAYER_SPAWN
+        self.x        = float(px)
+        self.feet_y   = float(py)
         self.vx       = 0.0
         self.vy       = 0.0
         self.on_ground    = True
@@ -781,12 +645,12 @@ class PlatformerScene(Scene):
 
         if self.target_cam_x < CAM_X_MIN:
             self.target_cam_x = float(CAM_X_MIN)
-        elif self.target_cam_x > CAM_X_MAX:
-            self.target_cam_x = float(CAM_X_MAX)
-        if self.target_cam_y < CAM_Y_MIN:
-            self.target_cam_y = float(CAM_Y_MIN)
-        elif self.target_cam_y > CAM_Y_MAX:
-            self.target_cam_y = float(CAM_Y_MAX)
+        elif self.target_cam_x > self._cam_x_max:
+            self.target_cam_x = float(self._cam_x_max)
+        if self.target_cam_y < self._cam_y_min:
+            self.target_cam_y = float(self._cam_y_min)
+        elif self.target_cam_y > self._cam_y_max:
+            self.target_cam_y = float(self._cam_y_max)
 
         self.camera_x += (self.target_cam_x - self.camera_x) * CAM_LERP * dt
         self.camera_y += (self.target_cam_y - self.camera_y) * CAM_LERP * dt
