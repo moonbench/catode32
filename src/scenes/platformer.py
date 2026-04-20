@@ -27,6 +27,7 @@ from assets.plants import (
     GRASS_MATURE,
     GRASS_THRIVING,
 )
+from assets.effects import POOF
 from assets.minigame_character import (
     PLATFORMER_CAT_RUN,
     PLATFORMER_CAT_SIT,
@@ -99,6 +100,9 @@ SLIME_HIT_FLASH      = 0.15   # seconds to show fill frame after being hit
 SLIME_ANIM_SPF       = 0.5    # seconds per frame (2 FPS)
 SLIME_BURST_SPF      = 1.0 / 12   # seconds per frame for death burst
 SLIME_PATROL_RADIUS  = 48
+
+# Poof death animation
+POOF_SPF = 1.0 / 8   # POOF["speed"] = 8
 
 # Grass sprite variants: index 0..4 (SEEDLING=0, YOUNG=1, GROWING=2, MATURE=3, THRIVING=4)
 GRASS_SPRITES = (GRASS_SEEDLING, GRASS_YOUNG, GRASS_GROWING, GRASS_MATURE, GRASS_THRIVING)
@@ -253,6 +257,13 @@ class PlatformerScene(Scene):
         self._strike_frame   = 0
         self._strike_timer   = 0.0
 
+        # Poof death animation
+        self._poof_active = False
+        self._poof_x      = 0
+        self._poof_y      = 0
+        self._poof_frame  = 0
+        self._poof_timer  = 0.0
+
         # Enemies
         self._slimes = [Slime(x, fy) for x, fy in SLIME_SPAWNS]
 
@@ -279,6 +290,16 @@ class PlatformerScene(Scene):
     # ------------------------------------------------------------------
 
     def update(self, dt):
+        if self._poof_active:
+            self._poof_timer += dt
+            if self._poof_timer >= POOF_SPF:
+                self._poof_timer -= POOF_SPF
+                self._poof_frame += 1
+            if self._poof_frame >= len(POOF["frames"]):
+                self._poof_active = False
+                self._respawn_cat()
+            return
+
         self.just_landed = False
 
         # Walk-off-edge detection: if nothing beneath feet, start falling
@@ -484,8 +505,17 @@ class PlatformerScene(Scene):
                 self.on_ground    = False
                 self._on_platform = -1
             if self._cat_hp <= 0:
-                self._respawn_cat()
+                self._start_poof()
             break  # one slime contact per frame is enough
+
+    def _start_poof(self):
+        self._poof_active = True
+        self._poof_x      = int(self.x)
+        self._poof_y      = int(self.feet_y)
+        self._poof_frame  = 0
+        self._poof_timer  = 0.0
+        self.vx = 0.0
+        self.vy = 0.0
 
     def _respawn_cat(self):
         px, py = PLAYER_SPAWN
@@ -660,6 +690,9 @@ class PlatformerScene(Scene):
     # ------------------------------------------------------------------
 
     def handle_input(self):
+        if self._poof_active:
+            return
+
         # During a run/jump swipe movement is NOT locked — cat keeps momentum.
         # During a sit swipe movement is locked as before.
         # B can chain a new swipe once the hit frame has fired (frame 2+).
@@ -815,8 +848,19 @@ class PlatformerScene(Scene):
             sy = int(self._strike_y) - sth // 2 - cam_y
             self.renderer.draw_sprite(data, stw, sth, sx, sy)
 
+        # Poof death animation
+        if self._poof_active:
+            pw = POOF["width"]
+            ph = POOF["height"]
+            fi = min(self._poof_frame, len(POOF["frames"]) - 1)
+            self.renderer.draw_sprite(POOF["frames"][fi], pw, ph,
+                                      self._poof_x - pw // 2 - cam_x,
+                                      self._poof_y - ph - cam_y)
+
         # Cat sprite — invisible on even blink intervals while damaged
-        if self._cat_blink_timer > 0:
+        if self._poof_active:
+            cat_visible = False
+        elif self._cat_blink_timer > 0:
             cat_visible = int(self._cat_blink_timer / CAT_BLINK_INT) % 2 == 1
         else:
             cat_visible = True
