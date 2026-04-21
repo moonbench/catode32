@@ -63,9 +63,9 @@ CHUNK_W = 128
 CHUNK_H = 64
 
 # Camera scroll thresholds (screen pixels)
-LEFT_SCROLL_PX  = 50
-RIGHT_SCROLL_PX = 75
-TOP_SCROLL_PX   = 24
+LEFT_SCROLL_PX  = 60
+RIGHT_SCROLL_PX = 68
+TOP_SCROLL_PX   = 30
 BOT_SCROLL_PX   = 42
 
 # Camera speed and fixed left bound; X_MAX / Y_MIN / Y_MAX derived from level
@@ -111,7 +111,7 @@ POOF_SPF = 1.0 / 8   # POOF["speed"] = 8
 
 # Key collectible
 KEY_BOB_PERIOD = 1.2   # seconds per full oscillation cycle
-KEY_BOB_AMP    = 3     # pixels of vertical travel
+KEY_BOB_AMP    = 6     # pixels of vertical travel
 
 # Door transition timing
 DOOR_WALK_DELAY    = 0.35   # seconds the cat walks into the door before fade starts
@@ -376,6 +376,15 @@ class PlatformerScene(Scene):
             self.on_ground    = False
             self._on_platform = -1
 
+        # Vertical physics + collision first — so feet_y is correct before _resolve_x
+        # evaluates the cat's vertical bounds (prevents ceiling blocks being mistaken
+        # for walls when the cat's head briefly overlaps them during ascent)
+        if not self.on_ground:
+            self.vy += GRAVITY * dt
+            prev_feet = self.feet_y
+            self.feet_y += self.vy * dt
+            self._resolve_y(prev_feet)
+
         # Horizontal movement + collision
         self.x += self.vx * dt
         if self.x < CAT_HALF_W:
@@ -383,13 +392,6 @@ class PlatformerScene(Scene):
         elif self.x > WORLD_W - CAT_HALF_W:
             self.x = float(WORLD_W - CAT_HALF_W)
         self._resolve_x()
-
-        # Vertical physics + collision
-        if not self.on_ground:
-            self.vy += GRAVITY * dt
-            prev_feet = self.feet_y
-            self.feet_y += self.vy * dt
-            self._resolve_y(prev_feet)
 
         # Recharge double jump on landing
         if self.just_landed:
