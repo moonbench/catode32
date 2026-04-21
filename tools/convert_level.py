@@ -15,6 +15,7 @@ Character key
   2   solid terrain block, variant 1
   _   one-way platform (consecutive underscores on the same row → one entry)
   g   grass decoration (sprite picked randomly at parse time, baked into output)
+  V   vines decoration (hangs downward from the marker row)
   S   slime enemy spawn point
   $   player spawn point
   @   checkpoint (respawn point; multiple allowed, activated in order of contact)
@@ -173,6 +174,7 @@ def convert(txt_path, out_name):
     solid        = {}   # (chunk_col, chunk_row) → list of (bx, by, tile_type, variant)
     platforms    = []   # (px, py, pw)
     grass        = []   # (wx, surface_y, sprite_idx)
+    vines        = []   # (wx, top_y)
     slime_spawns = []   # (world_x, feet_y)
     checkpoints  = []   # (wx_left, wy_bottom) — bottom-left of sprite
     all_door_positions = []  # (wx_left, wy_bottom, is_locked) — reading order, paired with dest_lines
@@ -208,6 +210,11 @@ def convert(txt_path, out_name):
                 wx = c * BLOCK_W + BLOCK_W // 2
                 sy = (r + 1) * BLOCK_H
                 grass.append((wx, sy, random.randint(0, GRASS_VARIANTS - 1)))
+
+            elif ch == 'V':
+                wx = c * BLOCK_W + BLOCK_W // 2
+                ty = r * BLOCK_H
+                vines.append((wx, ty))
 
             elif ch == 'S':
                 wx = c * BLOCK_W + BLOCK_W // 2
@@ -262,9 +269,16 @@ def convert(txt_path, out_name):
         key = (wx // CHUNK_W, sy // CHUNK_H)
         grass_chunks.setdefault(key, []).append((wx, sy, si))
 
+    # Pre-bucket vines into chunks
+    vine_chunks = {}
+    for wx, ty in vines:
+        key = (wx // CHUNK_W, ty // CHUNK_H)
+        vine_chunks.setdefault(key, []).append((wx, ty))
+
     # Freeze lists → tuples
     solid_chunks = {k: tuple(v) for k, v in solid.items()}
     grass_chunks = {k: tuple(v) for k, v in grass_chunks.items()}
+    vine_chunks  = {k: tuple(v) for k, v in vine_chunks.items()}
 
     # ── Write output ──────────────────────────────────────────────────────────
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -302,6 +316,14 @@ def convert(txt_path, out_name):
             fh.write('    ),\n')
         fh.write('}\n\n')
 
+        fh.write('VINE_CHUNKS = {\n')
+        for key in sorted(vine_chunks):
+            fh.write(f'    {key!r}: (\n')
+            for v in vine_chunks[key]:
+                fh.write(f'        {v!r},\n')
+            fh.write('    ),\n')
+        fh.write('}\n\n')
+
         fh.write('CHECKPOINTS = (\n')
         for cp in checkpoints:
             fh.write(f'    {cp!r},\n')
@@ -334,6 +356,7 @@ def convert(txt_path, out_name):
     print(f'Blocks  : {total_blocks}')
     print(f'Platforms: {len(platforms)}')
     print(f'Grass   : {len(grass)}')
+    print(f'Vines   : {len(vines)}')
     print(f'Slimes  : {len(slime_spawns)}')
     print(f'Checkpoints: {len(checkpoints)}')
     print(f'Doors   : {len(doors)}')

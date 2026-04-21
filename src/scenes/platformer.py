@@ -23,6 +23,7 @@ from assets.platformer_terrain import (
     PLATFORMER_CHECKPOINT_UP,
     PLATFORMER_DOOR,
     PLATFORMER_DOOR_LOCKED,
+    PLATFORMER_VINES,
 )
 from assets.items import KEY
 from assets.plants import (
@@ -133,6 +134,7 @@ GRASS_SPRITES = (GRASS_SEEDLING, GRASS_YOUNG, GRASS_GROWING, GRASS_MATURE, GRASS
 SOLID_CHUNKS = {}
 PLATFORMS    = ()
 GRASS_CHUNKS = {}
+VINE_CHUNKS  = {}
 SLIME_SPAWNS = ()
 CHECKPOINTS  = ()
 DOORS        = ()
@@ -146,7 +148,7 @@ WORLD_H      = 64
 def load_level(name):
     """Import platformer_levels/<name>.py, copy its data into module globals,
     then unload the module to recover the RAM its code object occupied."""
-    global SOLID_CHUNKS, PLATFORMS, GRASS_CHUNKS, SLIME_SPAWNS
+    global SOLID_CHUNKS, PLATFORMS, GRASS_CHUNKS, VINE_CHUNKS, SLIME_SPAWNS
     global CHECKPOINTS, DOORS, LOCKED_DOORS, KEY_SPAWNS, PLAYER_SPAWN, WORLD_W, WORLD_H
     import sys
     full = 'platformer_levels.' + name
@@ -155,6 +157,7 @@ def load_level(name):
     SOLID_CHUNKS = mod.SOLID_CHUNKS
     PLATFORMS    = mod.PLATFORMS
     GRASS_CHUNKS = mod.GRASS_CHUNKS
+    VINE_CHUNKS  = getattr(mod, 'VINE_CHUNKS', {})
     SLIME_SPAWNS = mod.SLIME_SPAWNS
     CHECKPOINTS  = getattr(mod, 'CHECKPOINTS', ())
     DOORS        = getattr(mod, 'DOORS', ())
@@ -962,6 +965,20 @@ class PlatformerScene(Scene):
                     gx = wx - sw // 2 - cam_x
                     gy = surface_y - sh - cam_y
                     self.renderer.draw_sprite(sprite["frames"][0], sw, sh, gx, gy)
+
+        # Vines — chunk-culled, hang downward from top anchor
+        vw = PLATFORMER_VINES["width"]
+        vh = PLATFORMER_VINES["height"]
+        for col in range(col0, col1 + 1):
+            for row in range(row0, row1 + 1):
+                bucket = VINE_CHUNKS.get((col, row))
+                if not bucket:
+                    continue
+                for wx, ty in bucket:
+                    vx = wx - vw // 2 - cam_x
+                    vy = ty - cam_y
+                    if -vw < vx < 128 and -vh < vy < 64:
+                        self.renderer.draw_sprite(PLATFORMER_VINES["frames"][0], vw, vh, vx, vy)
 
         # Checkpoints
         for i, (cx, cy) in enumerate(CHECKPOINTS):

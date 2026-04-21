@@ -31,6 +31,10 @@ TERRAIN_TOP = {
     "width": 8, "height": 8,
     "frames": [b"\xff\x00\x77\x77\x00\xa1\x00\x00"],
 }
+TERRAIN_TOP2 = {
+    "width": 8, "height": 8,
+    "frames": [bytearray([0xff, 0x00, 0x36, 0x40, 0x00, 0x04, 0x00, 0x00, ])]
+}
 
 TERRAIN_CORNER_TOP_LEFT = {
     "width": 8, "height": 8,
@@ -55,6 +59,11 @@ TERRAIN_SIDE_RIGHT = {
 TERRAIN_CORNER_BOTTOM = {
     "width": 8, "height": 8,
     "frames": [b"\x00\x40\x00\x02\x00\x00\x67\x98"],
+}
+
+TERRAIN_BOTTOM2 = {
+    "width": 8, "height": 8,
+    "frames": [bytearray([0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0xc5, 0x3a, ])]
 }
 
 TERRAIN_CORNER_BOTTOM_LEFT = {
@@ -122,15 +131,20 @@ PLATFORMER_DOOR = {
     "frames": [b"\x33\xcc\x78\x1e\xff\xff\xe0\x07\xc0\x03\xd0\x03\xd8\x03\xdc\x03\xde\x03\xdc\x03\xde\x83\xdc\x43\xde\x83\xdc\x43\xde\x83\xdc\x43\xde\x83\xdc\x43\xde\x83"],
 }
 
+PLATFORMER_VINES = {
+    "width": 9, "height": 13,
+    "frames": [bytearray([0xa2, 0x80, 0xa2, 0x80, 0xa4, 0x80, 0xa4, 0x80, 0xa4, 0x80, 0xa8, 0x80, 0x69, 0x00, 0x30, 0x80, 0x21, 0x00, 0x10, 0x00, 0x20, 0x00, 0x20, 0x00, 0x10, 0x00])]
+}
+
 # Indexed by TILE_* constants — TERRAIN_TILES[tile_type][variant_idx] gives the sprite.
 # Add more sprites to an inner tuple to introduce variants for that tile type.
 TERRAIN_TILES = (
-    (TERRAIN_TOP,),                      # 0  TILE_TOP
+    (TERRAIN_TOP, TERRAIN_TOP2),                      # 0  TILE_TOP
     (TERRAIN_CORNER_TOP_LEFT,),          # 1  TILE_TOP_LEFT
     (TERRAIN_CORNER_TOP_RIGHT,),         # 2  TILE_TOP_RIGHT
     (TERRAIN_SIDE_LEFT,),                # 3  TILE_SIDE_LEFT
     (TERRAIN_SIDE_RIGHT,),               # 4  TILE_SIDE_RIGHT
-    (TERRAIN_CORNER_BOTTOM,),            # 5  TILE_BOTTOM
+    (TERRAIN_CORNER_BOTTOM, TERRAIN_BOTTOM2),            # 5  TILE_BOTTOM
     (TERRAIN_CORNER_BOTTOM_LEFT,),       # 6  TILE_BOTTOM_LEFT
     (TERRAIN_CORNER_BOTTOM_RIGHT,),      # 7  TILE_BOTTOM_RIGHT
     (TERRAIN_TOP_BOTTOM,),               # 8  TILE_TOP_BOTTOM
