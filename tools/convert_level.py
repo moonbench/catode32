@@ -17,7 +17,19 @@ Character key
   g   grass decoration (sprite picked randomly at parse time, baked into output)
   S   slime enemy spawn point
   $   player spawn point
+  @   checkpoint (respawn point; multiple allowed, activated in order of contact)
+  #   level exit door (paired with destination lines at the bottom of the file)
   .   empty (any other character is also treated as empty)
+
+Door destinations
+─────────────────
+  After the grid, add lines starting with '-' to name destination levels for
+  each '#' door, matched in reading order (top-to-bottom, left-to-right).
+  An optional blank line may separate the grid from the destination block.
+
+  Example:
+      - level_02
+      - level_03_bonus
 
 World coordinates
 ─────────────────
@@ -130,7 +142,18 @@ def _tile_type(grid, r, c, num_rows, num_cols):
 
 def convert(txt_path, out_name):
     with open(txt_path) as fh:
-        lines = fh.read().splitlines()
+        all_lines = fh.read().splitlines()
+
+    # Peel door-destination lines from the bottom (lines starting with '-').
+    # An optional blank separator line between the grid and destinations is skipped.
+    dest_lines = []
+    i = len(all_lines) - 1
+    while i >= 0 and all_lines[i].strip().startswith('-'):
+        dest_lines.insert(0, all_lines[i].strip()[1:].strip())
+        i -= 1
+    while i >= 0 and not all_lines[i].strip():   # skip blank separator
+        i -= 1
+    lines = all_lines[:i + 1]
 
     # Normalise to a rectangular grid
     num_cols = max((len(l) for l in lines), default=0)
@@ -148,6 +171,8 @@ def convert(txt_path, out_name):
     platforms    = []   # (px, py, pw)
     grass        = []   # (wx, surface_y, sprite_idx)
     slime_spawns = []   # (world_x, feet_y)
+    checkpoints  = []   # (wx_left, wy_bottom) — bottom-left of sprite
+    door_positions = [] # (wx_left, wy_bottom) — paired with dest_lines in reading order
     player_spawn = None
 
     for r in range(num_rows):
@@ -190,11 +215,26 @@ def convert(txt_path, out_name):
                 fy = (r + 1) * BLOCK_H
                 player_spawn = (wx, fy)
 
+            elif ch == '@':
+                wx = c * BLOCK_W
+                wy = (r + 1) * BLOCK_H
+                checkpoints.append((wx, wy))
+
+            elif ch == '#':
+                wx = c * BLOCK_W
+                wy = (r + 1) * BLOCK_H
+                door_positions.append((wx, wy))
+
             c += 1
 
     if player_spawn is None:
         print("WARNING: no player spawn ($) found — defaulting to (8, 8)", file=sys.stderr)
         player_spawn = (8, 8)
+
+    if len(door_positions) != len(dest_lines):
+        print(f"WARNING: {len(door_positions)} '#' doors but {len(dest_lines)} '-' destinations",
+              file=sys.stderr)
+    doors = [(wx, wy, dest) for (wx, wy), dest in zip(door_positions, dest_lines)]
 
     # Pre-bucket grass into chunks (same scheme as SOLID_CHUNKS)
     grass_chunks = {}
@@ -242,6 +282,16 @@ def convert(txt_path, out_name):
             fh.write('    ),\n')
         fh.write('}\n\n')
 
+        fh.write('CHECKPOINTS = (\n')
+        for cp in checkpoints:
+            fh.write(f'    {cp!r},\n')
+        fh.write(')\n\n')
+
+        fh.write('DOORS = (\n')
+        for d in doors:
+            fh.write(f'    {d!r},\n')
+        fh.write(')\n\n')
+
         fh.write('PLATFORMS = (\n')
         for p in platforms:
             fh.write(f'    {p!r},\n')
@@ -255,6 +305,8 @@ def convert(txt_path, out_name):
     print(f'Platforms: {len(platforms)}')
     print(f'Grass   : {len(grass)}')
     print(f'Slimes  : {len(slime_spawns)}')
+    print(f'Checkpoints: {len(checkpoints)}')
+    print(f'Doors   : {len(doors)}')
     print(f'Player  : {player_spawn}')
 
 

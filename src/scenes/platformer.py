@@ -19,6 +19,9 @@ from assets.platformer_terrain import (
     TILE_TOP_BOTTOM,
     TILE_TOP_LEFT_BOTTOM,
     TILE_TOP_RIGHT_BOTTOM,
+    PLATFORMER_CHECKPOINT_DOWN,
+    PLATFORMER_CHECKPOINT_UP,
+    PLATFORMER_DOOR,
 )
 from assets.plants import (
     GRASS_SEEDLING,
@@ -104,6 +107,16 @@ SLIME_PATROL_RADIUS  = 48
 # Poof death animation
 POOF_SPF = 1.0 / 8   # POOF["speed"] = 8
 
+# Door transition timing
+DOOR_WALK_DELAY    = 0.35   # seconds the cat walks into the door before fade starts
+DOOR_FADE_DURATION = 0.25   # seconds per fade phase (matches config.TRANSITION_DURATION)
+
+# Checkpoint and door hitboxes (match sprite dimensions)
+CHECKPOINT_W = 24   # down-state sprite width — trigger zone
+CHECKPOINT_H = 8    # down-state sprite height
+DOOR_W = 16
+DOOR_H = 19
+
 # Grass sprite variants: index 0..4 (SEEDLING=0, YOUNG=1, GROWING=2, MATURE=3, THRIVING=4)
 GRASS_SPRITES = (GRASS_SEEDLING, GRASS_YOUNG, GRASS_GROWING, GRASS_MATURE, GRASS_THRIVING)
 
@@ -114,6 +127,8 @@ SOLID_CHUNKS = {}
 PLATFORMS    = ()
 GRASS_CHUNKS = {}
 SLIME_SPAWNS = ()
+CHECKPOINTS  = ()
+DOORS        = ()
 PLAYER_SPAWN = (8, 8)
 WORLD_W      = 128
 WORLD_H      = 64
@@ -123,7 +138,7 @@ def load_level(name):
     """Import platformer_levels/<name>.py, copy its data into module globals,
     then unload the module to recover the RAM its code object occupied."""
     global SOLID_CHUNKS, PLATFORMS, GRASS_CHUNKS, SLIME_SPAWNS
-    global PLAYER_SPAWN, WORLD_W, WORLD_H
+    global CHECKPOINTS, DOORS, PLAYER_SPAWN, WORLD_W, WORLD_H
     import sys
     full = 'platformer_levels.' + name
     __import__(full, None, None, (name,))
@@ -132,6 +147,8 @@ def load_level(name):
     PLATFORMS    = mod.PLATFORMS
     GRASS_CHUNKS = mod.GRASS_CHUNKS
     SLIME_SPAWNS = mod.SLIME_SPAWNS
+    CHECKPOINTS  = getattr(mod, 'CHECKPOINTS', ())
+    DOORS        = getattr(mod, 'DOORS', ())
     PLAYER_SPAWN = mod.PLAYER_SPAWN
     WORLD_W      = mod.WORLD_W
     WORLD_H      = mod.WORLD_H
@@ -192,7 +209,7 @@ class Slime:
 class PlatformerScene(Scene):
 
     def enter(self):
-        load_level('level_01')
+        load_level(getattr(self, '_current_level', 'level_01'))
 
         # Camera and kill-zone limits derived from loaded world size
         self._cam_x_max = max(0, WORLD_W - 128)
@@ -264,6 +281,16 @@ class PlatformerScene(Scene):
         self._poof_frame  = 0
         self._poof_timer  = 0.0
 
+        # Checkpoint state
+        self._checkpoint = PLAYER_SPAWN
+        self._checkpoint_activated = [False] * len(CHECKPOINTS)
+
+        # Door transition state
+        self._door_dest        = None   # destination level name while sequencing
+        self._door_walk_timer  = 0.0   # walk-in delay countdown
+        self._door_fade_phase  = None  # None | 'out' | 'in'
+        self._door_fade_prog   = 0.0
+
         # Enemies
         self._slimes = [Slime(x, fy) for x, fy in SLIME_SPAWNS]
 
@@ -290,6 +317,33 @@ class PlatformerScene(Scene):
     # ------------------------------------------------------------------
 
     def update(self, dt):
+        # Door fade-out phase: freeze the game and darken the screen
+        if self._door_fade_phase == 'out':
+            self._door_fade_prog += dt / DOOR_FADE_DURATION
+            if self._door_fade_prog >= 1.0:
+                dest = self._door_dest
+                self._transition_to_level(dest)   # calls exit() + enter(), resets state
+                self._door_fade_phase = 'in'
+                self._door_fade_prog  = 0.0
+                self._door_dest       = dest      # restore after enter() cleared it
+            return
+
+        # Door fade-in phase: new level is loaded, reveal it
+        if self._door_fade_phase == 'in':
+            self._door_fade_prog += dt / DOOR_FADE_DURATION
+            if self._door_fade_prog >= 1.0:
+                self._door_fade_phase = None
+                self._door_dest       = None
+            return
+
+        # Walk-in delay: cat continues moving, countdown until fade starts
+        if self._door_dest is not None:
+            self._door_walk_timer -= dt
+            if self._door_walk_timer <= 0.0:
+                self._door_fade_phase = 'out'
+                self._door_fade_prog  = 0.0
+            # Fall through — let physics and movement keep running
+
         if self._poof_active:
             self._poof_timer += dt
             if self._poof_timer >= POOF_SPF:
@@ -330,6 +384,9 @@ class PlatformerScene(Scene):
         if self.feet_y > self._kill_y:
             self._respawn_cat()
             return
+
+        self._check_checkpoints()
+        self._check_doors()
 
         # Clear drop-through once fully below the platform
         if self._drop_platform >= 0:
@@ -518,7 +575,7 @@ class PlatformerScene(Scene):
         self.vy = 0.0
 
     def _respawn_cat(self):
-        px, py = PLAYER_SPAWN
+        px, py = self._checkpoint
         self.x        = float(px)
         self.feet_y   = float(py)
         self.vx       = 0.0
@@ -527,15 +584,53 @@ class PlatformerScene(Scene):
         self._on_platform = -1
         self._drop_platform = -1
         self.facing_right = True
-        self.camera_x      = 0.0
-        self.camera_y      = 0.0
-        self.target_cam_x  = 0.0
-        self.target_cam_y  = 0.0
+        # Point target_cam_x at the checkpoint so the lerp goes there in X.
+        # Without this, _update_camera only updates target_cam_x when the cat
+        # exceeds the scroll thresholds in the direction they're facing, so a
+        # checkpoint to the left of the camera would never pull the camera back.
+        self.target_cam_x = max(float(CAM_X_MIN),
+                                min(float(px) - RIGHT_SCROLL_PX, self._cam_x_max))
         self._cat_hp          = CAT_START_HP
         self._cat_blink_timer = CAT_BLINK_DUR
         self._swipe_frame     = -1
         self.anim_frame       = 0
         self._can_double_jump = DOUBLE_JUMP_ENABLED
+
+    def _transition_to_level(self, name):
+        self.exit()
+        self._current_level = name
+        self.enter()
+
+    def _check_checkpoints(self):
+        ccl = int(self.x) - CAT_HALF_W
+        ccr = int(self.x) + CAT_HALF_W
+        cct = int(self.feet_y) - CAT_H
+        ccb = int(self.feet_y)
+        for i, (cx, cy) in enumerate(CHECKPOINTS):
+            if self._checkpoint_activated[i]:
+                continue
+            if ccl >= cx + CHECKPOINT_W or ccr <= cx:
+                continue
+            if cct >= cy or ccb <= cy - CHECKPOINT_H:
+                continue
+            self._checkpoint = (cx + BLOCK_W // 2, cy)
+            self._checkpoint_activated[i] = True
+
+    def _check_doors(self):
+        if self._door_dest is not None:
+            return  # already sequencing a transition
+        ccl = int(self.x) - CAT_HALF_W
+        ccr = int(self.x) + CAT_HALF_W
+        cct = int(self.feet_y) - CAT_H
+        ccb = int(self.feet_y)
+        for cx, cy, dest in DOORS:
+            if ccl >= cx + DOOR_W or ccr <= cx:
+                continue
+            if cct >= cy or ccb <= cy - DOOR_H:
+                continue
+            self._door_dest       = dest
+            self._door_walk_timer = DOOR_WALK_DELAY
+            return
 
     # ------------------------------------------------------------------
     # Terrain queries
@@ -690,7 +785,7 @@ class PlatformerScene(Scene):
     # ------------------------------------------------------------------
 
     def handle_input(self):
-        if self._poof_active:
+        if self._poof_active or self._door_fade_phase is not None:
             return
 
         # During a run/jump swipe movement is NOT locked — cat keeps momentum.
@@ -807,6 +902,28 @@ class PlatformerScene(Scene):
                     gy = surface_y - sh - cam_y
                     self.renderer.draw_sprite(sprite["frames"][0], sw, sh, gx, gy)
 
+        # Checkpoints
+        for i, (cx, cy) in enumerate(CHECKPOINTS):
+            if self._checkpoint_activated[i]:
+                sp = PLATFORMER_CHECKPOINT_UP
+            else:
+                sp = PLATFORMER_CHECKPOINT_DOWN
+            sw = sp["width"]
+            sh = sp["height"]
+            draw_x = cx - cam_x
+            draw_y = cy - sh - cam_y
+            if -sw < draw_x < 128 and -sh < draw_y < 64:
+                self.renderer.draw_sprite(sp["frames"][0], sw, sh, draw_x, draw_y)
+
+        # Doors
+        dw = PLATFORMER_DOOR["width"]
+        dh = PLATFORMER_DOOR["height"]
+        for cx, cy, _ in DOORS:
+            draw_x = cx - cam_x
+            draw_y = cy - dh - cam_y
+            if -dw < draw_x < 128 and -dh < draw_y < 64:
+                self.renderer.draw_sprite(PLATFORMER_DOOR["frames"][0], dw, dh, draw_x, draw_y)
+
         # Slimes — only those in visible chunks
         sw = PLATFORMER_SLIME_IDLE["width"]
         sh = PLATFORMER_SLIME_IDLE["height"]
@@ -893,3 +1010,18 @@ class PlatformerScene(Scene):
             draw_y = int(self.feet_y) - sprite["height"] - cam_y
             self.renderer.draw_sprite(data, sprite["width"], sprite["height"],
                                       draw_x, draw_y)
+
+        # Door transition scanline overlay — drawn last so it covers everything
+        if self._door_fade_phase is not None:
+            if self._door_fade_phase == 'out':
+                progress = self._door_fade_prog
+            else:
+                progress = 1.0 - self._door_fade_prog
+            passes = int(progress * 8) + 1
+            disp = self.renderer.display
+            if passes >= 8:
+                disp.fill(0)
+            else:
+                for offset in range(passes):
+                    for y in range(offset, 64, 8):
+                        disp.hline(0, y, 128, 0)
