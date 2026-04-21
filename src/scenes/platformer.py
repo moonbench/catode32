@@ -22,7 +22,9 @@ from assets.platformer_terrain import (
     PLATFORMER_CHECKPOINT_DOWN,
     PLATFORMER_CHECKPOINT_UP,
     PLATFORMER_DOOR,
+    PLATFORMER_DOOR_LOCKED,
 )
+from assets.items import KEY
 from assets.plants import (
     GRASS_SEEDLING,
     GRASS_YOUNG,
@@ -107,6 +109,10 @@ SLIME_PATROL_RADIUS  = 48
 # Poof death animation
 POOF_SPF = 1.0 / 8   # POOF["speed"] = 8
 
+# Key collectible
+KEY_BOB_PERIOD = 1.2   # seconds per full oscillation cycle
+KEY_BOB_AMP    = 3     # pixels of vertical travel
+
 # Door transition timing
 DOOR_WALK_DELAY    = 0.35   # seconds the cat walks into the door before fade starts
 DOOR_FADE_DURATION = 0.25   # seconds per fade phase (matches config.TRANSITION_DURATION)
@@ -129,6 +135,8 @@ GRASS_CHUNKS = {}
 SLIME_SPAWNS = ()
 CHECKPOINTS  = ()
 DOORS        = ()
+LOCKED_DOORS = ()
+KEY_SPAWNS   = ()
 PLAYER_SPAWN = (8, 8)
 WORLD_W      = 128
 WORLD_H      = 64
@@ -138,7 +146,7 @@ def load_level(name):
     """Import platformer_levels/<name>.py, copy its data into module globals,
     then unload the module to recover the RAM its code object occupied."""
     global SOLID_CHUNKS, PLATFORMS, GRASS_CHUNKS, SLIME_SPAWNS
-    global CHECKPOINTS, DOORS, PLAYER_SPAWN, WORLD_W, WORLD_H
+    global CHECKPOINTS, DOORS, LOCKED_DOORS, KEY_SPAWNS, PLAYER_SPAWN, WORLD_W, WORLD_H
     import sys
     full = 'platformer_levels.' + name
     __import__(full, None, None, (name,))
@@ -149,6 +157,8 @@ def load_level(name):
     SLIME_SPAWNS = mod.SLIME_SPAWNS
     CHECKPOINTS  = getattr(mod, 'CHECKPOINTS', ())
     DOORS        = getattr(mod, 'DOORS', ())
+    LOCKED_DOORS = getattr(mod, 'LOCKED_DOORS', ())
+    KEY_SPAWNS   = getattr(mod, 'KEY_SPAWNS', ())
     PLAYER_SPAWN = mod.PLAYER_SPAWN
     WORLD_W      = mod.WORLD_W
     WORLD_H      = mod.WORLD_H
@@ -291,6 +301,11 @@ class PlatformerScene(Scene):
         self._door_fade_phase  = None  # None | 'out' | 'in'
         self._door_fade_prog   = 0.0
 
+        # Key collectibles
+        self._key_active = [True] * len(KEY_SPAWNS)
+        self._has_key    = False
+        self._key_timer  = 0.0
+
         # Enemies
         self._slimes = [Slime(x, fy) for x, fy in SLIME_SPAWNS]
 
@@ -385,7 +400,9 @@ class PlatformerScene(Scene):
             self._respawn_cat()
             return
 
+        self._key_timer += dt
         self._check_checkpoints()
+        self._check_key_pickup()
         self._check_doors()
 
         # Clear drop-through once fully below the platform
@@ -616,6 +633,26 @@ class PlatformerScene(Scene):
             self._checkpoint = (cx + BLOCK_W // 2, cy)
             self._checkpoint_activated[i] = True
 
+    def _check_key_pickup(self):
+        if not any(self._key_active):
+            return
+        ccl = int(self.x) - CAT_HALF_W
+        ccr = int(self.x) + CAT_HALF_W
+        cct = int(self.feet_y) - CAT_H
+        ccb = int(self.feet_y)
+        kw = KEY["width"]
+        kh = KEY["height"]
+        for i, (kx, ky) in enumerate(KEY_SPAWNS):
+            if not self._key_active[i]:
+                continue
+            if ccl >= kx + kw // 2 or ccr <= kx - kw // 2:
+                continue
+            if cct >= ky or ccb <= ky - kh:
+                continue
+            self._key_active[i] = False
+            self._has_key = True
+            return
+
     def _check_doors(self):
         if self._door_dest is not None:
             return  # already sequencing a transition
@@ -631,6 +668,15 @@ class PlatformerScene(Scene):
             self._door_dest       = dest
             self._door_walk_timer = DOOR_WALK_DELAY
             return
+        if self._has_key:
+            for cx, cy, dest in LOCKED_DOORS:
+                if ccl >= cx + DOOR_W or ccr <= cx:
+                    continue
+                if cct >= cy or ccb <= cy - DOOR_H:
+                    continue
+                self._door_dest       = dest
+                self._door_walk_timer = DOOR_WALK_DELAY
+                return
 
     # ------------------------------------------------------------------
     # Terrain queries
@@ -923,6 +969,28 @@ class PlatformerScene(Scene):
             draw_y = cy - dh - cam_y
             if -dw < draw_x < 128 and -dh < draw_y < 64:
                 self.renderer.draw_sprite(PLATFORMER_DOOR["frames"][0], dw, dh, draw_x, draw_y)
+
+        # Locked doors — show locked sprite until key obtained, then unlocked sprite
+        locked_door_sprite = PLATFORMER_DOOR if self._has_key else PLATFORMER_DOOR_LOCKED
+        for cx, cy, _ in LOCKED_DOORS:
+            draw_x = cx - cam_x
+            draw_y = cy - dh - cam_y
+            if -dw < draw_x < 128 and -dh < draw_y < 64:
+                self.renderer.draw_sprite(locked_door_sprite["frames"][0], dw, dh, draw_x, draw_y)
+
+        # Key collectibles — triangle-wave bob
+        kw = KEY["width"]
+        kh = KEY["height"]
+        t = self._key_timer % KEY_BOB_PERIOD
+        half = KEY_BOB_PERIOD * 0.5
+        bob = int(t / half * KEY_BOB_AMP) if t < half else int((KEY_BOB_PERIOD - t) / half * KEY_BOB_AMP)
+        for i, (kx, ky) in enumerate(KEY_SPAWNS):
+            if not self._key_active[i]:
+                continue
+            draw_x = kx - kw // 2 - cam_x
+            draw_y = ky - kh - bob - cam_y
+            if -kw < draw_x < 128 and -kh < draw_y < 64:
+                self.renderer.draw_sprite(KEY["frames"][0], kw, kh, draw_x, draw_y)
 
         # Slimes — only those in visible chunks
         sw = PLATFORMER_SLIME_IDLE["width"]
