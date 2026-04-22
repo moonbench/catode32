@@ -16,6 +16,7 @@ Character key
   _   one-way platform (consecutive underscores on the same row → one entry)
   g   grass decoration (sprite picked randomly at parse time, baked into output)
   V   vines decoration (hangs downward from the marker row)
+  ,   background tile (group 0; variant picked randomly at parse time)
   S   slime enemy spawn point
   $   player spawn point
   @   checkpoint (respawn point; multiple allowed, activated in order of contact)
@@ -82,6 +83,13 @@ TILE_TOP_LEFT_RIGHT        = 13
 TILE_TOP_LEFT_BOTTOM_RIGHT = 14
 
 GRASS_VARIANTS = 5   # indices 0..4 (SEEDLING → THRIVING)
+
+# Background tile groups: BG_GROUPS[group_idx] = number of variants in that group.
+# Must stay in sync with PLATFORMER_BG_TILES in platformer_terrain.py.
+# Group 0 = ',' symbol
+BG_GROUPS = {
+    ',': (0, 2),   # (group_idx, variant_count)
+}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -175,6 +183,7 @@ def convert(txt_path, out_name):
     platforms    = []   # (px, py, pw)
     grass        = []   # (wx, surface_y, sprite_idx)
     vines        = []   # (wx, top_y)
+    bg_tiles     = []   # (wx, wy, group_idx, variant_idx)
     slime_spawns = []   # (world_x, feet_y)
     checkpoints  = []   # (wx_left, wy_bottom) — bottom-left of sprite
     all_door_positions = []  # (wx_left, wy_bottom, is_locked) — reading order, paired with dest_lines
@@ -215,6 +224,12 @@ def convert(txt_path, out_name):
                 wx = c * BLOCK_W + BLOCK_W // 2
                 ty = r * BLOCK_H
                 vines.append((wx, ty))
+
+            elif ch in BG_GROUPS:
+                gi, vc = BG_GROUPS[ch]
+                wx = c * BLOCK_W
+                wy = r * BLOCK_H
+                bg_tiles.append((wx, wy, gi, random.randint(0, vc - 1)))
 
             elif ch == 'S':
                 wx = c * BLOCK_W + BLOCK_W // 2
@@ -275,10 +290,17 @@ def convert(txt_path, out_name):
         key = (wx // CHUNK_W, ty // CHUNK_H)
         vine_chunks.setdefault(key, []).append((wx, ty))
 
+    # Pre-bucket background tiles into chunks
+    bg_chunks = {}
+    for wx, wy, gi, vi in bg_tiles:
+        key = (wx // CHUNK_W, wy // CHUNK_H)
+        bg_chunks.setdefault(key, []).append((wx, wy, gi, vi))
+
     # Freeze lists → tuples
     solid_chunks = {k: tuple(v) for k, v in solid.items()}
     grass_chunks = {k: tuple(v) for k, v in grass_chunks.items()}
     vine_chunks  = {k: tuple(v) for k, v in vine_chunks.items()}
+    bg_chunks    = {k: tuple(v) for k, v in bg_chunks.items()}
 
     # ── Write output ──────────────────────────────────────────────────────────
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -305,6 +327,14 @@ def convert(txt_path, out_name):
             fh.write(f'    {key!r}: (\n')
             for block in solid_chunks[key]:
                 fh.write(f'        {block!r},\n')
+            fh.write('    ),\n')
+        fh.write('}\n\n')
+
+        fh.write('BG_CHUNKS = {\n')
+        for key in sorted(bg_chunks):
+            fh.write(f'    {key!r}: (\n')
+            for b in bg_chunks[key]:
+                fh.write(f'        {b!r},\n')
             fh.write('    ),\n')
         fh.write('}\n\n')
 
@@ -357,6 +387,7 @@ def convert(txt_path, out_name):
     print(f'Platforms: {len(platforms)}')
     print(f'Grass   : {len(grass)}')
     print(f'Vines   : {len(vines)}')
+    print(f'BG tiles: {len(bg_tiles)}')
     print(f'Slimes  : {len(slime_spawns)}')
     print(f'Checkpoints: {len(checkpoints)}')
     print(f'Doors   : {len(doors)}')

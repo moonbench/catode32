@@ -136,6 +136,22 @@ PLATFORMER_VINES = {
     "frames": [bytearray([0xa2, 0x80, 0xa2, 0x80, 0xa4, 0x80, 0xa4, 0x80, 0xa4, 0x80, 0xa8, 0x80, 0x69, 0x00, 0x30, 0x80, 0x21, 0x00, 0x10, 0x00, 0x20, 0x00, 0x20, 0x00, 0x10, 0x00])]
 }
 
+PLATFORMER_BG_TILE_1 = {
+    "width": 8, "height": 8,
+    "frames": [bytearray([0x00, 0x40, 0x00, 0x00, 0x04, 0x00, 0x20, 0x00])],
+}
+
+PLATFORMER_BG_TILE_2 = {
+    "width": 8, "height": 8,
+    "frames": [bytearray([0x00, 0x20, 0x04, 0x00, 0x40, 0x00, 0x04, 0x00])],
+}
+
+# Tuple of tuples: PLATFORMER_BG_TILES[group_idx][variant_idx]
+# Group 0 = ',' symbol (sparse dot tiles)
+PLATFORMER_BG_TILES = (
+    (PLATFORMER_BG_TILE_1, PLATFORMER_BG_TILE_2),  # group 0: ','
+)
+
 # Indexed by TILE_* constants — TERRAIN_TILES[tile_type][variant_idx] gives the sprite.
 # Add more sprites to an inner tuple to introduce variants for that tile type.
 TERRAIN_TILES = (

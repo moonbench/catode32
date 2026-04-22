@@ -24,6 +24,7 @@ from assets.platformer_terrain import (
     PLATFORMER_DOOR,
     PLATFORMER_DOOR_LOCKED,
     PLATFORMER_VINES,
+    PLATFORMER_BG_TILES,
 )
 from assets.items import KEY
 from assets.plants import (
@@ -133,6 +134,7 @@ GRASS_SPRITES = (GRASS_SEEDLING, GRASS_YOUNG, GRASS_GROWING, GRASS_MATURE, GRASS
 # loop can reference them without threading level data through every call.
 SOLID_CHUNKS = {}
 PLATFORMS    = ()
+BG_CHUNKS    = {}
 GRASS_CHUNKS = {}
 VINE_CHUNKS  = {}
 SLIME_SPAWNS = ()
@@ -148,14 +150,20 @@ WORLD_H      = 64
 def load_level(name):
     """Import platformer_levels/<name>.py, copy its data into module globals,
     then unload the module to recover the RAM its code object occupied."""
-    global SOLID_CHUNKS, PLATFORMS, GRASS_CHUNKS, VINE_CHUNKS, SLIME_SPAWNS
+    global SOLID_CHUNKS, PLATFORMS, BG_CHUNKS, GRASS_CHUNKS, VINE_CHUNKS, SLIME_SPAWNS
     global CHECKPOINTS, DOORS, LOCKED_DOORS, KEY_SPAWNS, PLAYER_SPAWN, WORLD_W, WORLD_H
+    # Free old level data before importing the new module so both are never
+    # live simultaneously — prevents heap fragmentation on level transitions.
+    SOLID_CHUNKS = None; PLATFORMS = None; BG_CHUNKS = None
+    GRASS_CHUNKS = None; VINE_CHUNKS = None; SLIME_SPAWNS = None
+    import gc; gc.collect()
     import sys
     full = 'platformer_levels.' + name
     __import__(full, None, None, (name,))
     mod = sys.modules[full]
     SOLID_CHUNKS = mod.SOLID_CHUNKS
     PLATFORMS    = mod.PLATFORMS
+    BG_CHUNKS    = getattr(mod, 'BG_CHUNKS', {})
     GRASS_CHUNKS = mod.GRASS_CHUNKS
     VINE_CHUNKS  = getattr(mod, 'VINE_CHUNKS', {})
     SLIME_SPAWNS = mod.SLIME_SPAWNS
@@ -928,11 +936,24 @@ class PlatformerScene(Scene):
         cam_x = int(self.camera_x)
         cam_y = int(self.camera_y)
 
-        # Solid terrain — only iterate chunks that overlap the viewport
+        # Background tiles — drawn first, behind everything
         col0 = cam_x // CHUNK_W
         col1 = (cam_x + 127) // CHUNK_W
         row0 = cam_y // CHUNK_H
         row1 = (cam_y + 63) // CHUNK_H
+        for col in range(col0, col1 + 1):
+            for row in range(row0, row1 + 1):
+                bucket = BG_CHUNKS.get((col, row))
+                if not bucket:
+                    continue
+                for wx, wy, gi, vi in bucket:
+                    sx = wx - cam_x
+                    sy = wy - cam_y
+                    if -BLOCK_W < sx < 128 and -BLOCK_H < sy < 64:
+                        tile = PLATFORMER_BG_TILES[gi][vi]
+                        self.renderer.draw_sprite(tile["frames"][0], BLOCK_W, BLOCK_H, sx, sy)
+
+        # Solid terrain — only iterate chunks that overlap the viewport
         for col in range(col0, col1 + 1):
             for row in range(row0, row1 + 1):
                 bucket = SOLID_CHUNKS.get((col, row))
