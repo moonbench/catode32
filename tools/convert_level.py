@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Convert a platformer level text file to a Python module for PetPython.
+Convert a platformer level text file to a binary level file for PetPython.
 
 Usage:
     python tools/convert_level.py <input.txt> <level_name>
 
     input.txt   – path to the level text file (e.g. levels/level_01.txt)
     level_name  – output module name without extension (e.g. level_01)
-                  written to src/platformer_levels/<level_name>.py
+                  written to src/platformer_levels/<level_name>.bin
 
 Character key
 ─────────────
@@ -53,10 +53,37 @@ Tile auto-detection
   For each terrain cell the four cardinal neighbours are checked to decide
   which TILE_* constant to assign.  Fully interior cells (all four neighbours
   are also terrain) are skipped — no tile is emitted for them.
+
+Binary format
+─────────────
+  Header (9 bytes):
+    B  version = 1
+    H  WORLD_W
+    H  WORLD_H
+    H  PLAYER_SPAWN_X
+    H  PLAYER_SPAWN_Y
+
+  Sections (repeating until EOF):
+    B  section_id
+    H  count
+
+  0x01 SLIME_SPAWNS  (count = num slimes):   HH per entry (x, y)
+  0x02 SOLID_CHUNKS  (count = num chunks):   BBB per chunk (col, row, n); HHBB per block (bx, by, tt, vi)
+  0x03 BG_CHUNKS     (count = num chunks):   BBB per chunk (col, row, n); HHBB per tile  (wx, wy, gi, vi)
+  0x04 GRASS_CHUNKS  (count = num chunks):   BBB per chunk (col, row, n); HHB  per grass (wx, sy, si)
+  0x05 VINE_CHUNKS   (count = num chunks):   BBB per chunk (col, row, n); HH   per vine  (wx, ty)
+  0x06 CHECKPOINTS   (count = num entries):  HH per entry (x, y)
+  0x07 PLATFORMS     (count = num entries):  HHH per entry (x, y, w)
+  0x08 DOORS         (count = num entries):  HHB+bytes per entry (x, y, dest_len, dest_ascii)
+  0x09 LOCKED_DOORS  (count = num entries):  same as DOORS
+  0x0A KEY_SPAWNS    (count = num entries):  HH per entry (x, y)
+
+  All integers are little-endian.  Sections with zero entries are omitted.
 """
 
 import os
 import random
+import struct
 import sys
 
 # ── Match platformer.py constants ────────────────────────────────────────────
@@ -148,6 +175,115 @@ def _tile_type(grid, r, c, num_rows, num_cols):
     if not right:
         return TILE_TOP_RIGHT_BOTTOM
     return TILE_TOP_BOTTOM
+
+
+# ── Binary writer ─────────────────────────────────────────────────────────────
+
+def _write_binary(out_path, world_w, world_h, player_spawn, slime_spawns,
+                  solid_chunks, bg_chunks, grass_chunks, vine_chunks,
+                  checkpoints, platforms, doors, locked_doors, key_spawns):
+    buf = bytearray()
+
+    # Header: version(B) WORLD_W(H) WORLD_H(H) SPAWN_X(H) SPAWN_Y(H) = 9 bytes
+    buf += struct.pack('<BHHHH', 1, world_w, world_h,
+                       player_spawn[0], player_spawn[1])
+
+    # 0x01 SLIME_SPAWNS
+    if slime_spawns:
+        sec = bytearray()
+        for x, y in slime_spawns:
+            sec += struct.pack('<HH', x, y)
+        buf += struct.pack('<BH', 0x01, len(slime_spawns))
+        buf += sec
+
+    # 0x02 SOLID_CHUNKS
+    if solid_chunks:
+        sec = bytearray()
+        for (col, row), blocks in sorted(solid_chunks.items()):
+            sec += struct.pack('<BBB', col, row, len(blocks))
+            for bx, by, tt, vi in blocks:
+                sec += struct.pack('<HHBB', bx, by, tt, vi)
+        buf += struct.pack('<BH', 0x02, len(solid_chunks))
+        buf += sec
+
+    # 0x03 BG_CHUNKS
+    if bg_chunks:
+        sec = bytearray()
+        for (col, row), tiles in sorted(bg_chunks.items()):
+            sec += struct.pack('<BBB', col, row, len(tiles))
+            for wx, wy, gi, vi in tiles:
+                sec += struct.pack('<HHBB', wx, wy, gi, vi)
+        buf += struct.pack('<BH', 0x03, len(bg_chunks))
+        buf += sec
+
+    # 0x04 GRASS_CHUNKS
+    if grass_chunks:
+        sec = bytearray()
+        for (col, row), grasses in sorted(grass_chunks.items()):
+            sec += struct.pack('<BBB', col, row, len(grasses))
+            for wx, sy, si in grasses:
+                sec += struct.pack('<HHB', wx, sy, si)
+        buf += struct.pack('<BH', 0x04, len(grass_chunks))
+        buf += sec
+
+    # 0x05 VINE_CHUNKS
+    if vine_chunks:
+        sec = bytearray()
+        for (col, row), vines in sorted(vine_chunks.items()):
+            sec += struct.pack('<BBB', col, row, len(vines))
+            for wx, ty in vines:
+                sec += struct.pack('<HH', wx, ty)
+        buf += struct.pack('<BH', 0x05, len(vine_chunks))
+        buf += sec
+
+    # 0x06 CHECKPOINTS
+    if checkpoints:
+        sec = bytearray()
+        for x, y in checkpoints:
+            sec += struct.pack('<HH', x, y)
+        buf += struct.pack('<BH', 0x06, len(checkpoints))
+        buf += sec
+
+    # 0x07 PLATFORMS
+    if platforms:
+        sec = bytearray()
+        for x, y, w in platforms:
+            sec += struct.pack('<HHH', x, y, w)
+        buf += struct.pack('<BH', 0x07, len(platforms))
+        buf += sec
+
+    # 0x08 DOORS
+    if doors:
+        sec = bytearray()
+        for x, y, dest in doors:
+            dest_b = dest.encode()
+            sec += struct.pack('<HHB', x, y, len(dest_b))
+            sec += dest_b
+        buf += struct.pack('<BH', 0x08, len(doors))
+        buf += sec
+
+    # 0x09 LOCKED_DOORS
+    if locked_doors:
+        sec = bytearray()
+        for x, y, dest in locked_doors:
+            dest_b = dest.encode()
+            sec += struct.pack('<HHB', x, y, len(dest_b))
+            sec += dest_b
+        buf += struct.pack('<BH', 0x09, len(locked_doors))
+        buf += sec
+
+    # 0x0A KEY_SPAWNS
+    if key_spawns:
+        sec = bytearray()
+        for x, y in key_spawns:
+            sec += struct.pack('<HH', x, y)
+        buf += struct.pack('<BH', 0x0A, len(key_spawns))
+        buf += sec
+
+    with open(out_path, 'wb') as fh:
+        fh.write(buf)
+
+    return len(buf)
 
 
 # ── Main converter ────────────────────────────────────────────────────────────
@@ -302,86 +438,20 @@ def convert(txt_path, out_name):
     vine_chunks  = {k: tuple(v) for k, v in vine_chunks.items()}
     bg_chunks    = {k: tuple(v) for k, v in bg_chunks.items()}
 
-    # ── Write output ──────────────────────────────────────────────────────────
+    # ── Write binary output ───────────────────────────────────────────────────
     script_dir = os.path.dirname(os.path.abspath(__file__))
     out_dir    = os.path.join(script_dir, '..', 'src', 'platformer_levels')
-    out_path   = os.path.normpath(os.path.join(out_dir, out_name + '.py'))
+    out_path   = os.path.normpath(os.path.join(out_dir, out_name + '.bin'))
 
-    with open(out_path, 'w') as fh:
-        src_rel = os.path.relpath(txt_path, os.path.dirname(out_path))
-        fh.write(f'# Generated by tools/convert_level.py from {os.path.basename(txt_path)}\n')
-        fh.write('# Do not edit manually — regenerate from the source .txt file.\n\n')
-
-        fh.write(f'WORLD_W = {world_w}\n')
-        fh.write(f'WORLD_H = {world_h}\n\n')
-
-        fh.write(f'PLAYER_SPAWN = {player_spawn!r}\n\n')
-
-        fh.write('SLIME_SPAWNS = (\n')
-        for s in slime_spawns:
-            fh.write(f'    {s!r},\n')
-        fh.write(')\n\n')
-
-        fh.write('SOLID_CHUNKS = {\n')
-        for key in sorted(solid_chunks):
-            fh.write(f'    {key!r}: (\n')
-            for block in solid_chunks[key]:
-                fh.write(f'        {block!r},\n')
-            fh.write('    ),\n')
-        fh.write('}\n\n')
-
-        fh.write('BG_CHUNKS = {\n')
-        for key in sorted(bg_chunks):
-            fh.write(f'    {key!r}: (\n')
-            for b in bg_chunks[key]:
-                fh.write(f'        {b!r},\n')
-            fh.write('    ),\n')
-        fh.write('}\n\n')
-
-        fh.write('GRASS_CHUNKS = {\n')
-        for key in sorted(grass_chunks):
-            fh.write(f'    {key!r}: (\n')
-            for g in grass_chunks[key]:
-                fh.write(f'        {g!r},\n')
-            fh.write('    ),\n')
-        fh.write('}\n\n')
-
-        fh.write('VINE_CHUNKS = {\n')
-        for key in sorted(vine_chunks):
-            fh.write(f'    {key!r}: (\n')
-            for v in vine_chunks[key]:
-                fh.write(f'        {v!r},\n')
-            fh.write('    ),\n')
-        fh.write('}\n\n')
-
-        fh.write('CHECKPOINTS = (\n')
-        for cp in checkpoints:
-            fh.write(f'    {cp!r},\n')
-        fh.write(')\n\n')
-
-        fh.write('DOORS = (\n')
-        for d in doors:
-            fh.write(f'    {d!r},\n')
-        fh.write(')\n\n')
-
-        fh.write('LOCKED_DOORS = (\n')
-        for d in locked_doors:
-            fh.write(f'    {d!r},\n')
-        fh.write(')\n\n')
-
-        fh.write('KEY_SPAWNS = (\n')
-        for k in key_spawns:
-            fh.write(f'    {k!r},\n')
-        fh.write(')\n\n')
-
-        fh.write('PLATFORMS = (\n')
-        for p in platforms:
-            fh.write(f'    {p!r},\n')
-        fh.write(')\n')
+    file_size = _write_binary(
+        out_path, world_w, world_h, player_spawn, slime_spawns,
+        solid_chunks, bg_chunks, grass_chunks, vine_chunks,
+        checkpoints, platforms, doors, locked_doors, key_spawns,
+    )
 
     # ── Summary ───────────────────────────────────────────────────────────────
     total_blocks = sum(len(v) for v in solid_chunks.values())
-    print(f'Written : {out_path}')
+    print(f'Written : {out_path}  ({file_size} bytes)')
     print(f'World   : {world_w}×{world_h} px  ({num_cols}×{num_rows} cells)')
     print(f'Blocks  : {total_blocks}')
     print(f'Platforms: {len(platforms)}')

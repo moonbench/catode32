@@ -59,6 +59,17 @@ fi
 
 echo ""
 echo -e "${GREEN}=== Compilation complete ===${NC}"
+
+echo ""
+echo -e "${YELLOW}=== Copying binary data files ===${NC}"
+find "$SRC_DIR" -name "*.bin" | while read -r binfile; do
+    REL_PATH="${binfile#$SRC_DIR/}"
+    BIN_DEST="$BUILD_DIR/$REL_PATH"
+    mkdir -p "$(dirname "$BIN_DEST")"
+    cp "$binfile" "$BIN_DEST"
+    echo -e "  Copying $REL_PATH... ${GREEN}✓${NC}"
+done
+
 echo ""
 echo -e "${YELLOW}=== Mounting and running ===${NC}"
 echo "(If boot.py is installed, hold A+B or wait for the 1s interrupt window)"

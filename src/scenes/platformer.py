@@ -157,34 +157,103 @@ WORLD_H      = 64
 
 
 def load_level(name):
-    """Import platformer_levels/<name>.py, copy its data into module globals,
-    then unload the module to recover the RAM its code object occupied."""
+    """Read a pre-built binary level file and populate the module-level globals.
+    Binary format avoids the peak-RAM cost of module import (no code object
+    ever coexists with the data being built).  See tools/convert_level.py for
+    the format specification."""
     global SOLID_CHUNKS, PLATFORMS, BG_CHUNKS, GRASS_CHUNKS, VINE_CHUNKS, SLIME_SPAWNS
     global CHECKPOINTS, DOORS, LOCKED_DOORS, KEY_SPAWNS, PLAYER_SPAWN, WORLD_W, WORLD_H
-    # Free old level data before importing the new module so both are never
-    # live simultaneously — prevents heap fragmentation on level transitions.
+    # Free old level data before loading the new level so the two datasets are
+    # never live simultaneously.
     SOLID_CHUNKS = None; PLATFORMS = None; BG_CHUNKS = None
     GRASS_CHUNKS = None; VINE_CHUNKS = None; SLIME_SPAWNS = None
     import gc; gc.collect()
-    import sys
-    full = 'platformer_levels.' + name
-    __import__(full, None, None, (name,))
-    mod = sys.modules[full]
-    SOLID_CHUNKS = mod.SOLID_CHUNKS
-    PLATFORMS    = mod.PLATFORMS
-    BG_CHUNKS    = getattr(mod, 'BG_CHUNKS', {})
-    GRASS_CHUNKS = mod.GRASS_CHUNKS
-    VINE_CHUNKS  = getattr(mod, 'VINE_CHUNKS', {})
-    SLIME_SPAWNS = mod.SLIME_SPAWNS
-    CHECKPOINTS  = getattr(mod, 'CHECKPOINTS', ())
-    DOORS        = getattr(mod, 'DOORS', ())
-    LOCKED_DOORS = getattr(mod, 'LOCKED_DOORS', ())
-    KEY_SPAWNS   = getattr(mod, 'KEY_SPAWNS', ())
-    PLAYER_SPAWN = mod.PLAYER_SPAWN
-    WORLD_W      = mod.WORLD_W
-    WORLD_H      = mod.WORLD_H
-    sys.modules.pop(full, None)
-    sys.modules.pop('platformer_levels', None)
+    import struct
+
+    solid_d = {}
+    bg_d    = {}
+    grass_d = {}
+    vine_d  = {}
+    slimes  = []
+    cps     = []
+    doors   = []
+    ldoors  = []
+    keys    = []
+    plats   = []
+
+    with open('platformer_levels/' + name + '.bin', 'rb') as f:
+        # Header: version(B) WORLD_W(H) WORLD_H(H) SPAWN_X(H) SPAWN_Y(H)
+        _ver, world_w, world_h, sx, sy = struct.unpack('<BHHHH', f.read(9))
+        WORLD_W      = world_w
+        WORLD_H      = world_h
+        PLAYER_SPAWN = (sx, sy)
+
+        while True:
+            hdr = f.read(3)
+            if len(hdr) < 3:
+                break
+            sec_id, count = struct.unpack('<BH', hdr)
+
+            if sec_id == 0x01:    # SLIME_SPAWNS
+                for _ in range(count):
+                    slimes.append(struct.unpack('<HH', f.read(4)))
+
+            elif sec_id == 0x02:  # SOLID_CHUNKS
+                for _ in range(count):
+                    col, row, n = struct.unpack('<BBB', f.read(3))
+                    solid_d[(col, row)] = tuple(
+                        struct.unpack('<HHBB', f.read(6)) for _ in range(n))
+
+            elif sec_id == 0x03:  # BG_CHUNKS
+                for _ in range(count):
+                    col, row, n = struct.unpack('<BBB', f.read(3))
+                    bg_d[(col, row)] = tuple(
+                        struct.unpack('<HHBB', f.read(6)) for _ in range(n))
+
+            elif sec_id == 0x04:  # GRASS_CHUNKS
+                for _ in range(count):
+                    col, row, n = struct.unpack('<BBB', f.read(3))
+                    grass_d[(col, row)] = tuple(
+                        struct.unpack('<HHB', f.read(5)) for _ in range(n))
+
+            elif sec_id == 0x05:  # VINE_CHUNKS
+                for _ in range(count):
+                    col, row, n = struct.unpack('<BBB', f.read(3))
+                    vine_d[(col, row)] = tuple(
+                        struct.unpack('<HH', f.read(4)) for _ in range(n))
+
+            elif sec_id == 0x06:  # CHECKPOINTS
+                for _ in range(count):
+                    cps.append(struct.unpack('<HH', f.read(4)))
+
+            elif sec_id == 0x07:  # PLATFORMS
+                for _ in range(count):
+                    plats.append(struct.unpack('<HHH', f.read(6)))
+
+            elif sec_id == 0x08:  # DOORS
+                for _ in range(count):
+                    x, y, dlen = struct.unpack('<HHB', f.read(5))
+                    doors.append((x, y, f.read(dlen).decode()))
+
+            elif sec_id == 0x09:  # LOCKED_DOORS
+                for _ in range(count):
+                    x, y, dlen = struct.unpack('<HHB', f.read(5))
+                    ldoors.append((x, y, f.read(dlen).decode()))
+
+            elif sec_id == 0x0A:  # KEY_SPAWNS
+                for _ in range(count):
+                    keys.append(struct.unpack('<HH', f.read(4)))
+
+    SOLID_CHUNKS = solid_d
+    BG_CHUNKS    = bg_d
+    GRASS_CHUNKS = grass_d
+    VINE_CHUNKS  = vine_d
+    SLIME_SPAWNS = tuple(slimes)
+    CHECKPOINTS  = tuple(cps)
+    DOORS        = tuple(doors)
+    LOCKED_DOORS = tuple(ldoors)
+    KEY_SPAWNS   = tuple(keys)
+    PLATFORMS    = tuple(plats)
 
 
 def _supported(x, feet_y, half_w):

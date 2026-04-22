@@ -70,6 +70,16 @@ done < <(find "$SRC_DIR" -name "*.py" -not -path "$SRC_DIR/assets/*")
 echo -e "${GREEN}✓ Compilation complete${NC}"
 
 echo ""
+echo -e "${YELLOW}Copying binary data files...${NC}"
+find "$SRC_DIR" -name "*.bin" | while read -r binfile; do
+    REL_PATH="${binfile#$SRC_DIR/}"
+    BIN_DEST="$BUILD_DIR/$REL_PATH"
+    mkdir -p "$(dirname "$BIN_DEST")"
+    cp "$binfile" "$BIN_DEST"
+    echo -e "  Copying $REL_PATH... ${GREEN}✓${NC}"
+done
+
+echo ""
 echo "Step 2: Checking connection..."
 if mp fs ls / > /dev/null 2>&1; then
     echo -e "${GREEN}✓ Connected to device${NC}"
@@ -128,11 +138,11 @@ echo -e "${GREEN}✓ Device cleaned${NC}"
 echo ""
 echo "Step 5: Uploading compiled files..."
 # Count files for progress
-TOTAL_FILES=$(find $BUILD_DIR -type f -name "*.mpy" | wc -l)
+TOTAL_FILES=$(find $BUILD_DIR -type f \( -name "*.mpy" -o -name "*.bin" \) | wc -l)
 CURRENT=0
 
-# Upload all compiled .mpy files
-find $BUILD_DIR -type f -name "*.mpy" | while read -r file; do
+# Upload all compiled .mpy files and binary data files
+find $BUILD_DIR -type f \( -name "*.mpy" -o -name "*.bin" \) | while read -r file; do
     CURRENT=$((CURRENT + 1))
     # Get relative path and remove build/ prefix
     REL_PATH="${file#$BUILD_DIR/}"
