@@ -598,8 +598,37 @@ class PlatformerScene(Scene):
         if not _supported(look_x, slime.feet_y, 1):
             slime.vx = -slime.vx
 
-        # Move and clamp to patrol bounds
+        # Move with wall collision
         next_x = slime.x + slime.vx * dt
+        nl = int(next_x) - SLIME_HALF_W
+        nr = int(next_x) + SLIME_HALF_W
+        st = int(slime.feet_y) - SLIME_H
+        sb = int(slime.feet_y)
+        col0 = (nl - BLOCK_W + 1) // CHUNK_W
+        col1 = (nr - 1) // CHUNK_W
+        row0 = (st - BLOCK_H + 1) // CHUNK_H
+        row1 = (sb - 1) // CHUNK_H
+        wall_hit = False
+        for col in range(col0, col1 + 1):
+            for row in range(row0, row1 + 1):
+                bucket = SOLID_CHUNKS.get((col, row))
+                if not bucket:
+                    continue
+                for bx, by, _, __ in bucket:
+                    if st >= by + BLOCK_H or sb <= by:
+                        continue
+                    if nl >= bx + BLOCK_W or nr <= bx:
+                        continue
+                    next_x = float(bx - SLIME_HALF_W) if slime.vx > 0 else float(bx + BLOCK_W + SLIME_HALF_W)
+                    slime.vx = -slime.vx
+                    wall_hit = True
+                    break
+                if wall_hit:
+                    break
+            if wall_hit:
+                break
+
+        # Clamp to patrol bounds
         if next_x <= slime.patrol_min:
             next_x   = slime.patrol_min
             slime.vx = SLIME_SPEED
