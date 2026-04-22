@@ -107,7 +107,7 @@ SLIME_START_HP       = 2
 SLIME_HIT_FLASH      = 0.15   # seconds to show fill frame after being hit
 SLIME_ANIM_SPF       = 0.5    # seconds per frame (2 FPS)
 SLIME_BURST_SPF      = 1.0 / 12   # seconds per frame for death burst
-SLIME_PATROL_RADIUS  = 48
+SLIME_PATROL_RADIUS  = 84
 
 # Poof death animation
 POOF_SPF = 1.0 / 8   # POOF["speed"] = 8

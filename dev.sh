@@ -61,13 +61,11 @@ echo ""
 echo -e "${GREEN}=== Compilation complete ===${NC}"
 
 echo ""
-echo -e "${YELLOW}=== Copying binary data files ===${NC}"
-find "$SRC_DIR" -name "*.bin" | while read -r binfile; do
-    REL_PATH="${binfile#$SRC_DIR/}"
-    BIN_DEST="$BUILD_DIR/$REL_PATH"
-    mkdir -p "$(dirname "$BIN_DEST")"
-    cp "$binfile" "$BIN_DEST"
-    echo -e "  Copying $REL_PATH... ${GREEN}✓${NC}"
+echo -e "${YELLOW}=== Converting level files ===${NC}"
+mkdir -p "$BUILD_DIR/platformer_levels"
+for txt in levels/level_*.txt; do
+    name=$(basename "${txt%.txt}")
+    python3 tools/convert_level.py "$txt" "$name" "$BUILD_DIR/platformer_levels"
 done
 
 echo ""

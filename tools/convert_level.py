@@ -288,7 +288,7 @@ def _write_binary(out_path, world_w, world_h, player_spawn, slime_spawns,
 
 # ── Main converter ────────────────────────────────────────────────────────────
 
-def convert(txt_path, out_name):
+def convert(txt_path, out_name, out_dir=None):
     with open(txt_path) as fh:
         all_lines = fh.read().splitlines()
 
@@ -439,9 +439,11 @@ def convert(txt_path, out_name):
     bg_chunks    = {k: tuple(v) for k, v in bg_chunks.items()}
 
     # ── Write binary output ───────────────────────────────────────────────────
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    out_dir    = os.path.join(script_dir, '..', 'src', 'platformer_levels')
-    out_path   = os.path.normpath(os.path.join(out_dir, out_name + '.bin'))
+    if out_dir is None:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        out_dir = os.path.join(script_dir, '..', 'src', 'platformer_levels')
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.normpath(os.path.join(out_dir, out_name + '.bin'))
 
     file_size = _write_binary(
         out_path, world_w, world_h, player_spawn, slime_spawns,
@@ -467,7 +469,8 @@ def convert(txt_path, out_name):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print('Usage: python tools/convert_level.py <input.txt> <level_name>')
+    if len(sys.argv) not in (3, 4):
+        print('Usage: python tools/convert_level.py <input.txt> <level_name> [output_dir]')
         sys.exit(1)
-    convert(sys.argv[1], sys.argv[2])
+    convert(sys.argv[1], sys.argv[2],
+            out_dir=sys.argv[3] if len(sys.argv) == 4 else None)
