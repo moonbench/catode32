@@ -156,51 +156,55 @@ _DOOR_W            = PLATFORMER_DOOR["width"]
 _DOOR_H            = PLATFORMER_DOOR["height"]
 
 # ── Level data globals ────────────────────────────────────────────────────────
-# Populated by load_level(); kept at module scope so _supported() and the draw
-# loop can reference them without threading level data through every call.
-SOLID_CHUNKS = {}
+# _LEVEL_DATA holds a reference to the frozen bytes object (lives in flash).
+# The four INDEX dicts map (chunk_col, chunk_row) → (byte_offset, block_count)
+# into _LEVEL_DATA, so block data is unpacked on demand rather than pre-parsed.
+# PLATFORMS/CHECKPOINTS/DOORS/LOCKED_DOORS are small and iterated every frame,
+# so they remain fully parsed tuples.
+# _SLIME_SEC/_KEY_SEC/_COIN_SEC are (offset, count) pairs consumed once during
+# _init_level_state() to build the per-session instance structures.
+_LEVEL_DATA  = None
+
+SOLID_INDEX  = {}
+BG_INDEX     = {}
+GRASS_INDEX  = {}
+VINE_INDEX   = {}
+
 PLATFORMS    = ()
-BG_CHUNKS    = {}
-GRASS_CHUNKS = {}
-VINE_CHUNKS  = {}
-SLIME_SPAWNS = ()
 CHECKPOINTS  = ()
 DOORS        = ()
 LOCKED_DOORS = ()
-KEY_SPAWNS   = ()
-COIN_SPAWNS  = ()
+
+_SLIME_SEC   = (0, 0)
+_KEY_SEC     = (0, 0)
+_COIN_SEC    = (0, 0)
+
 PLAYER_SPAWN = (8, 8)
 WORLD_W      = 128
 WORLD_H      = 64
 
 
 def load_level(name):
-    """Populate module-level globals from a frozen level bytes object.
-    Reads directly from flash via struct.unpack_from — no filesystem I/O and
-    no temporary read buffers.  See tools/convert_level.py for the binary
-    format specification and tools/build_levels.py to regenerate the module."""
-    global SOLID_CHUNKS, PLATFORMS, BG_CHUNKS, GRASS_CHUNKS, VINE_CHUNKS, SLIME_SPAWNS
-    global CHECKPOINTS, DOORS, LOCKED_DOORS, KEY_SPAWNS, COIN_SPAWNS, PLAYER_SPAWN, WORLD_W, WORLD_H
-    # Free ALL old level data before loading the new level so the two datasets
-    # are never live simultaneously.  Sprite caches (_TERRAIN_FRAMES etc.) are
-    # intentionally left alone — they are identical across all levels.
-    SOLID_CHUNKS = None; PLATFORMS    = None; BG_CHUNKS    = None
-    GRASS_CHUNKS = None; VINE_CHUNKS  = None; SLIME_SPAWNS = None
-    COIN_SPAWNS  = None; CHECKPOINTS  = None; DOORS        = None
-    LOCKED_DOORS = None; KEY_SPAWNS   = None
+    """Build offset indices into a frozen level bytes object.
+    Chunk block data (solid terrain, BG, grass, vines) is NOT pre-parsed —
+    only (byte_offset, count) pairs are stored per chunk so that collision and
+    draw loops can call struct.unpack_from on demand directly from flash.
+    PLATFORMS, CHECKPOINTS, DOORS and LOCKED_DOORS are small and iterated every
+    frame so they remain fully parsed.  Spawn sections (slimes, keys, coins) are
+    recorded as (offset, count) pairs and consumed once by _init_level_state().
+    See tools/convert_level.py for the binary format and
+    tools/build_levels.py to regenerate assets/platformer_levels.py."""
+    global _LEVEL_DATA, SOLID_INDEX, BG_INDEX, GRASS_INDEX, VINE_INDEX
+    global PLATFORMS, CHECKPOINTS, DOORS, LOCKED_DOORS
+    global _SLIME_SEC, _KEY_SEC, _COIN_SEC, PLAYER_SPAWN, WORLD_W, WORLD_H
+    # Drop all references to old level data before touching the new level.
+    # Sprite caches (_TERRAIN_FRAMES etc.) are left alone — identical across levels.
+    _LEVEL_DATA  = None
+    SOLID_INDEX  = None; BG_INDEX     = None
+    GRASS_INDEX  = None; VINE_INDEX   = None
+    PLATFORMS    = None; CHECKPOINTS  = None
+    DOORS        = None; LOCKED_DOORS = None
     import gc; gc.collect()
-
-    solid_d = {}
-    bg_d    = {}
-    grass_d = {}
-    vine_d  = {}
-    slimes  = []
-    cps     = []
-    doors   = []
-    ldoors  = []
-    keys    = []
-    coins   = []
-    plats   = []
 
     data   = getattr(_platformer_levels, name)
     offset = 0
@@ -212,95 +216,92 @@ def load_level(name):
     WORLD_H      = world_h
     PLAYER_SPAWN = (sx, sy)
 
+    solid_idx = {}
+    bg_idx    = {}
+    grass_idx = {}
+    vine_idx  = {}
+    cps       = []
+    doors     = []
+    ldoors    = []
+    plats     = []
+
     while offset < len(data):
         sec_id, count = struct.unpack_from('<BH', data, offset)
         offset += 3
 
-        if sec_id == 0x01:    # SLIME_SPAWNS
-            for i in range(count):
-                slimes.append(struct.unpack_from('<HH', data, offset + i * 4))
+        if sec_id == 0x01:    # SLIME_SPAWNS — record location, parse later
+            _SLIME_SEC = (offset, count)
             offset += 4 * count
 
-        elif sec_id == 0x02:  # SOLID_CHUNKS
+        elif sec_id == 0x02:  # SOLID_CHUNKS — store offset of first block per chunk
             for _ in range(count):
                 col, row, n = struct.unpack_from('<BBB', data, offset)
                 offset += 3
-                solid_d[(col, row)] = tuple(
-                    struct.unpack_from('<HHBB', data, offset + i * 6) for i in range(n))
+                solid_idx[(col, row)] = (offset, n)
                 offset += 6 * n
 
         elif sec_id == 0x03:  # BG_CHUNKS
             for _ in range(count):
                 col, row, n = struct.unpack_from('<BBB', data, offset)
                 offset += 3
-                bg_d[(col, row)] = tuple(
-                    struct.unpack_from('<HHBB', data, offset + i * 6) for i in range(n))
+                bg_idx[(col, row)] = (offset, n)
                 offset += 6 * n
 
         elif sec_id == 0x04:  # GRASS_CHUNKS
             for _ in range(count):
                 col, row, n = struct.unpack_from('<BBB', data, offset)
                 offset += 3
-                grass_d[(col, row)] = tuple(
-                    struct.unpack_from('<HHB', data, offset + i * 5) for i in range(n))
+                grass_idx[(col, row)] = (offset, n)
                 offset += 5 * n
 
         elif sec_id == 0x05:  # VINE_CHUNKS
             for _ in range(count):
                 col, row, n = struct.unpack_from('<BBB', data, offset)
                 offset += 3
-                vine_d[(col, row)] = tuple(
-                    struct.unpack_from('<HH', data, offset + i * 4) for i in range(n))
+                vine_idx[(col, row)] = (offset, n)
                 offset += 4 * n
 
-        elif sec_id == 0x06:  # CHECKPOINTS
+        elif sec_id == 0x06:  # CHECKPOINTS — small, parse fully
             for i in range(count):
                 cps.append(struct.unpack_from('<HH', data, offset + i * 4))
             offset += 4 * count
 
-        elif sec_id == 0x07:  # PLATFORMS
+        elif sec_id == 0x07:  # PLATFORMS — small, parse fully
             for i in range(count):
                 plats.append(struct.unpack_from('<HHH', data, offset + i * 6))
             offset += 6 * count
 
-        elif sec_id == 0x08:  # DOORS
+        elif sec_id == 0x08:  # DOORS — small, parse fully
             for _ in range(count):
                 x, y, dlen = struct.unpack_from('<HHB', data, offset)
                 offset += 5
                 doors.append((x, y, data[offset:offset + dlen].decode()))
                 offset += dlen
 
-        elif sec_id == 0x09:  # LOCKED_DOORS
+        elif sec_id == 0x09:  # LOCKED_DOORS — small, parse fully
             for _ in range(count):
                 x, y, dlen = struct.unpack_from('<HHB', data, offset)
                 offset += 5
                 ldoors.append((x, y, data[offset:offset + dlen].decode()))
                 offset += dlen
 
-        elif sec_id == 0x0A:  # KEY_SPAWNS
-            for i in range(count):
-                keys.append(struct.unpack_from('<HH', data, offset + i * 4))
+        elif sec_id == 0x0A:  # KEY_SPAWNS — record location, parse later
+            _KEY_SEC = (offset, count)
             offset += 4 * count
 
-        elif sec_id == 0x0B:  # COIN_SPAWNS
-            for i in range(count):
-                coins.append(struct.unpack_from('<HH', data, offset + i * 4))
+        elif sec_id == 0x0B:  # COIN_SPAWNS — record location, parse later
+            _COIN_SEC = (offset, count)
             offset += 4 * count
 
-    # Assign dicts directly (no copy needed) then free each temp list
-    # immediately after tuple conversion so the source and result never
-    # coexist for more than one allocation at a time.
-    SOLID_CHUNKS = solid_d;          solid_d = None
-    BG_CHUNKS    = bg_d;             bg_d    = None
-    GRASS_CHUNKS = grass_d;          grass_d = None
-    VINE_CHUNKS  = vine_d;           vine_d  = None
-    SLIME_SPAWNS = tuple(slimes);    slimes  = None
-    CHECKPOINTS  = tuple(cps);       cps     = None
-    DOORS        = tuple(doors);     doors   = None
-    LOCKED_DOORS = tuple(ldoors);    ldoors  = None
-    KEY_SPAWNS   = tuple(keys);      keys    = None
-    COIN_SPAWNS  = tuple(coins);     coins   = None
-    PLATFORMS    = tuple(plats);     plats   = None
+    _LEVEL_DATA  = data
+    SOLID_INDEX  = solid_idx;  solid_idx = None
+    BG_INDEX     = bg_idx;     bg_idx    = None
+    GRASS_INDEX  = grass_idx;  grass_idx = None
+    VINE_INDEX   = vine_idx;   vine_idx  = None
+    PLATFORMS    = tuple(plats);   plats  = None
+    CHECKPOINTS  = tuple(cps);     cps    = None
+    DOORS        = tuple(doors);   doors  = None
+    LOCKED_DOORS = tuple(ldoors);  ldoors = None
 
 
 def _supported(x, feet_y, half_w):
@@ -312,9 +313,11 @@ def _supported(x, feet_y, half_w):
     col0 = (cl - BLOCK_W + 1) // CHUNK_W
     col1 = (cr - 1) // CHUNK_W
     for col in range(col0, col1 + 1):
-        bucket = SOLID_CHUNKS.get((col, row))
-        if bucket:
-            for bx, by, _, __ in bucket:
+        entry = SOLID_INDEX.get((col, row))
+        if entry:
+            off, n = entry
+            for i in range(n):
+                bx, by = struct.unpack_from('<HH', _LEVEL_DATA, off + i * 6)
                 if by == fy and cl < bx + BLOCK_W and cr > bx:
                     return True
     for px, py, pw in PLATFORMS:
@@ -446,33 +449,39 @@ class PlatformerScene(Scene):
         self._door_fade_phase  = None  # None | 'out' | 'in'
         self._door_fade_prog   = 0.0
 
-        # Key collectibles
-        self._key_active     = [True] * len(KEY_SPAWNS)
+        # Key collectibles — count driven by _KEY_SEC, data read from _LEVEL_DATA
+        _koff, _kn = _KEY_SEC
+        self._key_active     = [True] * _kn
         self._has_key        = False
         self._key_timer      = 0.0
-        self._keys_remaining = len(KEY_SPAWNS)
+        self._keys_remaining = _kn
 
-        # Coin collectibles
-        self._coin_active       = [True] * len(COIN_SPAWNS)
+        # Coin collectibles — count driven by _COIN_SEC
+        _coff, _cn = _COIN_SEC
+        self._coin_active       = [True] * _cn
         self._coin_anim_frame   = 0
         self._coin_anim_timer   = 0.0
-        self._coins_remaining   = len(COIN_SPAWNS)
+        self._coins_remaining   = _cn
 
-        # Enemies — indexed by chunk column for O(visible) update/draw
+        # Enemies — read spawn positions from _LEVEL_DATA, index by chunk column
         slimes_by_chunk = {}
-        for x, fy in SLIME_SPAWNS:
+        off, n = _SLIME_SEC
+        for i in range(n):
+            x, fy = struct.unpack_from('<HH', _LEVEL_DATA, off + i * 4)
             col = int(x) // CHUNK_W
             slimes_by_chunk.setdefault(col, []).append(Slime(x, fy))
         self._slimes_by_chunk = slimes_by_chunk
 
-        # Collectibles — indexed by chunk column to skip non-visible chunks
+        # Collectibles — read from _LEVEL_DATA, index by chunk column
         key_chunk = {}
-        for i, (kx, ky) in enumerate(KEY_SPAWNS):
+        for i in range(_kn):
+            kx, ky = struct.unpack_from('<HH', _LEVEL_DATA, _koff + i * 4)
             key_chunk.setdefault(kx // CHUNK_W, []).append((i, kx, ky))
         self._key_chunk = key_chunk
 
         coin_chunk = {}
-        for i, (cx, cy) in enumerate(COIN_SPAWNS):
+        for i in range(_cn):
+            cx, cy = struct.unpack_from('<HH', _LEVEL_DATA, _coff + i * 4)
             coin_chunk.setdefault(cx // CHUNK_W, []).append((i, cx, cy))
         self._coin_chunk = coin_chunk
 
@@ -692,10 +701,12 @@ class PlatformerScene(Scene):
         wall_hit = False
         for col in range(col0, col1 + 1):
             for row in range(row0, row1 + 1):
-                bucket = SOLID_CHUNKS.get((col, row))
-                if not bucket:
+                entry = SOLID_INDEX.get((col, row))
+                if not entry:
                     continue
-                for bx, by, _, __ in bucket:
+                off, n = entry
+                for i in range(n):
+                    bx, by = struct.unpack_from('<HH', _LEVEL_DATA, off + i * 6)
                     if st >= by + BLOCK_H or sb <= by:
                         continue
                     if nl >= bx + BLOCK_W or nr <= bx:
@@ -941,9 +952,11 @@ class PlatformerScene(Scene):
         col0 = (cl - BLOCK_W + 1) // CHUNK_W
         col1 = (cr - 1) // CHUNK_W
         for col in range(col0, col1 + 1):
-            bucket = SOLID_CHUNKS.get((col, row))
-            if bucket:
-                for bx, by, _, __ in bucket:
+            entry = SOLID_INDEX.get((col, row))
+            if entry:
+                off, n = entry
+                for i in range(n):
+                    bx, by = struct.unpack_from('<HH', _LEVEL_DATA, off + i * 6)
                     if by == fy and cl < bx + BLOCK_W and cr > bx:
                         return True
 
@@ -967,10 +980,12 @@ class PlatformerScene(Scene):
 
         for col in range(col0, col1 + 1):
             for row in range(row0, row1 + 1):
-                bucket = SOLID_CHUNKS.get((col, row))
-                if not bucket:
+                entry = SOLID_INDEX.get((col, row))
+                if not entry:
                     continue
-                for bx, by, _, __ in bucket:
+                off, n = entry
+                for i in range(n):
+                    bx, by = struct.unpack_from('<HH', _LEVEL_DATA, off + i * 6)
                     br = bx + BLOCK_W
                     bb = by + BLOCK_H
                     if ct >= bb or cb <= by:
@@ -1002,10 +1017,12 @@ class PlatformerScene(Scene):
             row1 = int(self.feet_y) // CHUNK_H
             for col in range(col0, col1 + 1):
                 for row in range(row0, row1 + 1):
-                    bucket = SOLID_CHUNKS.get((col, row))
-                    if not bucket:
+                    entry = SOLID_INDEX.get((col, row))
+                    if not entry:
                         continue
-                    for bx, by, _, __ in bucket:
+                    off, n = entry
+                    for i in range(n):
+                        bx, by = struct.unpack_from('<HH', _LEVEL_DATA, off + i * 6)
                         if cl >= bx + BLOCK_W or cr <= bx:
                             continue
                         if prev_feet <= by <= self.feet_y:
@@ -1038,10 +1055,12 @@ class PlatformerScene(Scene):
             row1 = int(prev_head - BLOCK_H) // CHUNK_H
             for col in range(col0, col1 + 1):
                 for row in range(row0, row1 + 1):
-                    bucket = SOLID_CHUNKS.get((col, row))
-                    if not bucket:
+                    entry = SOLID_INDEX.get((col, row))
+                    if not entry:
                         continue
-                    for bx, by, _, __ in bucket:
+                    off, n = entry
+                    for i in range(n):
+                        bx, by = struct.unpack_from('<HH', _LEVEL_DATA, off + i * 6)
                         bb = by + BLOCK_H
                         if cl >= bx + BLOCK_W or cr <= bx:
                             continue
@@ -1167,10 +1186,12 @@ class PlatformerScene(Scene):
         row1 = (cam_y + 63) // CHUNK_H
         for col in range(col0, col1 + 1):
             for row in range(row0, row1 + 1):
-                bucket = BG_CHUNKS.get((col, row))
-                if not bucket:
+                entry = BG_INDEX.get((col, row))
+                if not entry:
                     continue
-                for wx, wy, gi, vi in bucket:
+                off, n = entry
+                for i in range(n):
+                    wx, wy, gi, vi = struct.unpack_from('<HHBB', _LEVEL_DATA, off + i * 6)
                     sx = wx - cam_x
                     sy = wy - cam_y
                     if -BLOCK_W < sx < 128 and -BLOCK_H < sy < 64:
@@ -1179,10 +1200,12 @@ class PlatformerScene(Scene):
         # Solid terrain — only iterate chunks that overlap the viewport
         for col in range(col0, col1 + 1):
             for row in range(row0, row1 + 1):
-                bucket = SOLID_CHUNKS.get((col, row))
-                if not bucket:
+                entry = SOLID_INDEX.get((col, row))
+                if not entry:
                     continue
-                for bx, by, tt, vi in bucket:
+                off, n = entry
+                for i in range(n):
+                    bx, by, tt, vi = struct.unpack_from('<HHBB', _LEVEL_DATA, off + i * 6)
                     sx = bx - cam_x
                     sy = by - cam_y
                     if -BLOCK_W < sx < 128 and -BLOCK_H < sy < 64:
@@ -1198,10 +1221,12 @@ class PlatformerScene(Scene):
         # Grass decorations — chunk-culled, drawn above terrain
         for col in range(col0, col1 + 1):
             for row in range(row0, row1 + 1):
-                bucket = GRASS_CHUNKS.get((col, row))
-                if not bucket:
+                entry = GRASS_INDEX.get((col, row))
+                if not entry:
                     continue
-                for wx, surface_y, si in bucket:
+                off, n = entry
+                for i in range(n):
+                    wx, surface_y, si = struct.unpack_from('<HHB', _LEVEL_DATA, off + i * 5)
                     gframe, sw, sh, sw2 = _GRASS_DATA[si]
                     gx = wx - sw2 - cam_x
                     gy = surface_y - sh - cam_y
@@ -1210,10 +1235,12 @@ class PlatformerScene(Scene):
         # Vines — chunk-culled, hang downward from top anchor
         for col in range(col0, col1 + 1):
             for row in range(row0, row1 + 1):
-                bucket = VINE_CHUNKS.get((col, row))
-                if not bucket:
+                entry = VINE_INDEX.get((col, row))
+                if not entry:
                     continue
-                for wx, ty in bucket:
+                off, n = entry
+                for i in range(n):
+                    wx, ty = struct.unpack_from('<HH', _LEVEL_DATA, off + i * 4)
                     vx = wx - _VINE_W // 2 - cam_x
                     vy = ty - cam_y
                     if -_VINE_W < vx < 128 and -_VINE_H < vy < 64:
