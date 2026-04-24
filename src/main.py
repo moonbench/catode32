@@ -183,6 +183,8 @@ def main():
     except Exception as e:
         print(f"==! Error: {e}")
         sys.print_exception(e)
+        import machine
+        machine.reset()
 
 
 if __name__ == "__main__":
