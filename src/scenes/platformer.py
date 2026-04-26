@@ -204,6 +204,7 @@ def load_level(name):
     GRASS_INDEX  = None; VINE_INDEX   = None
     PLATFORMS    = None; CHECKPOINTS  = None
     DOORS        = None; LOCKED_DOORS = None
+    _SLIME_SEC   = (0, 0); _KEY_SEC   = (0, 0); _COIN_SEC = (0, 0)
     import gc; gc.collect()
 
     data   = getattr(_platformer_levels, name)
@@ -359,7 +360,7 @@ class Slime:
 class PlatformerScene(Scene):
 
     def enter(self):
-        load_level(getattr(self, '_current_level', 'level_01'))
+        load_level(getattr(self, '_current_level', 'level_06'))
         self._load_sprites()
         self._init_level_state()
         self._coins_collected = 0

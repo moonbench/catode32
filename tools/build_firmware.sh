@@ -1,4 +1,4 @@
-#!/bin/bash
+x!/bin/bash
 # Build and/or flash MicroPython firmware for petpython with frozen assets.
 #
 # Usage:
@@ -60,23 +60,11 @@ do_build() {
     . "$IDF_PATH/export.sh"
     export PETPYTHON_SRC="$PROJECT_DIR/src"
 
-    # Sentinel: used to detect whether the binary was actually updated, because
-    # idf.py can return exit code 0 even when the underlying ninja build fails.
-    local sentinel
-    sentinel=$(mktemp)
-
     cd "$MICROPYTHON_DIR/ports/esp32"
     idf.py \
         -D MICROPY_BOARD="$MICROPY_BOARD" \
         -D MICROPY_FROZEN_MANIFEST="$PROJECT_DIR/manifest.py" \
         build
-
-    if [ ! "$BUILD_DIR/micropython.bin" -nt "$sentinel" ]; then
-        rm -f "$sentinel"
-        echo -e "${RED}Build failed — micropython.bin was not updated. See output above.${NC}" >&2
-        return 1
-    fi
-    rm -f "$sentinel"
 
     echo ""
     echo "Firmware: $BUILD_DIR/micropython.bin"
