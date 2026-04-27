@@ -12,7 +12,7 @@ from assets.icons import (TOYS_ICON, HEART_ICON, HEART_BUBBLE_ICON, HAND_ICON,
                           KIBBLE_ICON, TOY_ICONS, SNACK_ICONS, FISH_ICON,
                           CHICKEN_ICON, MEAL_ICON, TREES_ICON)
 from assets.items import FOOD_BOWL, TREAT_PILE
-from ui import draw_bubble, Popup
+from ui import draw_bubble, Popup, BurstEffect
 
 
 class MainScene(Scene):
@@ -140,11 +140,9 @@ class MainScene(Scene):
                     self.environment.set_camera(int(self.character.x) - (config.DISPLAY_WIDTH - margin))
         self._check_lightning_startled()
         if self._plant_bursts:
-            for info in self._plant_bursts.values():
-                info['timer'] += dt
-            expired = [pid for pid, info in self._plant_bursts.items() if info['timer'] >= 3.0]
-            for pid in expired:
-                del self._plant_bursts[pid]
+            for effect in self._plant_bursts.values():
+                effect.update(dt)
+            self._plant_bursts = {pid: e for pid, e in self._plant_bursts.items() if e.active}
 
     # Behaviors that block lightning startled (don't interrupt deep sleep etc.)
     _NO_STARTLE_BEHAVIORS = frozenset(('sleeping', 'eating', 'being_groomed', 'training'))
@@ -502,26 +500,18 @@ class MainScene(Scene):
             plant = get_plant_by_id(self.context, action[1])
             if plant:
                 water_plant(plant)
-                self._plant_bursts[plant['id']] = {
-                    'timer': 0.0,
-                    'bursts': [
-                        {'dx': random.randint(-12, 12), 'dy': random.randint(-25, 5), 'delay': i * 0.4 + random.uniform(0.0, 0.2)}
-                        for i in range(4)
-                    ]
-                }
+                _e = BurstEffect()
+                _e.trigger(count=4, spread_x=12, spread_y_min=-25, spread_y_max=5)
+                self._plant_bursts[plant['id']] = _e
         elif action_type == "tend_fertilize":
             plant = get_plant_by_id(self.context, action[1])
             if plant:
                 fertilize_plant(plant)
                 inv = self.context.inventory
                 inv['fertilizer'] = max(0, inv.get('fertilizer', 0) - 1)
-                self._plant_bursts[plant['id']] = {
-                    'timer': 0.0,
-                    'bursts': [
-                        {'dx': random.randint(-12, 12), 'dy': random.randint(-25, 5), 'delay': i * 0.4 + random.uniform(0.0, 0.2)}
-                        for i in range(4)
-                    ]
-                }
+                _e = BurstEffect()
+                _e.trigger(count=4, spread_x=12, spread_y_min=-25, spread_y_max=5)
+                self._plant_bursts[plant['id']] = _e
         elif action_type == "gardening_tend":
             self._in_tend_mode = True
             if not self._reenter_tend_selection():

@@ -1,5 +1,6 @@
 """ui.py - Reusable UI components"""
 
+import random
 from assets.icons import UP_ICON, DOWN_ICON
 from assets.effects import (
     SPEECH_BUBBLE,
@@ -12,7 +13,11 @@ from assets.effects import (
     BUBBLE_DISCOMFORT,
     BUBBLE_MINICAT,
     BUBBLE_MINIGAME,
+    BURST1,
 )
+
+_BURST_FRAME_DUR = 1.0 / BURST1['speed']
+_BURST_TOTAL     = len(BURST1['frames']) * _BURST_FRAME_DUR
 
 # Map bubble names to sprites
 BUBBLE_SPRITES = {
@@ -26,6 +31,73 @@ BUBBLE_SPRITES = {
     "bored": BUBBLE_MINIGAME,
     "lonely": BUBBLE_MINICAT,
 }
+
+
+class BurstEffect:
+    """Manages sparkle burst effects at arbitrary screen positions.
+
+    Each call to trigger() spawns a group of BURST1 sparkles scattered around
+    an anchor point.  Multiple groups can be active simultaneously (e.g. one
+    burst per coin collected).  Pass a non-zero base_x/base_y to draw() when
+    the anchor is relative to a moving object (e.g. the character's draw pos).
+    """
+
+    def __init__(self):
+        self._groups = []  # [{timer, ax, ay, bursts:[{dx,dy,delay}]}]
+
+    @property
+    def active(self):
+        return bool(self._groups)
+
+    def trigger(self, anchor_x=0, anchor_y=0, count=5,
+                spread_x=35, spread_y_min=-50, spread_y_max=-20):
+        """Spawn a burst group centred at (anchor_x, anchor_y)."""
+        self._groups.append({
+            'timer': 0.0,
+            'ax': anchor_x,
+            'ay': anchor_y,
+            'bursts': [
+                {
+                    'dx': random.randint(-spread_x, spread_x),
+                    'dy': random.randint(spread_y_min, spread_y_max),
+                    'delay': i * 0.5 + random.uniform(0.0, 0.25),
+                }
+                for i in range(count)
+            ],
+        })
+
+    def update(self, dt):
+        if not self._groups:
+            return
+        for g in self._groups:
+            g['timer'] += dt
+        self._groups = [
+            g for g in self._groups
+            if not all(g['timer'] - b['delay'] >= _BURST_TOTAL for b in g['bursts'])
+        ]
+
+    def draw(self, renderer, base_x=0, base_y=0):
+        if not self._groups:
+            return
+        hw = BURST1['width'] // 2
+        hh = BURST1['height'] // 2
+        frames = BURST1['frames']
+        w = BURST1['width']
+        h = BURST1['height']
+        for g in self._groups:
+            ax = base_x + g['ax']
+            ay = base_y + g['ay']
+            timer = g['timer']
+            for burst in g['bursts']:
+                elapsed = timer - burst['delay']
+                if elapsed < 0 or elapsed >= _BURST_TOTAL:
+                    continue
+                fi = min(int(elapsed / _BURST_FRAME_DUR), len(frames) - 1)
+                renderer.draw_sprite(
+                    frames[fi], w, h,
+                    ax + burst['dx'] - hw, ay + burst['dy'] - hh,
+                    transparent=True, transparent_color=0,
+                )
 
 
 class OverlayManager:

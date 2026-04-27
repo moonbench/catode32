@@ -37,6 +37,7 @@ from assets.plants import (
     GRASS_THRIVING,
 )
 from assets.effects import POOF
+from ui import BurstEffect
 from assets.minigame_character import (
     PLATFORMER_CAT_RUN,
     PLATFORMER_CAT_SIT,
@@ -370,6 +371,8 @@ class PlatformerScene(Scene):
         self._load_sprites()
         self._init_level_state()
         self._coins_collected = 0
+        self._session_slimes_killed = 0
+        self._session_levels_completed = 0
 
     def _load_sprites(self):
         """Allocate precomputed mirrored sprite frames. Called once per platformer
@@ -503,6 +506,11 @@ class PlatformerScene(Scene):
         self._banner_timer          = 0.0
         self._summary_slime_frame   = 0
         self._summary_slime_timer   = 0.0
+        self._level_flawless        = False
+        self._fireworks_count       = 0
+        self._fireworks_timer       = 0.0
+        self._burst_effect          = BurstEffect()   # summary screen (screen coords)
+        self._collectible_bursts    = BurstEffect()   # in-game pickups (world coords)
 
         # Camera: world coord of top-left of screen — snapped to player spawn
         # so there's no lerp from the top-left corner on entry.
@@ -516,6 +524,22 @@ class PlatformerScene(Scene):
         self.target_cam_y  = init_cam_y
 
     def exit(self):
+        coins  = getattr(self, '_coins_collected', 0)
+        levels = getattr(self, '_session_levels_completed', 0)
+        slimes = getattr(self, '_session_slimes_killed', 0)
+        if coins > 0:
+            self.context.coins += coins
+            print(f"[Platformer] Awarded {coins} coins (total: {self.context.coins})")
+        if levels > 0 or slimes > 0:
+            lp = (levels / 4.0) ** 0.5
+            sp = (slimes / 12.0) ** 0.5
+            print(f"[Platformer] levels={levels} lp={lp:.2f}  slimes={slimes} sp={sp:.2f}")
+            self.context.apply_stat_changes({
+                'fitness':     5 * lp,
+                'fulfillment': 4 * lp,
+                'playfulness': 4 * lp,
+                'courage':     6 * sp,
+            })
         self._run_r   = self._run_l   = None
         self._sit_r   = self._sit_l   = None
         self._jump_r  = self._jump_l  = None
@@ -548,6 +572,7 @@ class PlatformerScene(Scene):
                              and self._level_coins_collected == self._total_coins)
                 if _flawless:
                     self._coins_collected += self._level_coins_collected // 2
+                self._level_flawless  = _flawless
                 self._door_fade_phase = 'summary'
                 self._door_fade_prog  = 0.0
             return
@@ -562,6 +587,19 @@ class PlatformerScene(Scene):
             if self._summary_slime_timer >= SLIME_ANIM_SPF:
                 self._summary_slime_timer -= SLIME_ANIM_SPF
                 self._summary_slime_frame ^= 1
+            if self._level_flawless and self._fireworks_count < 5:
+                self._fireworks_timer += dt
+                if self._fireworks_count == 0 or self._fireworks_timer >= 0.5:
+                    self._fireworks_timer = 0.0
+                    self._fireworks_count += 1
+                    for _ in range(random.randint(2, 3)):
+                        self._burst_effect.trigger(
+                            anchor_x=random.randint(15, 113),
+                            anchor_y=random.randint(8, 50),
+                            count=4, spread_x=8,
+                            spread_y_min=-10, spread_y_max=10,
+                        )
+            self._burst_effect.update(dt)
             return
 
         # Door fade-in phase: new level is loaded, reveal it
@@ -698,6 +736,8 @@ class PlatformerScene(Scene):
         # Check slime-cat contact damage
         self._check_slime_cat_contact()
 
+        self._burst_effect.update(dt)
+        self._collectible_bursts.update(dt)
         self._update_camera(dt)
 
     # ------------------------------------------------------------------
@@ -896,6 +936,8 @@ class PlatformerScene(Scene):
         # Sprite frames are intentionally kept alive across transitions — they
         # are the same for every level and freeing/reallocating them each time
         # fragments the heap.  Only level data and game state are reset.
+        self._session_slimes_killed += self._slimes_killed
+        self._session_levels_completed += 1
         self._current_level = name
         load_level(name)
         self._init_level_state()
@@ -936,6 +978,12 @@ class PlatformerScene(Scene):
                     self._key_active[i] = False
                     self._has_key = True
                     self._keys_remaining -= 1
+                    self._collectible_bursts.trigger(
+                        anchor_x=kx,
+                        anchor_y=ky - KEY["height"] // 2,
+                        count=5, spread_x=10,
+                        spread_y_min=-15, spread_y_max=5,
+                    )
                     return
 
         if self._coins_remaining:
@@ -953,6 +1001,12 @@ class PlatformerScene(Scene):
                     self._coins_collected += 1
                     self._level_coins_collected += 1
                     self._coins_remaining -= 1
+                    self._collectible_bursts.trigger(
+                        anchor_x=cx,
+                        anchor_y=cy - SPIN_COIN["height"] // 2,
+                        count=3, spread_x=6,
+                        spread_y_min=-8, spread_y_max=4,
+                    )
 
     def _check_doors(self):
         if self._door_dest is not None:
@@ -1171,6 +1225,8 @@ class PlatformerScene(Scene):
         coin_x = 1 + (ICON_W - cw) // 2
         r.draw_sprite(SPIN_COIN["frames"][self._coin_anim_frame], cw, SPIN_COIN["height"], coin_x, 44)
         r.draw_text(f"{self._level_coins_collected}/{self._total_coins}", TEXT_X, 44)
+
+        self._burst_effect.draw(r)
 
     def _draw_level_banner(self, cam_x, cam_y):
         prog = min(1.0, self._banner_timer / LEVEL_BANNER_DUR)
@@ -1495,6 +1551,9 @@ class PlatformerScene(Scene):
         # Level start banner — centered on screen, rises and disappears
         if self._banner_timer < LEVEL_BANNER_DUR:
             self._draw_level_banner(cam_x, cam_y)
+
+        self._collectible_bursts.draw(self.renderer, -cam_x, -cam_y)
+        self._burst_effect.draw(self.renderer)
 
         # Door transition scanline overlay — drawn last so it covers everything
         if self._door_fade_phase is not None:

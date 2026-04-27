@@ -2,7 +2,7 @@ import random
 from entities.entity import Entity
 from assets.character import POSES
 from sprite_transform import mirror_sprite_h
-from assets.effects import BURST1
+from ui import BurstEffect
 
 def get_pose(pose_name):
     """Get a pose by dot-notation name (e.g., 'sitting.side.neutral').
@@ -55,9 +55,7 @@ class CharacterEntity(Entity):
         self.draw_y_offset = 0
 
         # Burst sparkle effects (played via play_bursts())
-        self._burst_sprite = None
-        self._burst_timer = 0.0
-        self._bursts = []
+        self._burst_effect = BurstEffect()
         if context:
             from behavior_manager import BehaviorManager
             self.behavior_manager = BehaviorManager(self)
@@ -117,23 +115,9 @@ class CharacterEntity(Entity):
         index = int(counter) % self._get_total_frames(sprite)
         return index if index < frame_count else 0
 
-    def play_bursts(self, count=5, sprite=None):
-        """Trigger sparkle burst effects scattered around the pet.
-
-        Args:
-            count: Number of bursts to spawn.
-            sprite: Sprite dict to use (defaults to BURST1).
-        """
-        self._burst_sprite = sprite if sprite is not None else BURST1
-        self._burst_timer = 0.0
-        self._bursts = [
-            {
-                "x": random.randint(-35, 35),
-                "y": random.randint(-50, -20),
-                "delay": i * 0.5 + random.uniform(0.0, 0.25),
-            }
-            for i in range(count)
-        ]
+    def play_bursts(self, count=5):
+        """Trigger sparkle burst effects scattered around the pet."""
+        self._burst_effect.trigger(count=count)
 
     def update(self, dt):
         """Update animation counters and the current behavior."""
@@ -146,14 +130,7 @@ class CharacterEntity(Entity):
         self.anim_eyes = (self.anim_eyes + dt * pose["eyes"].get("speed", 1)) % self._get_total_frames(pose["eyes"])
         self.anim_tail = (self.anim_tail + dt * pose["tail"].get("speed", 1)) % self._get_total_frames(pose["tail"])
 
-        if self._bursts:
-            self._burst_timer += dt
-            sprite = self._burst_sprite
-            total = len(sprite["frames"]) / sprite["speed"]
-            if all(self._burst_timer - b["delay"] >= total for b in self._bursts):
-                self._bursts = []
-                self._burst_sprite = None
-                self._burst_timer = 0.0
+        self._burst_effect.update(dt)
 
         if self.current_behavior and self.context:
             self.current_behavior.update(dt)
@@ -266,20 +243,4 @@ class CharacterEntity(Entity):
             self.current_behavior.draw(renderer, x, y, mirror)
 
         # Draw burst sparkle effects
-        if self._bursts and self._burst_sprite:
-            sprite = self._burst_sprite
-            frame_dur = 1.0 / sprite["speed"]
-            total = len(sprite["frames"]) * frame_dur
-            hw = sprite["width"] // 2
-            hh = sprite["height"] // 2
-            for burst in self._bursts:
-                elapsed = self._burst_timer - burst["delay"]
-                if elapsed < 0 or elapsed >= total:
-                    continue
-                frame_idx = min(int(elapsed / frame_dur), len(sprite["frames"]) - 1)
-                renderer.draw_sprite(
-                    sprite["frames"][frame_idx],
-                    sprite["width"], sprite["height"],
-                    x + burst["x"] - hw, y + burst["y"] - hh,
-                    transparent=True, transparent_color=0,
-                )
+        self._burst_effect.draw(renderer, x, y)
