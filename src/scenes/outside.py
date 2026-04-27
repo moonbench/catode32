@@ -4,7 +4,7 @@ import config
 from scenes.main_scene import MainScene
 from environment import Environment, LAYER_BACKGROUND, LAYER_MIDGROUND, LAYER_FOREGROUND
 from entities.character import CharacterEntity
-from entities.butterfly import ButterflyEntity
+from entities.flyer import FlyerEntity
 from entities.jumper import JumperEntity
 from sky import SkyRenderer
 
@@ -20,10 +20,27 @@ _WORLD_WIDTH = 256
 # ---------------------------------------------------------------------------
 _CRITTER_SPECS = [
     {
-        'type': 'butterfly',
+        'type': 'flyer',
+        'variant': 'butterfly',
         'seasons': ('Spring', 'Summer'),
         'spawn_weight': 0.65,
         'max_spawn': 3,
+    },
+    {
+        'type': 'flyer',
+        'variant': 'moth',
+        'seasons': ('Spring', 'Summer', 'Fall'),
+        'spawn_weight': 0.55,
+        'max_spawn': 2,
+        'night_only': True,
+    },
+    {
+        'type': 'flyer',
+        'variant': 'firefly',
+        'seasons': ('Spring', 'Summer', 'Fall'),
+        'spawn_weight': 0.50,
+        'max_spawn': 3,
+        'night_only': True,
     },
     {
         'type': 'jumper',
@@ -73,15 +90,17 @@ class OutsideScene(MainScene):
 
     def _make_critter(self, spec):
         """Instantiate and return a single critter entity for the given spec."""
-        if spec['type'] == 'butterfly':
-            b = ButterflyEntity(
+        if spec['type'] == 'flyer':
+            f = FlyerEntity(
+                spec['variant'],
                 random.randint(20, _WORLD_WIDTH - 20),
                 random.randint(10, 35)
             )
-            b.anim_speed = random.randint(7, 12)
-            b.bounds_left = 10
-            b.bounds_right = _WORLD_WIDTH - 10
-            return b
+            if "speed" not in f._sprite:
+                f.anim_speed = random.randint(7, 12)
+            f.bounds_left = 10
+            f.bounds_right = _WORLD_WIDTH - 10
+            return f
 
         if spec['type'] == 'jumper':
             direction = random.choice((-1, 1))
@@ -92,13 +111,13 @@ class OutsideScene(MainScene):
 
     def _spawn_critters(self):
         """Roll and spawn initial critters based on current season/time."""
-        if not self._is_daytime():
-            return
-
         season = self.context.environment.get('season', 'Summer')
+        is_day = self._is_daytime()
 
         for spec in _CRITTER_SPECS:
             if season not in spec['seasons']:
+                continue
+            if spec.get('night_only', False) == is_day:
                 continue
             if random.random() > spec['spawn_weight']:
                 continue
