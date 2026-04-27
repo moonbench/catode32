@@ -9,17 +9,6 @@ from scene import Scene
 from sprite_transform import mirror_sprite_h
 from assets.platformer_terrain import (
     TERRAIN_TILES,
-    TILE_TOP,
-    TILE_TOP_LEFT,
-    TILE_TOP_RIGHT,
-    TILE_SIDE_LEFT,
-    TILE_SIDE_RIGHT,
-    TILE_BOTTOM,
-    TILE_BOTTOM_LEFT,
-    TILE_BOTTOM_RIGHT,
-    TILE_TOP_BOTTOM,
-    TILE_TOP_LEFT_BOTTOM,
-    TILE_TOP_RIGHT_BOTTOM,
     PLATFORMER_CHECKPOINT_DOWN,
     PLATFORMER_CHECKPOINT_UP,
     PLATFORMER_DOOR,
@@ -313,26 +302,6 @@ def load_level(name):
     CHECKPOINTS  = tuple(cps);     cps    = None
     DOORS        = tuple(doors);   doors  = None
     LOCKED_DOORS = tuple(ldoors);  ldoors = None
-
-
-def _supported(x, feet_y, half_w, cache):
-    """Return True if (x, feet_y) is resting on any solid block or platform."""
-    fy  = int(feet_y)
-    cl  = int(x) - half_w
-    cr  = int(x) + half_w
-    row = fy // CHUNK_H
-    col0 = (cl - BLOCK_W + 1) // CHUNK_W
-    col1 = (cr - 1) // CHUNK_W
-    for col in range(col0, col1 + 1):
-        blocks = cache.get((col, row))
-        if blocks:
-            for bx, by, _ in blocks:
-                if by == fy and cl < bx + BLOCK_W and cr > bx:
-                    return True
-    for px, py, pw in PLATFORMS:
-        if py == fy and cl < px + pw and cr > px:
-            return True
-    return False
 
 
 def _precompute_frames(sprite):
@@ -1269,7 +1238,6 @@ class PlatformerScene(Scene):
             r.draw_text("Flawless!", 128 - 9 * 8, text_y)
 
         # Slime icon — slimes killed row (draw_sprite_obj handles fill + outline)
-        sw = PLATFORMER_SLIME_IDLE["width"]
         sh = PLATFORMER_SLIME_IDLE["height"]
         r.draw_sprite_obj(PLATFORMER_SLIME_IDLE, 1, 32, frame=self._summary_slime_frame)
         r.draw_text(f"{self._slimes_killed}/{self._total_slimes}", TEXT_X, 32 + (sh - 8) // 2)
@@ -1282,7 +1250,7 @@ class PlatformerScene(Scene):
 
         self._burst_effect.draw(r)
 
-    def _draw_level_banner(self, cam_x, cam_y):
+    def _draw_level_banner(self):
         prog = min(1.0, self._banner_timer / LEVEL_BANNER_DUR)
         text = f"Level {self._level_num}"
         tw = len(text) * 8
@@ -1607,7 +1575,7 @@ class PlatformerScene(Scene):
 
         # Level start banner — centered on screen, rises and disappears
         if self._banner_timer < LEVEL_BANNER_DUR:
-            self._draw_level_banner(cam_x, cam_y)
+            self._draw_level_banner()
 
         self._collectible_bursts.draw(self.renderer, -cam_x, -cam_y)
         self._burst_effect.draw(self.renderer)
