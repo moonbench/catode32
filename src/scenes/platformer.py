@@ -5,7 +5,6 @@ Combat: cat swipe attack, slime enemies.
 """
 import random
 import struct
-from time import ticks_us, ticks_diff
 from scene import Scene
 from sprite_transform import mirror_sprite_h
 from assets.platformer_terrain import (
@@ -523,10 +522,6 @@ class PlatformerScene(Scene):
         self._burst_effect          = BurstEffect()   # summary screen (screen coords)
         self._collectible_bursts    = BurstEffect()   # in-game pickups (world coords)
 
-        # Profiling: accumulated µs per section + frame count for this level.
-        # [upd_physics, upd_slimes, drw_bg, drw_terrain, drw_deco, drw_entities, frame_count]
-        self._prof = [0, 0, 0, 0, 0, 0, 0]
-
         # Camera: world coord of top-left of screen — snapped to player spawn
         # so there's no lerp from the top-left corner on entry.
         init_cam_x = max(float(CAM_X_MIN),
@@ -600,7 +595,6 @@ class PlatformerScene(Scene):
                 self._level_flawless  = _flawless
                 self._door_fade_phase = 'summary'
                 self._door_fade_prog  = 0.0
-                self._print_prof()
             return
 
         # Summary screen: game is frozen; keep coin and slime icons animated
@@ -667,7 +661,6 @@ class PlatformerScene(Scene):
         # Vertical physics + collision first — so feet_y is correct before _resolve_x
         # evaluates the cat's vertical bounds (prevents ceiling blocks being mistaken
         # for walls when the cat's head briefly overlaps them during ascent)
-        _tp0 = ticks_us()
         if not self.on_ground:
             self.vy += GRAVITY * dt
             prev_feet = self.feet_y
@@ -681,7 +674,6 @@ class PlatformerScene(Scene):
         elif self.x > WORLD_W - CAT_HALF_W:
             self.x = float(WORLD_W - CAT_HALF_W)
         self._resolve_x()
-        self._prof[0] += ticks_diff(ticks_us(), _tp0)
 
         # Recharge double jump on landing
         if self.just_landed:
@@ -746,7 +738,6 @@ class PlatformerScene(Scene):
             self._cat_blink_timer -= dt
 
         # Update slimes — only those in visible chunks
-        _ts0 = ticks_us()
         cam_col0 = int(self.camera_x) // CHUNK_W
         cam_col1 = (int(self.camera_x) + 127) // CHUNK_W
         for col in range(cam_col0, cam_col1 + 1):
@@ -764,12 +755,10 @@ class PlatformerScene(Scene):
 
         # Check slime-cat contact damage
         self._check_slime_cat_contact()
-        self._prof[1] += ticks_diff(ticks_us(), _ts0)
 
         self._burst_effect.update(dt)
         self._collectible_bursts.update(dt)
         self._update_camera(dt)
-        self._prof[6] += 1
 
     # ------------------------------------------------------------------
     # Enemy logic
@@ -1255,28 +1244,6 @@ class PlatformerScene(Scene):
         self._solid_cache = cache
 
     # ------------------------------------------------------------------
-    # Profiling
-    # ------------------------------------------------------------------
-
-    def _print_prof(self):
-        p = self._prof
-        fc = p[6] if p[6] > 0 else 1
-        fps = fc / max(self._level_time, 0.001)
-        budget = 83333   # µs per frame at 12 FPS
-        labels = ('upd_physics', 'upd_slimes',
-                  'drw_bg', 'drw_terrain', 'drw_deco', 'drw_entities')
-        total_us = p[0] + p[1] + p[2] + p[3] + p[4] + p[5]
-        print(f"[Prof] Level {self._level_num}  {fc} frames  {fps:.1f} fps")
-        for idx, label in enumerate(labels):
-            us = p[idx]
-            ms = us / fc / 1000
-            pct = us * 100 // (fc * budget)
-            print(f"  {label:<14} {ms:5.2f} ms/f  {pct:2d}%")
-        ms_total = total_us / fc / 1000
-        pct_total = total_us * 100 // (fc * budget)
-        print(f"  {'tracked total':<14} {ms_total:5.2f} ms/f  {pct_total:2d}%  (budget 83ms)")
-
-    # ------------------------------------------------------------------
     # Level summary and banner
     # ------------------------------------------------------------------
 
@@ -1431,7 +1398,6 @@ class PlatformerScene(Scene):
         col1 = (cam_x + 127) // CHUNK_W
         row0 = cam_y // CHUNK_H
         row1 = (cam_y + 63) // CHUNK_H
-        _td0 = ticks_us()
         for col in range(col0, col1 + 1):
             for row in range(row0, row1 + 1):
                 entry = BG_INDEX.get((col, row))
@@ -1444,14 +1410,12 @@ class PlatformerScene(Scene):
                     sy = wy - cam_y
                     if -BLOCK_W < sx < 128 and -BLOCK_H < sy < 64:
                         self.renderer.draw_sprite(_BG_FRAMES[gi][vi], BLOCK_W, BLOCK_H, sx, sy)
-        self._prof[2] += ticks_diff(ticks_us(), _td0)
 
         # Solid terrain — rebuild cache only when visible chunks change, then draw from cache
         _vis = (col0, col1, row0, row1)
         if _vis != self._solid_cache_vis:
             self._rebuild_solid_cache(col0, col1, row0, row1)
             self._solid_cache_vis = _vis
-        _td1 = ticks_us()
         _sc = self._solid_cache
         for col in range(col0, col1 + 1):
             for row in range(row0, row1 + 1):
@@ -1463,10 +1427,8 @@ class PlatformerScene(Scene):
                     sy = by - cam_y
                     if -BLOCK_W < sx < 128 and -BLOCK_H < sy < 64:
                         self.renderer.draw_sprite(frame, BLOCK_W, BLOCK_H, sx, sy)
-        self._prof[3] += ticks_diff(ticks_us(), _td1)
 
         # Platforms, grass, vines — decorations layer
-        _td2 = ticks_us()
         for px, py, pw in PLATFORMS:
             sx = px - cam_x
             sy = py - cam_y
@@ -1500,10 +1462,8 @@ class PlatformerScene(Scene):
                     vy = ty - cam_y
                     if -_VINE_W < vx < 128 and -_VINE_H < vy < 64:
                         self.renderer.draw_sprite(_VINE_FRAME, _VINE_W, _VINE_H, vx, vy)
-        self._prof[4] += ticks_diff(ticks_us(), _td2)
 
         # Checkpoints, doors, collectibles, slimes, cat, effects
-        _td3 = ticks_us()
         for i, (cx, cy) in enumerate(CHECKPOINTS):
             if self._checkpoint_activated[i]:
                 frame, cw, ch = _CP_UP_FRAME, _CP_UP_W, _CP_UP_H
@@ -1651,7 +1611,6 @@ class PlatformerScene(Scene):
 
         self._collectible_bursts.draw(self.renderer, -cam_x, -cam_y)
         self._burst_effect.draw(self.renderer)
-        self._prof[5] += ticks_diff(ticks_us(), _td3)
 
         # Door transition scanline overlay — drawn last so it covers everything
         if self._door_fade_phase is not None:
