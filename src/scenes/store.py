@@ -65,10 +65,11 @@ _SEED_ITEMS = (
     ("Rose",    "Rose",       "rose",       15),
 )
 
-# (display_name, scene_name, cost)
+# (display_name, full_name, scene_name, cost)
 _TRIP_ITEMS = (
-    ("Park",   "vacation_park",   50),
-    ("Forest", "vacation_forest", 50),
+    ("Park",   "Park",      "vacation_park",     50),
+    ("Forest", "Forest",    "vacation_forest",   50),
+    ("Aqua.",  "Aquarium",  "vacation_aquarium", 100),
 )
 
 _FERTILIZER_COST = 25
@@ -135,8 +136,8 @@ class StoreScene(Scene):
         ]
         service_items = [self._service_item(name, stats, cost, msg)
                          for name, stats, cost, msg in _SERVICE_ITEMS]
-        trip_items = [self._trip_item(label, scene, cost)
-                      for label, scene, cost in _TRIP_ITEMS]
+        trip_items = [self._trip_item(label, full, scene, cost)
+                      for label, full, scene, cost in _TRIP_ITEMS]
         return [
             MenuItem("Food",    submenu=food_items),
             MenuItem("Snacks",  submenu=snack_items),
@@ -189,10 +190,10 @@ class StoreScene(Scene):
                             confirm=f"{name}: {cost}c")
         return MenuItem(name, action=("no_funds",), confirm="Can't afford!")
 
-    def _trip_item(self, label, scene_name, cost):
+    def _trip_item(self, label, full, scene_name, cost):
         if self.context.coins >= cost:
             return MenuItem(label, action=("buy_trip", scene_name, cost),
-                            confirm=f"A trip to the {label.lower()}: {cost}c")
+                            confirm=f"A trip to the {full.lower()}: {cost}c")
         return MenuItem(label, action=("no_funds",), confirm="Can't afford!")
 
     def _tool_item(self, label, full, key, cost):

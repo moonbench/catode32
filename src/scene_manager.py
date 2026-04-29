@@ -6,7 +6,7 @@ import config
 from menu import Menu, MenuItem
 from transitions import TransitionManager
 from ui import OverlayManager
-from assets.icons import WRENCH_ICON, SUN_ICON, HOUSE_ICON, STATS_ICON, MINIGAME_ICONS, MINIGAMES_ICON, CAT_ICON, TREES_ICON, MEAL_ICON, POWER_ICON, CREDITS_ICON, STORE_ICON, WIFI_ICON
+from assets.icons import WRENCH_ICON, SUN_ICON, HOUSE_ICON, STATS_ICON, MINIGAME_ICONS, MINIGAMES_ICON, CAT_ICON, TREES_ICON, MEAL_ICON, POWER_ICON, CREDITS_ICON, STORE_ICON, WIFI_ICON, FISH_ICON
 
 
 class SceneManager:
@@ -117,8 +117,9 @@ class SceneManager:
             'store': ('scenes.store', 'StoreScene'),
             'social': ('scenes.social', 'SocialScene'),
             'pet_info': ('scenes.pet_info', 'PetInfoScene'),
-            'vacation_park':   ('scenes.vacation_park',   'VacationParkScene'),
-            'vacation_forest': ('scenes.vacation_forest', 'VacationForestScene'),
+            'vacation_park':     ('scenes.vacation_park',     'VacationParkScene'),
+            'vacation_forest':   ('scenes.vacation_forest',   'VacationForestScene'),
+            'vacation_aquarium': ('scenes.vacation_aquarium', 'VacationAquariumScene'),
         }
 
     def _get_scene_class(self, name):
@@ -373,8 +374,9 @@ class SceneManager:
             debug_items.append(MenuItem("Plants", icon=TREES_ICON, action=('scene', 'debug_plants')))
 
             vacation_items = [
-                MenuItem("Park",   icon=TREES_ICON, action=('scene', 'vacation_park')),
+                MenuItem("Park", icon=TREES_ICON, action=('scene', 'vacation_park')),
                 MenuItem("Forest", icon=TREES_ICON, action=('scene', 'vacation_forest')),
+                MenuItem("Aquarium", icon=FISH_ICON, action=('scene', 'vacation_aquarium')),
             ]
             debug_items.append(MenuItem("Vacations", icon=SUN_ICON, submenu=vacation_items))
             debug_items.append(MenuItem("Time Speed", icon=WRENCH_ICON, action=('scene', 'time_settings')))
