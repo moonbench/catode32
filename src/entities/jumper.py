@@ -110,5 +110,5 @@ class JumperEntity(Entity):
 
         sprite = self._sprites[self._pose]
         draw_x = int(self.x) - sprite["width"] // 2 - camera_offset
-        draw_y = GROUND_Y - sprite["height"] - int(self._arc_offset)
+        draw_y = GROUND_Y - sprite["height"] - int(self._arc_offset) - 2
         renderer.draw_sprite_obj(sprite, draw_x, draw_y, mirror_h=(self.direction > 0))

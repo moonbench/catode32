@@ -117,7 +117,8 @@ class SceneManager:
             'store': ('scenes.store', 'StoreScene'),
             'social': ('scenes.social', 'SocialScene'),
             'pet_info': ('scenes.pet_info', 'PetInfoScene'),
-            'vacation_park': ('scenes.vacation_park', 'VacationParkScene'),
+            'vacation_park':   ('scenes.vacation_park',   'VacationParkScene'),
+            'vacation_forest': ('scenes.vacation_forest', 'VacationForestScene'),
         }
 
     def _get_scene_class(self, name):
@@ -372,7 +373,8 @@ class SceneManager:
             debug_items.append(MenuItem("Plants", icon=TREES_ICON, action=('scene', 'debug_plants')))
 
             vacation_items = [
-                MenuItem("Park", icon=HOUSE_ICON, action=('scene', 'vacation_park')),
+                MenuItem("Park",   icon=TREES_ICON, action=('scene', 'vacation_park')),
+                MenuItem("Forest", icon=TREES_ICON, action=('scene', 'vacation_forest')),
             ]
             debug_items.append(MenuItem("Vacations", icon=SUN_ICON, submenu=vacation_items))
             debug_items.append(MenuItem("Time Speed", icon=WRENCH_ICON, action=('scene', 'time_settings')))

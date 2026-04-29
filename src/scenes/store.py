@@ -67,7 +67,8 @@ _SEED_ITEMS = (
 
 # (display_name, scene_name, cost)
 _TRIP_ITEMS = (
-    ("Park", "vacation_park", 50),
+    ("Park",   "vacation_park",   50),
+    ("Forest", "vacation_forest", 50),
 )
 
 _FERTILIZER_COST = 25
