@@ -59,10 +59,27 @@ class PetInfoScene(Scene):
     # Internal
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _display_name(key):
+        _TOY_NAMES = {'ball': 'Yarn Ball'}
+        if key in _TOY_NAMES:
+            return _TOY_NAMES[key]
+        s = key.replace('_', ' ')
+        return ' '.join(w[0].upper() + w[1:] for w in s.split(' ') if w)
+
     def _rebuild_menu(self):
-        days = self.context.environment.get('day_number', 0)
-        days_str = str(min(days, 9999999))
+        ctx = self.context
+        days = ctx.environment.get('day_number', 0)
+        days_str = str(min(days, 9999999)) + ' days'
+        gender = getattr(ctx, 'pet_gender', None)
+        dn = self._display_name
         self._menu.open([
-            MenuItem('Name: ' + (self.context.pet_name or '?'), action=('edit',)),
-            MenuItem('Days: ' + days_str),
+            MenuItem('Name: ' + (ctx.pet_name or '?'), action=('edit',)),
+            MenuItem('Age: ' + days_str),
+            MenuItem('Gender: ' + (self._display_name(gender) if gender else '?')),
+            MenuItem('- Favorites -'),
+            MenuItem('Meal: ' + dn(ctx.fav_meal)),
+            MenuItem('Snack: ' + dn(ctx.fav_snack)),
+            MenuItem('Toy: ' + dn(ctx.fav_toy)),
+            MenuItem('Place: ' + dn(ctx.fav_location)),
         ])

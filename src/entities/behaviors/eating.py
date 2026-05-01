@@ -161,11 +161,24 @@ class EatingBehavior(BaseBehavior):
             bonus['loyalty'] = 0.5 if repeat_count == 0 else 0.15
 
         context.record_meal(self._food_type)
-        return self.apply_location_bonus(context, bonus)
+        bonus = self.apply_location_bonus(context, bonus)
+        if self._food_type in self.SNACK_TYPES:
+            fav     = getattr(context, 'fav_snack', None)
+            dislike = getattr(context, 'least_fav_snack', None)
+        else:
+            fav     = getattr(context, 'fav_meal', None)
+            dislike = getattr(context, 'least_fav_meal', None)
+        if self._food_type == fav:
+            bonus['affection'] = bonus.get('affection', 0) * 1.2
+        elif self._food_type == dislike:
+            bonus['affection'] = bonus.get('affection', 0) * 0.85
+        return bonus
 
     def apply_location_bonus(self, context, bonus):
         if context.last_main_scene == 'kitchen':
-            self._character.play_bursts()
+            is_fav = (self._food_type == getattr(context, 'fav_meal', None) or
+                      self._food_type == getattr(context, 'fav_snack', None))
+            self._character.play_bursts(count=8 if is_fav else 5)
             for stat in ('fullness', 'energy'):
                 if stat in bonus:
                     bonus[stat] = bonus[stat] * 1.2

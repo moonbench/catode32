@@ -28,6 +28,13 @@ def _xorshift32(x):
 
 
 _PERSONALITY_TRAITS = ('courage', 'loyalty', 'mischievousness', 'curiosity', 'sociability')
+
+_MEALS = ('kibble', 'cod', 'haddock', 'trout', 'shrimp', 'herring',
+          'turkey', 'tuna', 'salmon', 'chicken', 'liver', 'beef', 'lamb')
+_SNACKS = ('carrots', 'pumpkin', 'treats', 'fish_bite', 'eggs',
+           'nugget', 'milk', 'chew_stick', 'puree')
+_TOY_VARIANTS = ('string', 'feather', 'ball', 'laser')
+_LOCATIONS = ('outside', 'kitchen', 'treehouse', 'bedroom')
 _TRAIT_MAGNITUDE = 10  # max offset in either direction
 
 
@@ -45,6 +52,46 @@ def _derive_trait_offsets(seed):
         raw.append(state % span)
     mean = sum(raw) // len(raw)
     return [v - mean for v in raw]
+
+
+def _derive_favorites(seed):
+    """Derive gender and fav/least-fav prefs from a 64-bit seed.
+
+    Uses the upper 32 bits as the xorshift32 starting state, keeping this
+    derivation independent from _derive_trait_offsets (which uses the lower 32).
+    Safe to call on any existing seed without affecting personality traits.
+    """
+    state = (seed >> 32) & 0xFFFFFFFF or 1
+
+    def _next():
+        nonlocal state
+        state = _xorshift32(state)
+        return state
+
+    gender = 'tom' if _next() % 2 == 0 else 'queen'
+
+    def _pick_two(items):
+        n = len(items)
+        fi = _next() % n
+        li = (fi + 1 + _next() % (n - 1)) % n
+        return items[fi], items[li]
+
+    fav_meal,     least_fav_meal     = _pick_two(_MEALS)
+    fav_snack,    least_fav_snack    = _pick_two(_SNACKS)
+    fav_toy,      least_fav_toy      = _pick_two(_TOY_VARIANTS)
+    fav_location, least_fav_location = _pick_two(_LOCATIONS)
+
+    return {
+        'pet_gender':       gender,
+        'fav_meal':         fav_meal,
+        'least_fav_meal':   least_fav_meal,
+        'fav_snack':        fav_snack,
+        'least_fav_snack':  least_fav_snack,
+        'fav_toy':          fav_toy,
+        'least_fav_toy':    least_fav_toy,
+        'fav_location':     fav_location,
+        'least_fav_location': least_fav_location,
+    }
 
 
 def _make_starter_plants():
@@ -113,6 +160,10 @@ def do_reset(ctx, delete_save):
     """Reset all stats on ctx to defaults. Optionally delete the save file."""
     # Unique 64-bit identity for this pet (survives between saves)
     ctx.pet_seed = _generate_seed()
+
+    # Gender and favorites derived deterministically from the seed
+    for k, v in _derive_favorites(ctx.pet_seed).items():
+        setattr(ctx, k, v)
 
     # Meta stat (computed from other stats)
     ctx.health = 50

@@ -10,16 +10,16 @@ from assets.items import YARN_BALL
 # Variant configurations
 VARIANTS = {
     "string": {
-        "stats": {"playfulness": -8, "energy": -3, "focus": -1},
+        "stats": {"playfulness": -8, "energy": -3, "focus": -1, "fitness": 1.5, "fulfillment": 1.5, "courage": 0.4},
     },
     "feather": {
-        "stats": {"playfulness": -6, "energy": -5, "focus": -1},
+        "stats": {"playfulness": -6, "energy": -5, "focus": -1, "fitness": 1.5, "fulfillment": 1.5, "courage": 0.4},
     },
     "ball": {
-        "stats": {"playfulness": -8, "energy": -4, "focus": -1},
+        "stats": {"playfulness": -8, "energy": -4, "focus": -1, "fitness": 1.5, "fulfillment": 1.5, "courage": 0.4},
     },
     "laser": {
-        "stats": {"playfulness": -6, "energy": -3, "focus": -1},
+        "stats": {"playfulness": -6, "energy": -3, "focus": -1, "fitness": 1.5, "fulfillment": 1.5, "courage": 0.4},
     },
 }
 
@@ -162,7 +162,16 @@ class PlayingBehavior(BaseBehavior):
         if self._rejecting:
             return {}
         bonus = dict(VARIANTS[self._variant].get("stats", {}))
-        return self.apply_location_bonus(context, bonus)
+        bonus = self.apply_location_bonus(context, bonus)
+        if self._variant == getattr(context, 'fav_toy', None):
+            for stat in ('fitness', 'fulfillment', 'courage', 'loyalty'):
+                if stat in bonus:
+                    bonus[stat] *= 1.2
+        elif self._variant == getattr(context, 'least_fav_toy', None):
+            for stat in ('fitness', 'fulfillment', 'courage', 'loyalty'):
+                if stat in bonus:
+                    bonus[stat] *= 0.85
+        return bonus
 
     def apply_location_bonus(self, context, bonus):
         if context.last_main_scene in ('outside', 'treehouse', 'inside'):

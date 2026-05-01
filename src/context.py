@@ -125,6 +125,11 @@ class GameContext:
                 'plants': self.plants,
                 'next_plant_id': self.next_plant_id,
                 'pet_seed': self.pet_seed,
+                'pet_gender': self.pet_gender,
+                'fav_meal': self.fav_meal, 'least_fav_meal': self.least_fav_meal,
+                'fav_snack': self.fav_snack, 'least_fav_snack': self.least_fav_snack,
+                'fav_toy': self.fav_toy, 'least_fav_toy': self.least_fav_toy,
+                'fav_location': self.fav_location, 'least_fav_location': self.least_fav_location,
                 'wifi_familiar': self.wifi_familiar, 'wifi_recent': self.wifi_recent,
                 'pet_name': self.pet_name, 'friends': self.friends,
                 'recent_meals': self.recent_meals}
@@ -172,6 +177,19 @@ class GameContext:
                 if key in data:
                     setattr(self, key, data[key])
             self.pet_seed = data['pet_seed']
+            _FAVOR_KEYS = ('pet_gender', 'fav_meal', 'least_fav_meal',
+                           'fav_snack', 'least_fav_snack',
+                           'fav_toy', 'least_fav_toy',
+                           'fav_location', 'least_fav_location')
+            if any(k not in data for k in _FAVOR_KEYS):
+                import reset_context
+                _favs = reset_context._derive_favorites(self.pet_seed)
+                import sys
+                sys.modules.pop('reset_context', None)
+            else:
+                _favs = {}
+            for _k in _FAVOR_KEYS:
+                setattr(self, _k, data.get(_k, _favs.get(_k)))
             self.pet_name = data.get('pet_name')
             self.environment = data.get('env', {})
             if 'food_stock' in data:

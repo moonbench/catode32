@@ -80,6 +80,12 @@ class LoungeingBehavior(BaseBehavior):
         else:
             bonus['serenity'] = bonus.get('serenity', 0) - 1
             bonus['comfort'] = bonus.get('comfort', 0) * 0.9   # can't fully relax elsewhere
+        if context.last_main_scene == getattr(context, 'fav_location', None):
+            bonus['comfort'] = bonus.get('comfort', 0) * 1.2
+            bonus['serenity'] = bonus.get('serenity', 0) * 1.2
+        elif context.last_main_scene == getattr(context, 'least_fav_location', None):
+            bonus['comfort'] = bonus.get('comfort', 0) * 0.85
+            bonus['serenity'] = bonus.get('serenity', 0) * 0.85
         if context.meteor_shower_happening:
             bonus['serenity'] = bonus.get('serenity', 0) + 2
             bonus['fulfillment'] = bonus.get('fulfillment', 0) + 1.5
