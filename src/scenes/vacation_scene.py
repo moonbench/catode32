@@ -54,7 +54,6 @@ class VacationScene(MainScene):
         self._apply_vacation_rewards()
         self.context.on_vacation = False
         self.context.wants_to_go_home = False
-        self.context.last_main_scene = 'inside'
         super().exit()
 
     # ------------------------------------------------------------------
