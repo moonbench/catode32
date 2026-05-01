@@ -125,8 +125,8 @@ class Game:
         del _gc
 
         self.last_frame_time = time.ticks_ms()
-        # Simulated time rate: game minutes per real second (full day = 24 real minutes)
-        self.time_system.game_minutes_per_second = 1.0
+        # Simulated time rate: game minutes per real second (full day = 360 real minutes, 4 game days per IRL day)
+        self.time_system.game_minutes_per_second = 1/15
 
         if config.SLEEP_MODE:
             from sleep_manager import SleepManager
