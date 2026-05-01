@@ -191,14 +191,14 @@ Choose the wiring diagram for your board. Each button connects between GPIO pin 
 **Buttons:**
 | Button | GPIO Pin |
 |--------|----------|
-| UP     | GPIO0    |
-| DOWN   | GPIO1    |
-| LEFT   | GPIO2    |
-| RIGHT  | GPIO3    |
-| A      | GPIO20   |
-| B      | GPIO19   |
-| MENU1  | GPIO18   |
-| MENU2  | GPIO14   |
+| UP     | GPIO14   |
+| DOWN   | GPIO18   |
+| LEFT   | GPIO20   |
+| RIGHT  | GPIO19   |
+| A      | GPIO1    |
+| B      | GPIO0    |
+| MENU1  | GPIO3    |
+| MENU2  | GPIO2    |
 
 #### ESP32-C3 Wiring
 
@@ -222,7 +222,7 @@ Choose the wiring diagram for your board. Each button connects between GPIO pin 
 | MENU1   | GPIO10  |
 | MENU2   | GPIO11  |
 
-> **Note:** The ESP32-C3 configuration avoids strapping pins (GPIO8, GPIO9) to prevent boot issues.
+> **Note:** The ESP32-C3 configuration avoids strapping pins (GPIO2, GPIO8, GPIO9) to prevent boot issues.
 
 ## Installation
 
@@ -294,6 +294,7 @@ For the fastest iteration during development, use the `dev.sh` script which comp
 
 This script:
 - Compiles all `.py` files in `src/` to `.mpy` bytecode in `build/` (excluding `src/assets/`)
+- Converts level files from `levels/` into binary format in `build/platformer_levels/`
 - Mounts the `build/` directory on the device
 - Runs the game
 
@@ -344,8 +345,9 @@ Deploys the project to the ESP32's flash storage:
 This script:
 - Installs the `ssd1306` library via `mip`
 - Compiles all `.py` files to `.mpy` bytecode (excluding `src/assets/`, which are frozen in firmware)
-- Cleans existing files from the device (preserves `lib/`)
-- Uploads compiled `.mpy` files and `boot.py` to the device
+- Converts level files from `levels/` into binary format in `build/platformer_levels/`
+- Cleans existing files from the device (preserves `lib/`, `save.json`, and `webrepl_cfg.py`)
+- Uploads compiled `.mpy` and `.bin` files and `boot.py` to the device
 
 Use this when you want the pet to run standalone without a laptop connection.
 
