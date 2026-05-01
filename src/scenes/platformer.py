@@ -13,7 +13,6 @@ from assets.platformer_terrain import (
     PLATFORMER_CHECKPOINT_UP,
     PLATFORMER_DOOR,
     PLATFORMER_DOOR_LOCKED,
-    PLATFORMER_VINES,
     PLATFORMER_BG_TILES,
 )
 from assets.items import BANDAGE, KEY, SPIN_COIN
@@ -138,9 +137,6 @@ GRASS_SPRITES = (GRASS_SEEDLING, GRASS_YOUNG, GRASS_GROWING, GRASS_MATURE, GRASS
 _TERRAIN_FRAMES = [[t["frames"][0] for t in variants] for variants in TERRAIN_TILES]
 _BG_FRAMES      = [[t["frames"][0] for t in variants] for variants in PLATFORMER_BG_TILES]
 _GRASS_DATA     = tuple((s["frames"][0], s["width"], s["height"], s["width"] // 2) for s in GRASS_SPRITES)
-_VINE_FRAME     = PLATFORMER_VINES["frames"][0]
-_VINE_W         = PLATFORMER_VINES["width"]
-_VINE_H         = PLATFORMER_VINES["height"]
 
 # Precomputed checkpoint and door draw data — avoids dict lookups inside the draw loop.
 _CP_DOWN_FRAME = PLATFORMER_CHECKPOINT_DOWN["frames"][0]
@@ -167,7 +163,6 @@ _LEVEL_DATA  = None
 SOLID_INDEX  = {}
 BG_INDEX     = {}
 GRASS_INDEX  = {}
-VINE_INDEX   = {}
 
 PLATFORMS    = ()
 CHECKPOINTS  = ()
@@ -193,14 +188,14 @@ def load_level(name):
     recorded as (offset, count) pairs and consumed once by _init_level_state().
     See tools/convert_level.py for the binary format and
     tools/build_levels.py to regenerate assets/platformer_levels.py."""
-    global _LEVEL_DATA, SOLID_INDEX, BG_INDEX, GRASS_INDEX, VINE_INDEX
+    global _LEVEL_DATA, SOLID_INDEX, BG_INDEX, GRASS_INDEX
     global PLATFORMS, CHECKPOINTS, DOORS, LOCKED_DOORS
     global _SLIME_SEC, _KEY_SEC, _COIN_SEC, PLAYER_SPAWN, WORLD_W, WORLD_H
     # Drop all references to old level data before touching the new level.
     # Sprite caches (_TERRAIN_FRAMES etc.) are left alone — identical across levels.
     _LEVEL_DATA  = None
     SOLID_INDEX  = None; BG_INDEX     = None
-    GRASS_INDEX  = None; VINE_INDEX   = None
+    GRASS_INDEX  = None
     PLATFORMS    = None; CHECKPOINTS  = None
     DOORS        = None; LOCKED_DOORS = None
     _SLIME_SEC   = (0, 0); _KEY_SEC   = (0, 0); _COIN_SEC = (0, 0)
@@ -219,7 +214,6 @@ def load_level(name):
     solid_idx = {}
     bg_idx    = {}
     grass_idx = {}
-    vine_idx  = {}
     cps       = []
     doors     = []
     ldoors    = []
@@ -254,12 +248,10 @@ def load_level(name):
                 grass_idx[(col, row)] = (offset, n)
                 offset += 5 * n
 
-        elif sec_id == 0x05:  # VINE_CHUNKS
+        elif sec_id == 0x05:  # VINE_CHUNKS — removed, skip bytes
             for _ in range(count):
-                col, row, n = struct.unpack_from('<BBB', data, offset)
-                offset += 3
-                vine_idx[(col, row)] = (offset, n)
-                offset += 4 * n
+                n = struct.unpack_from('<BBB', data, offset)[2]
+                offset += 3 + 4 * n
 
         elif sec_id == 0x06:  # CHECKPOINTS — small, parse fully
             for i in range(count):
@@ -297,7 +289,6 @@ def load_level(name):
     SOLID_INDEX  = solid_idx;  solid_idx = None
     BG_INDEX     = bg_idx;     bg_idx    = None
     GRASS_INDEX  = grass_idx;  grass_idx = None
-    VINE_INDEX   = vine_idx;   vine_idx  = None
     PLATFORMS    = tuple(plats);   plats  = None
     CHECKPOINTS  = tuple(cps);     cps    = None
     DOORS        = tuple(doors);   doors  = None
@@ -489,7 +480,6 @@ class PlatformerScene(Scene):
         self._fireworks_count       = 0
         self._fireworks_timer       = 0.0
         self._burst_effect          = BurstEffect()   # summary screen (screen coords)
-        self._collectible_bursts    = BurstEffect()   # in-game pickups (world coords)
 
         # Camera: world coord of top-left of screen — snapped to player spawn
         # so there's no lerp from the top-left corner on entry.
@@ -510,6 +500,8 @@ class PlatformerScene(Scene):
                _cy0 // CHUNK_H, (_cy0 + 63) // CHUNK_H)
         self._solid_cache_vis = _vc
         self._solid_cache     = {}
+        self._bg_cache        = {}
+        self._grass_cache     = {}
         self._rebuild_solid_cache(_vc[0], _vc[1], _vc[2], _vc[3])
 
     def exit(self):
@@ -726,7 +718,6 @@ class PlatformerScene(Scene):
         self._check_slime_cat_contact()
 
         self._burst_effect.update(dt)
-        self._collectible_bursts.update(dt)
         self._update_camera(dt)
 
     # ------------------------------------------------------------------
@@ -984,12 +975,6 @@ class PlatformerScene(Scene):
                     self._key_active[i] = False
                     self._has_key = True
                     self._keys_remaining -= 1
-                    self._collectible_bursts.trigger(
-                        anchor_x=kx,
-                        anchor_y=ky - KEY["height"] // 2,
-                        count=5, spread_x=10,
-                        spread_y_min=-15, spread_y_max=5,
-                    )
                     return
 
         if self._coins_remaining:
@@ -1007,12 +992,6 @@ class PlatformerScene(Scene):
                     self._coins_collected += 1
                     self._level_coins_collected += 1
                     self._coins_remaining -= 1
-                    self._collectible_bursts.trigger(
-                        anchor_x=cx,
-                        anchor_y=cy - SPIN_COIN["height"] // 2,
-                        count=3, spread_x=6,
-                        spread_y_min=-8, spread_y_max=4,
-                    )
 
     def _check_doors(self):
         if self._door_dest is not None:
@@ -1195,10 +1174,11 @@ class PlatformerScene(Scene):
     # ------------------------------------------------------------------
 
     def _rebuild_solid_cache(self, col0, col1, row0, row1):
-        """Unpack solid block data for all visible chunks (plus one row above/below
-        for slime vertical collision queries) into (bx, by, frame) tuples.
+        """Unpack solid, BG, and grass block data for all visible chunks into
+        cached tuples. Reuses existing dicts to avoid heap fragmentation.
         Called only when the visible chunk set changes, not every frame."""
-        cache = {}
+        cache = self._solid_cache
+        cache.clear()
         for col in range(col0, col1 + 1):
             for row in range(row0 - 1, row1 + 2):
                 entry = SOLID_INDEX.get((col, row))
@@ -1210,7 +1190,35 @@ class PlatformerScene(Scene):
                     bx, by, tt, vi = struct.unpack_from('<HHBB', _LEVEL_DATA, off + i * 6)
                     blocks[i] = (bx, by, _TERRAIN_FRAMES[tt][vi])
                 cache[(col, row)] = blocks
-        self._solid_cache = cache
+
+        bg_cache = self._bg_cache
+        bg_cache.clear()
+        for col in range(col0, col1 + 1):
+            for row in range(row0, row1 + 1):
+                entry = BG_INDEX.get((col, row))
+                if not entry:
+                    continue
+                off, n = entry
+                blocks = [None] * n
+                for i in range(n):
+                    wx, wy, gi, vi = struct.unpack_from('<HHBB', _LEVEL_DATA, off + i * 6)
+                    blocks[i] = (wx, wy, _BG_FRAMES[gi][vi])
+                bg_cache[(col, row)] = blocks
+
+        grass_cache = self._grass_cache
+        grass_cache.clear()
+        for col in range(col0, col1 + 1):
+            for row in range(row0, row1 + 1):
+                entry = GRASS_INDEX.get((col, row))
+                if not entry:
+                    continue
+                off, n = entry
+                blocks = [None] * n
+                for i in range(n):
+                    wx, surface_y, si = struct.unpack_from('<HHB', _LEVEL_DATA, off + i * 5)
+                    gframe, sw, sh, sw2 = _GRASS_DATA[si]
+                    blocks[i] = (wx - sw2, surface_y - sh, gframe, sw, sh)
+                grass_cache[(col, row)] = blocks
 
     # ------------------------------------------------------------------
     # Level summary and banner
@@ -1358,6 +1366,7 @@ class PlatformerScene(Scene):
             self._draw_level_summary()
             return
 
+        _ds = self.renderer.draw_sprite
         cam_x = int(self.camera_x)
         cam_y = int(self.camera_y)
 
@@ -1366,18 +1375,17 @@ class PlatformerScene(Scene):
         col1 = (cam_x + 127) // CHUNK_W
         row0 = cam_y // CHUNK_H
         row1 = (cam_y + 63) // CHUNK_H
+        _bg_cache = self._bg_cache
         for col in range(col0, col1 + 1):
             for row in range(row0, row1 + 1):
-                entry = BG_INDEX.get((col, row))
-                if not entry:
+                blocks = _bg_cache.get((col, row))
+                if not blocks:
                     continue
-                off, n = entry
-                for i in range(n):
-                    wx, wy, gi, vi = struct.unpack_from('<HHBB', _LEVEL_DATA, off + i * 6)
+                for wx, wy, frame in blocks:
                     sx = wx - cam_x
                     sy = wy - cam_y
                     if -BLOCK_W < sx < 128 and -BLOCK_H < sy < 64:
-                        self.renderer.draw_sprite(_BG_FRAMES[gi][vi], BLOCK_W, BLOCK_H, sx, sy)
+                        _ds(frame, BLOCK_W, BLOCK_H, sx, sy)
 
         # Solid terrain — rebuild cache only when visible chunks change, then draw from cache
         _vis = (col0, col1, row0, row1)
@@ -1394,9 +1402,9 @@ class PlatformerScene(Scene):
                     sx = bx - cam_x
                     sy = by - cam_y
                     if -BLOCK_W < sx < 128 and -BLOCK_H < sy < 64:
-                        self.renderer.draw_sprite(frame, BLOCK_W, BLOCK_H, sx, sy)
+                        _ds(frame, BLOCK_W, BLOCK_H, sx, sy)
 
-        # Platforms, grass, vines — decorations layer
+        # Platforms and grass — decorations layer
         for px, py, pw in PLATFORMS:
             sx = px - cam_x
             sy = py - cam_y
@@ -1404,32 +1412,14 @@ class PlatformerScene(Scene):
                 self.renderer.draw_rect(sx, sy, pw, PLAT_H, color=1)
 
         # Grass decorations — chunk-culled, drawn above terrain
+        _grass_cache = self._grass_cache
         for col in range(col0, col1 + 1):
             for row in range(row0, row1 + 1):
-                entry = GRASS_INDEX.get((col, row))
-                if not entry:
+                blocks = _grass_cache.get((col, row))
+                if not blocks:
                     continue
-                off, n = entry
-                for i in range(n):
-                    wx, surface_y, si = struct.unpack_from('<HHB', _LEVEL_DATA, off + i * 5)
-                    gframe, sw, sh, sw2 = _GRASS_DATA[si]
-                    gx = wx - sw2 - cam_x
-                    gy = surface_y - sh - cam_y
-                    self.renderer.draw_sprite(gframe, sw, sh, gx, gy)
-
-        # Vines — chunk-culled, hang downward from top anchor
-        for col in range(col0, col1 + 1):
-            for row in range(row0, row1 + 1):
-                entry = VINE_INDEX.get((col, row))
-                if not entry:
-                    continue
-                off, n = entry
-                for i in range(n):
-                    wx, ty = struct.unpack_from('<HH', _LEVEL_DATA, off + i * 4)
-                    vx = wx - _VINE_W // 2 - cam_x
-                    vy = ty - cam_y
-                    if -_VINE_W < vx < 128 and -_VINE_H < vy < 64:
-                        self.renderer.draw_sprite(_VINE_FRAME, _VINE_W, _VINE_H, vx, vy)
+                for gx_base, gy_base, gframe, sw, sh in blocks:
+                    _ds(gframe, sw, sh, gx_base - cam_x, gy_base - cam_y)
 
         # Checkpoints, doors, collectibles, slimes, cat, effects
         for i, (cx, cy) in enumerate(CHECKPOINTS):
@@ -1440,14 +1430,14 @@ class PlatformerScene(Scene):
             draw_x = cx - cam_x
             draw_y = cy - ch - cam_y
             if -cw < draw_x < 128 and -ch < draw_y < 64:
-                self.renderer.draw_sprite(frame, cw, ch, draw_x, draw_y)
+                _ds(frame, cw, ch, draw_x, draw_y)
 
         # Doors
         for cx, cy, _ in DOORS:
             draw_x = cx - cam_x
             draw_y = cy - _DOOR_H - cam_y
             if -_DOOR_W < draw_x < 128 and -_DOOR_H < draw_y < 64:
-                self.renderer.draw_sprite(_DOOR_FRAME, _DOOR_W, _DOOR_H, draw_x, draw_y)
+                _ds(_DOOR_FRAME, _DOOR_W, _DOOR_H, draw_x, draw_y)
 
         # Locked doors — show locked sprite until key obtained, then unlocked sprite
         locked_frame = _DOOR_FRAME if self._has_key else _DOOR_LOCKED_FRAME
@@ -1455,7 +1445,7 @@ class PlatformerScene(Scene):
             draw_x = cx - cam_x
             draw_y = cy - _DOOR_H - cam_y
             if -_DOOR_W < draw_x < 128 and -_DOOR_H < draw_y < 64:
-                self.renderer.draw_sprite(locked_frame, _DOOR_W, _DOOR_H, draw_x, draw_y)
+                _ds(locked_frame, _DOOR_W, _DOOR_H, draw_x, draw_y)
 
         # Collectible items — triangle-wave bob, chunk-culled
         t = self._key_timer % KEY_BOB_PERIOD
@@ -1470,7 +1460,7 @@ class PlatformerScene(Scene):
                 draw_x = kx - kw // 2 - cam_x
                 draw_y = ky - kh - key_bob - cam_y
                 if -kw < draw_x < 128 and -kh < draw_y < 64:
-                    self.renderer.draw_sprite(KEY["frames"][0], kw, kh, draw_x, draw_y)
+                    _ds(KEY["frames"][0], kw, kh, draw_x, draw_y)
 
         t = self._key_timer % COIN_BOB_PERIOD
         half = COIN_BOB_PERIOD * 0.5
@@ -1485,7 +1475,7 @@ class PlatformerScene(Scene):
                 draw_x = cx - cw // 2 - cam_x
                 draw_y = cy - ch - coin_bob - cam_y
                 if -cw < draw_x < 128 and -ch < draw_y < 64:
-                    self.renderer.draw_sprite(SPIN_COIN["frames"][cf], cw, ch, draw_x, draw_y)
+                    _ds(SPIN_COIN["frames"][cf], cw, ch, draw_x, draw_y)
 
         # Slimes — only those in visible chunks
         sw = PLATFORMER_SLIME_IDLE["width"]
@@ -1500,7 +1490,7 @@ class PlatformerScene(Scene):
                     fi = slime.burst_frame
                     sx = int(slime.x) - bw // 2 - cam_x
                     sy = int(slime.feet_y) - bh - cam_y
-                    self.renderer.draw_sprite(PLATFORMER_SLIME_BURST["frames"][fi], bw, bh, sx, sy)
+                    _ds(PLATFORMER_SLIME_BURST["frames"][fi], bw, bh, sx, sy)
                     continue
                 sx = int(slime.x) - sw // 2 - cam_x
                 sy = int(slime.feet_y) - sh - cam_y
@@ -1509,13 +1499,13 @@ class PlatformerScene(Scene):
                 if slime.hit_timer > 0:
                     # Hit flash: solid white blob
                     data = self._slime_fill_r[fi] if facing_right else self._slime_fill_l[fi]
-                    self.renderer.draw_sprite(data, sw, sh, sx, sy)
+                    _ds(data, sw, sh, sx, sy)
                 else:
                     # Normal: black silhouette first, then white outline on top
                     fill = self._slime_fill_inv_r[fi] if facing_right else self._slime_fill_inv_l[fi]
-                    self.renderer.draw_sprite(fill, sw, sh, sx, sy, transparent_color=1)
+                    _ds(fill, sw, sh, sx, sy, transparent_color=1)
                     outline = self._slime_r[fi] if facing_right else self._slime_l[fi]
-                    self.renderer.draw_sprite(outline, sw, sh, sx, sy)
+                    _ds(outline, sw, sh, sx, sy)
 
         # Strike effect — independent frame counter, always plays all 3 frames
         if self._strike_active:
@@ -1525,16 +1515,16 @@ class PlatformerScene(Scene):
                     else self._strike_l[self._strike_frame])
             sx = int(self._strike_x) - stw // 2 - cam_x
             sy = int(self._strike_y) - sth // 2 - cam_y
-            self.renderer.draw_sprite(data, stw, sth, sx, sy)
+            _ds(data, stw, sth, sx, sy)
 
         # Poof death animation
         if self._poof_active:
             pw = POOF["width"]
             ph = POOF["height"]
             fi = min(self._poof_frame, len(POOF["frames"]) - 1)
-            self.renderer.draw_sprite(POOF["frames"][fi], pw, ph,
-                                      self._poof_x - pw // 2 - cam_x,
-                                      self._poof_y - ph - cam_y)
+            _ds(POOF["frames"][fi], pw, ph,
+                self._poof_x - pw // 2 - cam_x,
+                self._poof_y - ph - cam_y)
 
         # Cat sprite — invisible on even blink intervals while damaged
         if self._poof_active:
@@ -1570,14 +1560,12 @@ class PlatformerScene(Scene):
             data   = frames_r[frame] if self.facing_right else frames_l[frame]
             draw_x = int(self.x) - sprite["width"] // 2 - cam_x
             draw_y = int(self.feet_y) - sprite["height"] - cam_y
-            self.renderer.draw_sprite(data, sprite["width"], sprite["height"],
-                                      draw_x, draw_y)
+            _ds(data, sprite["width"], sprite["height"], draw_x, draw_y)
 
         # Level start banner — centered on screen, rises and disappears
         if self._banner_timer < LEVEL_BANNER_DUR:
             self._draw_level_banner()
 
-        self._collectible_bursts.draw(self.renderer, -cam_x, -cam_y)
         self._burst_effect.draw(self.renderer)
 
         # Door transition scanline overlay — drawn last so it covers everything
