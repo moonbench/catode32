@@ -114,7 +114,7 @@ And while you have a chance to see a shooting star or two each night, you might 
 
 ### Vacations
 
-![beachvacation](https://github.com/user-attachments/assets/05876563-14ce-4c40-b7ae-c9dc321d1562)
+![parkvacation](https://github.com/user-attachments/assets/647eb3cb-26e4-4be5-b6ac-8b1a32d0783b)
 
 If you save up some coins you can take your pet on different vacations. Each one will give some different rewards to your pet, like boosting their sense of fulfillment. But don't stay too long! If your pet starts to hint that they're overwhelmed and they want to go home then it's probably time to wrap up the trip.
 
@@ -123,6 +123,8 @@ You can take them to:
 - A forest
 - The aquarium
 - The beach
+
+![beachvacation](https://github.com/user-attachments/assets/05876563-14ce-4c40-b7ae-c9dc321d1562)
 
 ### Gardening
 
