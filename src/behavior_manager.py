@@ -167,6 +167,11 @@ class BehaviorManager:
                     ctx.current_behavior_name = name
                 gc.collect()
                 mod = __import__(module_path, None, None, [class_name])
+                # Nothing will work reliably at this memory level — save and reboot.
+                if ctx:
+                    ctx.save()
+                import machine
+                machine.reset()
             else:
                 raise
 
