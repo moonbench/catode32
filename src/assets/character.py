@@ -288,6 +288,23 @@ CHAR_BODY_SIDE_LAYING = { # 3/4 facing left, laying
     ]
 }
 
+CHAR_BODY_SIDE_LAYING2 = {
+    "width": 29,
+    "height": 16,
+    "anchor_x": 14,
+    "anchor_y": 16,
+    "head_x": 9,
+    "head_y": 4,
+    "tail_x": 28,
+    "tail_y": 12,
+    "frames": [
+        b"\x00\x00\xf0\x00\x00\x03\x0c\x00\x00\x0c\x03\x00\x00\x30\x00\x80\x00\xc0\x00\x40\x01\x00\x00\x20\x02\x00\x00\x20\x00\x00\x00\x10\x00\x00\x00\x10\x00\x00\x00\x08\x10\x00\x00\x08\x20\x00\x00\x00\x40\x40\x00\x80\x80\x80\x00\x80\x81\x00\x01\x08\x7e\xff\xff\xf0"
+    ],
+    "fill_frames": [
+        b"\x00\x00\xf0\x00\x00\x03\xfc\x00\x00\x0f\xff\x00\x00\x3f\xff\x80\x00\xff\xff\xc0\x01\xff\xff\xe0\x03\xff\xff\xe0\x03\xff\xff\xf0\x07\xff\xff\xf0\x0f\xff\xff\xf8\x1f\xff\xff\xf8\x3f\xff\xff\xf8\x7f\xff\xff\xf8\xff\xff\xff\xf8\xff\xff\xff\xf8\x7e\xff\xff\xf0"
+    ]
+}
+
 CHAR_BODY_FRONT_SITTING = { # Straight forward, sitting
     "width": 17,
     "height": 18,
@@ -1195,6 +1212,20 @@ POSES = {
                 "body": CHAR_BODY_SIDE_LAYING,
                 "eyes": CHAR_EYES_FRONT_HAPPY,
                 "tail": CHAR_TAIL_NEUTRAL,
+            },
+            "sulking": {
+                "head": CHAR_HEAD_SIDE_AIRPLANE2,
+                "body": CHAR_BODY_SIDE_LAYING2,
+                "eyes": CHAR_EYES_SIDE_NEUTRAL,
+                "tail": CHAR_TAIL_NEUTRAL,
+                "head_offset": (-9, 8),
+            },
+            "sulking2": {
+                "head": CHAR_HEAD_SIDE_AIRPLANE2,
+                "body": CHAR_BODY_SIDE_LAYING2,
+                "eyes": CHAR_EYES_SIDE_ANGRY,
+                "tail": CHAR_TAIL_ANNOYED,
+                "head_offset": (-10, 8),
             },
         },
     },

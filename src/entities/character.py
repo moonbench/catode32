@@ -200,6 +200,10 @@ class CharacterEntity(Entity):
         head_root_y = body_y + self._get_point(body, "head_y", body_frame)
         head_x = head_root_x - self._get_anchor_x(head, mirror)
         head_y = head_root_y - head["anchor_y"]
+        head_offset = pose.get("head_offset")
+        if head_offset is not None:
+            head_x += -head_offset[0] if mirror else head_offset[0]
+            head_y += head_offset[1]
 
         eyes = pose.get("eyes")
         if eyes is not None:

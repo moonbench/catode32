@@ -57,6 +57,24 @@ class SulkingBehavior(BaseBehavior):
         self.emerge_duration = random.uniform(1.0, 5.0)
         self._bubble_trigger_time = 0.0
         self._bubble_timer = None
+        self._sulk_pose = "laying.side.bored"
+
+    def _pick_sulk_pose(self):
+        ctx = self._character.context
+        if ctx is None:
+            return "laying.side.bored"
+        distress = (max(0, 50 - ctx.fullness) + max(0, 50 - ctx.affection) +
+                    max(0, 50 - ctx.comfort) + max(0, 50 - ctx.fulfillment)) / 200.0
+        w_bored = max(0.0, 1.0 - distress * 2.0)
+        w_sulking = 1.0
+        w_sulking2 = max(0.0, distress * 2.0 - 0.5)
+        r = random.uniform(0, w_bored + w_sulking + w_sulking2)
+        if r < w_bored:
+            return "laying.side.bored"
+        r -= w_bored
+        if r < w_sulking:
+            return "laying.side.sulking"
+        return "laying.side.sulking2"
 
     def next(self, context):
         return 'pacing'
@@ -66,6 +84,7 @@ class SulkingBehavior(BaseBehavior):
             return
         super().start(on_complete)
         self._phase = "settling"
+        self._sulk_pose = self._pick_sulk_pose()
         self._character.set_pose("sitting.side.aloof")
         self._bubble_trigger_time = random.uniform(self.sulk_duration * 0.2, self.sulk_duration * 0.7)
         self._bubble_timer = None
@@ -80,7 +99,7 @@ class SulkingBehavior(BaseBehavior):
             if self._phase_timer >= self.settle_duration:
                 self._phase = "sulking"
                 self._phase_timer = 0.0
-                self._character.set_pose("laying.side.bored")
+                self._character.set_pose(self._sulk_pose)
 
         elif self._phase == "sulking":
             self._progress = min(1.0, self._phase_timer / self.sulk_duration)

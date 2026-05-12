@@ -488,9 +488,13 @@ class BehaviorManager:
         return trigger
 
     def can_trigger_sulking(self, ctx):
-        trigger = ctx.fulfillment < 50 or ctx.affection < 50
+        stats = (ctx.fullness, ctx.affection, ctx.fulfillment, ctx.comfort)
+        low_count = sum(1 for v in stats if v < 50)
+        trigger = (ctx.fulfillment < 50 or ctx.affection < 50
+                   or low_count >= 2 or any(v < 25 for v in stats))
         if not trigger:
-            print("Skipping sulking. Fulfillment: %6.4f, Affection: %6.4f" % (ctx.fulfillment, ctx.affection))
+            print("Skipping sulking. Fulfillment: %6.4f, Affection: %6.4f, Fullness: %6.4f, Comfort: %6.4f" % (
+                ctx.fulfillment, ctx.affection, ctx.fullness, ctx.comfort))
         return trigger
 
     def can_trigger_mischief(self, ctx):
@@ -632,9 +636,12 @@ class BehaviorManager:
         return base
 
     def priority_sulking(self, ctx):
-        base = random.uniform(10, max(20, (ctx.fulfillment + ctx.affection) * 0.45))
+        combined = ctx.fulfillment + ctx.affection + ctx.fullness + ctx.comfort
+        low_count = sum(1 for v in (ctx.fullness, ctx.affection, ctx.fulfillment, ctx.comfort) if v < 50)
+        ceiling = max(10, combined * 0.225 - low_count * 5)
+        base = random.uniform(10, max(10, ceiling))
         if not getattr(ctx, 'in_familiar_location', False):
-            base *= 0.85  # slight mood dampening away from home
+            base *= 0.85
         return base
 
     def priority_mischief(self, ctx):
