@@ -1,3 +1,4 @@
+from lang import t
 import random
 import config
 from scene import Scene
@@ -313,11 +314,11 @@ class MainScene(Scene):
 
     def _build_menu_items(self):
         affection_items = [
-            MenuItem("Pets", icon=HAND_ICON, action=("pets",)),
-            MenuItem("Scratch", icon=HAND_ICON, action=("scratch",)),
-            MenuItem("Kiss", icon=HEART_ICON, action=("kiss",)),
-            MenuItem("Psst psst", icon=HEART_BUBBLE_ICON, action=("psst",)),
-            MenuItem("Groom", icon=HAND_ICON, action=("groom",))
+            MenuItem(t("Pets"), icon=HAND_ICON, action=("pets",)),
+            MenuItem(t("Scratch"), icon=HAND_ICON, action=("scratch",)),
+            MenuItem(t("Kiss"), icon=HEART_ICON, action=("kiss",)),
+            MenuItem(t("Psst psst"), icon=HEART_BUBBLE_ICON, action=("psst",)),
+            MenuItem(t("Groom"), icon=HAND_ICON, action=("groom",))
         ]
 
         food_stock = self.context.food_stock
@@ -338,7 +339,7 @@ class MainScene(Scene):
             ("Kibble",   "kibble",   KIBBLE_ICON),
         )
         meal_items = [
-            MenuItem(f"{name} ({food_stock.get(key, 0)})", icon=icon, action=("meal", key))
+            MenuItem(t(name) + f" ({food_stock.get(key, 0)})", icon=icon, action=("meal", key))
             for name, key, icon in _meal_defs
             if food_stock.get(key, 0) > 0
         ]
@@ -355,7 +356,7 @@ class MainScene(Scene):
             ("Carrots",    "carrots"),
         )
         snack_items = [
-            MenuItem(f"{name} ({food_stock.get(key, 0)})",
+            MenuItem(t(name) + f" ({food_stock.get(key, 0)})",
                      icon=SNACK_ICONS.get(name, KIBBLE_ICON),
                      action=("snack", key))
             for name, key in _snack_defs
@@ -363,22 +364,22 @@ class MainScene(Scene):
         ]
         feed_items = []
         if meal_items:
-            feed_items.append(MenuItem("Meals", icon=MEAL_ICON, submenu=meal_items))
+            feed_items.append(MenuItem(t("Meals"), icon=MEAL_ICON, submenu=meal_items))
         if snack_items:
-            feed_items.append(MenuItem("Snacks", icon=KIBBLE_ICON, submenu=snack_items))
-        feed_items.append(MenuItem("Store...", action=("go_store",)))
+            feed_items.append(MenuItem(t("Snacks"), icon=KIBBLE_ICON, submenu=snack_items))
+        feed_items.append(MenuItem(t("Store..."), action=("go_store",)))
 
         toy_items = [
-            MenuItem(toy["name"], icon=TOY_ICONS.get(toy["name"]), action=("toy", toy))
+            MenuItem(t(toy["name"]), icon=TOY_ICONS.get(toy["name"]), action=("toy", toy))
             for toy in self.context.inventory.get("toys", [])
         ]
-        toy_items.append(MenuItem("Store...", action=("go_store",)))
+        toy_items.append(MenuItem(t("Store..."), action=("go_store",)))
 
         train_items = [
-            MenuItem("Intelligence", icon=HAND_ICON, action=("train",)),
-            MenuItem("Behavior", icon=HAND_ICON, action=("train",)),
-            MenuItem("Fitness", icon=HAND_ICON, action=("train",)),
-            MenuItem("Sociability", icon=HAND_ICON, action=("train",)),
+            MenuItem(t("Intelligence"), icon=HAND_ICON, action=("train",)),
+            MenuItem(t("Behavior"), icon=HAND_ICON, action=("train",)),
+            MenuItem(t("Fitness"), icon=HAND_ICON, action=("train",)),
+            MenuItem(t("Sociability"), icon=HAND_ICON, action=("train",)),
         ]
 
         inv = self.context.inventory
@@ -389,7 +390,7 @@ class MainScene(Scene):
             ("Planter box", "planter"),
         )
         place_pot_items = [
-            MenuItem(f"{name} ({inv['pots'].get(key, 0)})", icon=TREES_ICON,
+            MenuItem(t(name) + f" ({inv['pots'].get(key, 0)})", icon=TREES_ICON,
                      action=("gardening_place_pot", key))
             for name, key in _pot_defs
             if inv['pots'].get(key, 0) > 0
@@ -402,7 +403,7 @@ class MainScene(Scene):
             ("Freesia",    "freesia"),
         )
         in_pot_items = [
-            MenuItem(f"{name} ({inv['seeds'].get(key, 0)})", icon=TREES_ICON,
+            MenuItem(t(name) + f" ({inv['seeds'].get(key, 0)})", icon=TREES_ICON,
                      action=("gardening_plant_seed", key))
             for name, key in _seed_defs
             if inv['seeds'].get(key, 0) > 0
@@ -412,7 +413,7 @@ class MainScene(Scene):
         in_ground_items = []
         if has_spade and getattr(self, 'SCENE_NAME', None) == 'outside':
             in_ground_items = [
-                MenuItem(f"{name} ({inv['seeds'].get(key, 0)})", icon=TREES_ICON,
+                MenuItem(t(name) + f" ({inv['seeds'].get(key, 0)})", icon=TREES_ICON,
                          action=("gardening_plant_ground", key))
                 for name, key in _seed_defs
                 if inv['seeds'].get(key, 0) > 0
@@ -420,25 +421,25 @@ class MainScene(Scene):
 
         plant_seed_submenu = []
         if in_pot_items:
-            plant_seed_submenu.append(MenuItem("In Pot", icon=TREES_ICON, submenu=in_pot_items))
+            plant_seed_submenu.append(MenuItem(t("In Pot"), icon=TREES_ICON, submenu=in_pot_items))
         if in_ground_items:
-            plant_seed_submenu.append(MenuItem("In Ground", icon=TREES_ICON, submenu=in_ground_items))
+            plant_seed_submenu.append(MenuItem(t("In Ground"), icon=TREES_ICON, submenu=in_ground_items))
 
         gardening_items = []
-        gardening_items.append(MenuItem("Tend",  icon=TREES_ICON, action=("gardening_tend",)))
+        gardening_items.append(MenuItem(t("Tend"),  icon=TREES_ICON, action=("gardening_tend",)))
         if place_pot_items:
-            gardening_items.append(MenuItem("Place Pot",  icon=TREES_ICON, submenu=place_pot_items))
+            gardening_items.append(MenuItem(t("Place Pot"),  icon=TREES_ICON, submenu=place_pot_items))
         if plant_seed_submenu:
-            gardening_items.append(MenuItem("Plant Seed", icon=TREES_ICON, submenu=plant_seed_submenu))
-        gardening_items.append(MenuItem("Store...", action=("go_store",)))
+            gardening_items.append(MenuItem(t("Plant Seed"), icon=TREES_ICON, submenu=plant_seed_submenu))
+        gardening_items.append(MenuItem(t("Store..."), action=("go_store",)))
 
         items = [
-            MenuItem("Affection", icon=HEART_ICON, submenu=affection_items),
-            MenuItem("Train", icon=HAND_ICON, submenu=train_items),
+            MenuItem(t("Affection"), icon=HEART_ICON, submenu=affection_items),
+            MenuItem(t("Train"), icon=HAND_ICON, submenu=train_items),
         ]
-        items.append(MenuItem("Feed", icon=MEAL_ICON, submenu=feed_items))
-        items.append(MenuItem("Play", icon=TOYS_ICON, submenu=toy_items))
-        items.append(MenuItem("Gardening", icon=TREES_ICON, submenu=gardening_items))
+        items.append(MenuItem(t("Feed"), icon=MEAL_ICON, submenu=feed_items))
+        items.append(MenuItem(t("Play"), icon=TOYS_ICON, submenu=toy_items))
+        items.append(MenuItem(t("Gardening"), icon=TREES_ICON, submenu=gardening_items))
 
         return items
 
@@ -492,7 +493,7 @@ class MainScene(Scene):
                     break
             print(f"[Play] toy={toy}")
             if toy is not None and toy.get("durability", 1) <= 0:
-                self._popup_msg = "Too damaged! Buy a new one at the store."
+                self._popup_msg = t("Too damaged! Buy a new one at the store.")
                 self._popup.set_text(self._popup_msg, center=True)
             else:
                 self.environment.set_camera(int(self.character.x) - config.DISPLAY_WIDTH // 2)
@@ -512,7 +513,7 @@ class MainScene(Scene):
             found = self._plant_selection.enter(self, _on_pot_selected,
                                                 filter_fn=lambda p: p['stage'] == 'empty_pot')
             if not found:
-                self._popup_msg = "No empty pots in this location"
+                self._popup_msg = t("No empty pots in this location")
                 self._popup.set_text(self._popup_msg, center=True)
         elif action_type == "gardening_plant_ground":
             seed_type = action[1]
@@ -576,19 +577,19 @@ class MainScene(Scene):
         ]
 
         # Get information about the health of the plant
-        items.append(MenuItem("Inspect", icon=TREES_ICON, submenu=info_items))
+        items.append(MenuItem(t("Inspect"), icon=TREES_ICON, submenu=info_items))
 
         # Water: only for plants that are alive and in the ground/pot
         stage = plant.get('stage', '')
         if stage not in ('empty_pot', 'dead'):
-            items.append(MenuItem("Water", icon=TREES_ICON, action=("tend_water", plant['id'])))
+            items.append(MenuItem(t("Water"), icon=TREES_ICON, action=("tend_water", plant['id'])))
             if self.context.inventory.get('fertilizer', 0) > 0:
-                items.append(MenuItem("Fertilize", icon=TREES_ICON, action=("tend_fertilize", plant['id'])))
+                items.append(MenuItem(t("Fertilize"), icon=TREES_ICON, action=("tend_fertilize", plant['id'])))
 
         # Move (not available for ground plants)
         if plant.get('pot') != 'ground':
             move_items = self._build_move_items(plant)
-            items.append(MenuItem("Move", icon=TREES_ICON, submenu=move_items))
+            items.append(MenuItem(t("Move"), icon=TREES_ICON, submenu=move_items))
 
         # Repot submenu: larger pots always allowed; smaller pots only for
         # seedling/young/growing stages that still fit.
@@ -607,32 +608,32 @@ class MainScene(Scene):
                     continue  # mature/thriving plants can't go back to smaller pots
                 if inv_pots.get(pt, 0) > 0:
                     repot_items.append(MenuItem(
-                        _pot_labels.get(pt, pt),
+                        t(_pot_labels.get(pt, pt)),
                         icon=TREES_ICON,
                         action=("tend_repot", plant['id'], pt),
                     ))
             if repot_items:
-                items.append(MenuItem("Repot", icon=TREES_ICON, submenu=repot_items))
+                items.append(MenuItem(t("Repot"), icon=TREES_ICON, submenu=repot_items))
 
         # Pluck: confirm only if the plant is alive (not already dead/empty)
         needs_confirm = stage not in ('dead', 'empty_pot')
         items.append(MenuItem(
-            "Pluck",
+            t("Pluck"),
             icon=TREES_ICON,
             action=("tend_pluck", plant['id']),
-            confirm="Remove plant?" if needs_confirm else None,
+            confirm=t("Remove plant?") if needs_confirm else None,
         ))
 
         return items
 
     def _build_move_items(self, plant):
         """Build the Move submenu: 'Here' (within scene) + one item per other plantable scene."""
-        items = [MenuItem("Around Here", icon=TREES_ICON,
+        items = [MenuItem(t("Around Here"), icon=TREES_ICON,
                           action=("tend_move_here", plant["id"]))]
         for scene_name, label in self._PLANTABLE_SCENES:
             if scene_name != self.SCENE_NAME:
                 items.append(MenuItem(
-                    "To " + label, icon=TREES_ICON,
+                    t("To {loc}", loc=t(label)), icon=TREES_ICON,
                     action=("tend_move_to", plant["id"], scene_name),
                 ))
         return items

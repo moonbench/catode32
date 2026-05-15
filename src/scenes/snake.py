@@ -1,3 +1,4 @@
+from lang import t
 """
 Snake minigame - guide the cat to eat spots on a 4x4 grid
 """
@@ -166,20 +167,20 @@ class SnakeScene(Scene):
         r = self.renderer
 
         if self.state == STATE_READY:
-            r.draw_text("SNAKE", 44, 12)
-            r.draw_text("A: START", 32, 28)
+            r.draw_text(t("SNAKE"), 44, 12)
+            r.draw_text(t("A: START"), 32, 28)
             return
 
         if self.state == STATE_WIN:
-            r.draw_text("YOU WIN!", 32, 16)
+            r.draw_text(t("YOU WIN!"), 32, 16)
             r.draw_text(f"SCORE:{self.score}", 28, 30)
-            r.draw_text("A: RETRY", 32, 44)
+            r.draw_text(t("A: RETRY"), 32, 44)
             return
 
         if self.state == STATE_LOSE:
-            r.draw_text("GAME OVER", 28, 16)
+            r.draw_text(t("GAME OVER"), 28, 16)
             r.draw_text(f"SCORE:{self.score}", 28, 30)
-            r.draw_text("A: RETRY", 32, 44)
+            r.draw_text(t("A: RETRY"), 32, 44)
             return
 
         # Dirt pixels

@@ -1,3 +1,4 @@
+from lang import t
 """
 Maze scene - Find the fish minigame
 """
@@ -503,7 +504,7 @@ class MazeScene(Scene):
 
     def draw_win_message(self):
         """Draw win screen overlay"""
-        self.win_popup.set_text("Found it!", wrap=False, center=True)
+        self.win_popup.set_text(t("Found it!"), wrap=False, center=True)
         self.win_popup.draw(show_scroll_indicators=False)
 
     def handle_input(self):

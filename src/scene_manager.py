@@ -3,6 +3,7 @@
 import gc
 import sys
 import config
+from lang import t
 from menu import Menu, MenuItem
 from transitions import TransitionManager
 from ui import OverlayManager
@@ -339,78 +340,78 @@ class SceneManager:
         vac_confirm = "End vacation?" if on_vacation else None
 
         # Stats page
-        items.append(MenuItem("Pet stats", icon=STATS_ICON, action=('scene', 'stats')))
+        items.append(MenuItem(t("Pet stats"), icon=STATS_ICON, action=('scene', 'stats')))
 
         # Location options
         location_items = []
-        location_items.append(MenuItem("Living Room", icon=HOUSE_ICON, action=('scene', 'inside'), confirm=vac_confirm))
-        location_items.append(MenuItem("Bedroom", icon=HOUSE_ICON, action=('scene', 'bedroom'), confirm=vac_confirm))
-        location_items.append(MenuItem("Kitchen", icon=MEAL_ICON, action=('scene', 'kitchen'), confirm=vac_confirm))
-        location_items.append(MenuItem("Outside", icon=SUN_ICON, action=('scene', 'outside'), confirm=vac_confirm))
-        location_items.append(MenuItem("Treehouse", icon=TREES_ICON, action=('scene', 'treehouse'), confirm=vac_confirm))
-        items.append(MenuItem("Locations", icon=HOUSE_ICON, submenu=location_items))
+        location_items.append(MenuItem(t("Living Room"), icon=HOUSE_ICON, action=('scene', 'inside'), confirm=vac_confirm))
+        location_items.append(MenuItem(t("Bedroom"), icon=HOUSE_ICON, action=('scene', 'bedroom'), confirm=vac_confirm))
+        location_items.append(MenuItem(t("Kitchen"), icon=MEAL_ICON, action=('scene', 'kitchen'), confirm=vac_confirm))
+        location_items.append(MenuItem(t("Outside"), icon=SUN_ICON, action=('scene', 'outside'), confirm=vac_confirm))
+        location_items.append(MenuItem(t("Treehouse"), icon=TREES_ICON, action=('scene', 'treehouse'), confirm=vac_confirm))
+        items.append(MenuItem(t("Locations"), icon=HOUSE_ICON, submenu=location_items))
 
         # Minigames submenu
         minigame_items = []
-        minigame_items.append(MenuItem("Zoomies", icon=MINIGAME_ICONS.get("Zoomies"), action=('scene', 'zoomies'), confirm=vac_confirm))
-        minigame_items.append(MenuItem("Breakout", icon=MINIGAME_ICONS.get("Breakout"), action=('scene', 'breakout'), confirm=vac_confirm))
-        minigame_items.append(MenuItem("Snake", icon=MINIGAME_ICONS.get("Snake"), action=('scene', 'snake'), confirm=vac_confirm))
-        minigame_items.append(MenuItem("Hunter", icon=MINIGAME_ICONS.get("Prowl"), action=('scene', 'platformer'), confirm=vac_confirm))
-        minigame_items.append(MenuItem("Memory", icon=MINIGAME_ICONS.get("Memory"), action=('scene', 'memory'), confirm=vac_confirm))
-        minigame_items.append(MenuItem("Maze", icon=MINIGAME_ICONS.get("Maze"), action=('scene', 'maze'), confirm=vac_confirm))
-        minigame_items.append(MenuItem("TicTacToe", icon=MINIGAME_ICONS.get("TicTacToe"), action=('scene', 'tictactoe'), confirm=vac_confirm))
-        minigame_items.append(MenuItem("Hanjie", icon=MINIGAME_ICONS.get("Hanjie"), action=('scene', 'hanjie'), confirm=vac_confirm))
-        minigame_items.append(MenuItem("Lights Out", icon=MINIGAME_ICONS.get("LightsOut"), action=('scene', 'lightsout'), confirm=vac_confirm))
-        minigame_items.append(MenuItem("Pipes", icon=MINIGAME_ICONS.get("Pipes"), action=('scene', 'pipes'), confirm=vac_confirm))
-        items.append(MenuItem("Minigames", icon=MINIGAMES_ICON, submenu=minigame_items))
+        minigame_items.append(MenuItem(t("Zoomies"), icon=MINIGAME_ICONS.get(t("Zoomies")), action=('scene', 'zoomies'), confirm=vac_confirm))
+        minigame_items.append(MenuItem(t("Breakout"), icon=MINIGAME_ICONS.get(t("Breakout")), action=('scene', 'breakout'), confirm=vac_confirm))
+        minigame_items.append(MenuItem(t("Snake"), icon=MINIGAME_ICONS.get(t("Snake")), action=('scene', 'snake'), confirm=vac_confirm))
+        minigame_items.append(MenuItem(t("Hunter"), icon=MINIGAME_ICONS.get(t("Prowl")), action=('scene', 'platformer'), confirm=vac_confirm))
+        minigame_items.append(MenuItem(t("Memory"), icon=MINIGAME_ICONS.get(t("Memory")), action=('scene', 'memory'), confirm=vac_confirm))
+        minigame_items.append(MenuItem(t("Maze"), icon=MINIGAME_ICONS.get(t("Maze")), action=('scene', 'maze'), confirm=vac_confirm))
+        minigame_items.append(MenuItem(t("TicTacToe"), icon=MINIGAME_ICONS.get(t("TicTacToe")), action=('scene', 'tictactoe'), confirm=vac_confirm))
+        minigame_items.append(MenuItem(t("Hanjie"), icon=MINIGAME_ICONS.get(t("Hanjie")), action=('scene', 'hanjie'), confirm=vac_confirm))
+        minigame_items.append(MenuItem(t("Lights Out"), icon=MINIGAME_ICONS.get("LightsOut"), action=('scene', 'lightsout'), confirm=vac_confirm))
+        minigame_items.append(MenuItem(t("Pipes"), icon=MINIGAME_ICONS.get(t("Pipes")), action=('scene', 'pipes'), confirm=vac_confirm))
+        items.append(MenuItem(t("Minigames"), icon=MINIGAMES_ICON, submenu=minigame_items))
         
         # Store
-        items.append(MenuItem("Store", icon=STORE_ICON, action=('scene', 'store')))
+        items.append(MenuItem(t("Store"), icon=STORE_ICON, action=('scene', 'store')))
 
         # Weather forecast
-        items.append(MenuItem("Forecast", icon=SUN_ICON, action=('scene', 'forecast')))
+        items.append(MenuItem(t("Forecast"), icon=SUN_ICON, action=('scene', 'forecast')))
 
         # Social / playdate
-        items.append(MenuItem("Social", icon=CAT_ICON, action=('scene', 'social')))
+        items.append(MenuItem(t("Social"), icon=CAT_ICON, action=('scene', 'social')))
 
         # Pet info
-        items.append(MenuItem("Pet info", icon=CAT_ICON, action=('scene', 'pet_info')))
+        items.append(MenuItem(t("Pet info"), icon=CAT_ICON, action=('scene', 'pet_info')))
 
         # Debug submenu (gated on config flag)
         if config.SHOW_DEBUG_MENUS:
             debug_items = []
-            debug_items.append(MenuItem("Environment", icon=SUN_ICON, action=('scene', 'environment_settings')))
-            debug_items.append(MenuItem("Poses", icon=CAT_ICON, action=('scene', 'debug_poses')))
-            debug_items.append(MenuItem("Behaviors", icon=CAT_ICON, action=('scene', 'debug_behaviors')))
-            debug_items.append(MenuItem("Stats", icon=CAT_ICON, action=('scene', 'debug_stats')))
-            debug_items.append(MenuItem("Plants", icon=TREES_ICON, action=('scene', 'debug_plants')))
+            debug_items.append(MenuItem(t("Environment"), icon=SUN_ICON, action=('scene', 'environment_settings')))
+            debug_items.append(MenuItem(t("Poses"), icon=CAT_ICON, action=('scene', 'debug_poses')))
+            debug_items.append(MenuItem(t("Behaviors"), icon=CAT_ICON, action=('scene', 'debug_behaviors')))
+            debug_items.append(MenuItem(t("Stats"), icon=CAT_ICON, action=('scene', 'debug_stats')))
+            debug_items.append(MenuItem(t("Plants"), icon=TREES_ICON, action=('scene', 'debug_plants')))
 
             vacation_items = [
-                MenuItem("Park", icon=TREES_ICON, action=('scene', 'vacation_park')),
-                MenuItem("Forest", icon=TREES_ICON, action=('scene', 'vacation_forest')),
-                MenuItem("Aquarium", icon=FISH_ICON, action=('scene', 'vacation_aquarium')),
-                MenuItem("Beach", icon=SUN_ICON, action=('scene', 'vacation_beach')),
+                MenuItem(t("Park"), icon=TREES_ICON, action=('scene', 'vacation_park')),
+                MenuItem(t("Forest"), icon=TREES_ICON, action=('scene', 'vacation_forest')),
+                MenuItem(t("Aquarium"), icon=FISH_ICON, action=('scene', 'vacation_aquarium')),
+                MenuItem(t("Beach"), icon=SUN_ICON, action=('scene', 'vacation_beach')),
             ]
-            debug_items.append(MenuItem("Vacations", icon=SUN_ICON, submenu=vacation_items))
-            debug_items.append(MenuItem("Time Speed", icon=WRENCH_ICON, action=('scene', 'time_settings')))
-            debug_items.append(MenuItem("Memory", icon=WRENCH_ICON, action=('scene', 'debug_memory')))
-            debug_items.append(MenuItem("RGB LED", icon=WRENCH_ICON, action=('scene', 'debug_led')))
-            debug_items.append(MenuItem("Power", icon=POWER_ICON, action=('scene', 'debug_power')))
+            debug_items.append(MenuItem(t("Vacations"), icon=SUN_ICON, submenu=vacation_items))
+            debug_items.append(MenuItem(t("Time Speed"), icon=WRENCH_ICON, action=('scene', 'time_settings')))
+            debug_items.append(MenuItem(t("Mem. Usage"), icon=WRENCH_ICON, action=('scene', 'debug_memory')))
+            debug_items.append(MenuItem(t("RGB LED"), icon=WRENCH_ICON, action=('scene', 'debug_led')))
+            debug_items.append(MenuItem(t("Power"), icon=POWER_ICON, action=('scene', 'debug_power')))
 
             context_save_items = []
             context_save_items.append(MenuItem("Context", icon=WRENCH_ICON, action=('scene', 'debug_context')))
-            context_save_items.append(MenuItem("Save now", icon=WRENCH_ICON, action=('context', 'save'), confirm="Save and reboot?"))
-            context_save_items.append(MenuItem("Reset stats", icon=WRENCH_ICON, action=('context', 'reset'), confirm="Reset all stats to defaults?"))
+            context_save_items.append(MenuItem(t("Save now"), icon=WRENCH_ICON, action=('context', 'save'), confirm=t("Save and reboot?")))
+            context_save_items.append(MenuItem(t("Reset stats"), icon=WRENCH_ICON, action=('context', 'reset'), confirm=t("Reset all stats to defaults?")))
             debug_items.append(MenuItem("Context", icon=WRENCH_ICON, submenu=context_save_items))
 
             wireless_items = []
-            wireless_items.append(MenuItem("Wifi", icon=WIFI_ICON, action=('scene', 'debug_wifi')))
-            wireless_items.append(MenuItem("ESP-NOW", icon=WIFI_ICON, action=('scene', 'debug_espnow')))
-            debug_items.append(MenuItem("Wireless", icon=WIFI_ICON, submenu=wireless_items))
+            wireless_items.append(MenuItem(t("Wifi"), icon=WIFI_ICON, action=('scene', 'debug_wifi')))
+            wireless_items.append(MenuItem(t("ESP-NOW"), icon=WIFI_ICON, action=('scene', 'debug_espnow')))
+            debug_items.append(MenuItem(t("Wireless"), icon=WIFI_ICON, submenu=wireless_items))
 
-            items.append(MenuItem("Debug", icon=WRENCH_ICON, submenu=debug_items))
+            items.append(MenuItem(t("Debug"), icon=WRENCH_ICON, submenu=debug_items))
 
-        items.append(MenuItem("Credits", icon=CREDITS_ICON, action=('scene', 'credits')))
+        items.append(MenuItem(t("Credits"), icon=CREDITS_ICON, action=('scene', 'credits')))
 
         return items
 

@@ -1,3 +1,4 @@
+from lang import t
 """
 Hanjie (Nonogram) minigame - fill the grid using row/column clues.
 
@@ -271,7 +272,7 @@ class HanjieScene(Scene):
         best_str = _format_time(best)
 
         self.win_popup.set_text(
-            "Well done!\nTime: " + time_str + "\nBest: " + best_str,
+            t("Well done!") + "\n" + t("Time: {v}", v=time_str) + "\n" + t("Best: {v}", v=best_str),
             wrap=False, center=True)
 
         if self.character:

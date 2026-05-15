@@ -1,3 +1,4 @@
+from lang import t
 """pet_info.py - View and edit pet name; view pet info."""
 
 from scene import Scene
@@ -70,16 +71,15 @@ class PetInfoScene(Scene):
     def _rebuild_menu(self):
         ctx = self.context
         days = ctx.environment.get('day_number', 0)
-        days_str = str(min(days, 9999999)) + ' days'
         gender = getattr(ctx, 'pet_gender', None)
         dn = self._display_name
         self._menu.open([
-            MenuItem('Name: ' + (ctx.pet_name or '?'), action=('edit',)),
-            MenuItem('Age: ' + days_str),
-            MenuItem('Gender: ' + (self._display_name(gender) if gender else '?')),
-            MenuItem('- Favorites -'),
-            MenuItem('Meal: ' + dn(ctx.fav_meal)),
-            MenuItem('Snack: ' + dn(ctx.fav_snack)),
-            MenuItem('Toy: ' + dn(ctx.fav_toy)),
-            MenuItem('Place: ' + dn(ctx.fav_location)),
+            MenuItem(t('Name: {name}', name=(ctx.pet_name or '?')), action=('edit',)),
+            MenuItem(t('Age: {days} days', days=str(min(days, 9999999)))),
+            MenuItem(t('Gender: {g}', g=t(self._display_name(gender)) if gender else '?')),
+            MenuItem(t('- Favorites -')),
+            MenuItem(t('Meal: {v}',  v=t(dn(ctx.fav_meal)))),
+            MenuItem(t('Snack: {v}', v=t(dn(ctx.fav_snack)))),
+            MenuItem(t('Toy: {v}',   v=t(dn(ctx.fav_toy)))),
+            MenuItem(t('Place: {v}', v=t(dn(ctx.fav_location)))),
         ])

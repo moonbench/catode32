@@ -1,3 +1,4 @@
+from lang import t
 """
 Zoomies scene - Chrome dino game clone
 """
@@ -520,7 +521,7 @@ class ZoomiesScene(Scene):
 
         # Draw floating bonus texts
         for bt in self.bonus_texts:
-            self.renderer.draw_text("+100", int(bt[0]), int(bt[1]))
+            self.renderer.draw_text(t("+100"), int(bt[0]), int(bt[1]))
 
         # Draw score
         self._draw_score()
@@ -533,7 +534,7 @@ class ZoomiesScene(Scene):
             if self.is_new_best:
                 self.hit_popup.set_text(f"NEW BEST!\n{self.score}", wrap=False, center=True)
             else:
-                self.hit_popup.set_text(f"Ooof!\nBest: {self.context.zoomies_high_score}", wrap=False, center=True)
+                self.hit_popup.set_text(t("Ooof!") + "\n" + t("Best: {n}", n=self.context.zoomies_high_score), wrap=False, center=True)
             self.hit_popup.draw(show_scroll_indicators=False)
 
     def _draw_ground(self):

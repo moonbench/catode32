@@ -1,3 +1,4 @@
+from lang import t
 """Debug scene for testing and triggering behaviors manually."""
 
 from scene import Scene
@@ -6,40 +7,43 @@ from ui import Scrollbar
 
 
 # All triggerable behaviors: (entry_key, display_name, trigger_name, start_kwargs)
-BEHAVIOR_ENTRIES = [
-    ("idle",         "Idle",           "idle",          {}),
-    ("sleeping",     "Sleeping",       "sleeping",      {}),
-    ("napping",      "Napping",        "napping",       {}),
-    ("stretching",   "Stretching",     "stretching",    {}),
-    ("kneading",     "Kneading",       "kneading",      {}),
-    ("lounging",     "Lounging",       "lounging",      {}),
-    ("investigating","Investigating",  "investigating",  {}),
-    ("startled",     "Startled",       "startled",      {}),
-    ("observing",    "Observing",      "observing",     {}),
-    ("chattering",   "Chattering",     "chattering",    {}),
-    ("zoomies",      "Zoomies",        "zoomies",       {}),
-    ("vocalizing",   "Vocalizing",     "vocalizing",    {}),
-    ("self_grooming","Self Grooming",  "self_grooming", {}),
-    ("being_groomed","Being Groomed",  "being_groomed", {}),
-    ("hunting",      "Hunting",        "hunting",       {}),
-    ("gift_bringing","Gift Bringing",  "gift_bringing", {}),
-    ("pacing",       "Pacing",         "pacing",        {}),
-    ("meandering",   "Meandering",     "meandering",    {}),
-    ("sulking",      "Sulking",        "sulking",       {}),
-    ("mischief",     "Mischief",       "mischief",      {}),
-    ("hiding",       "Hiding",         "hiding",        {}),
-    ("training",     "Training",       "training",      {}),
-    ("playing",      "Playing",        "playing",       {}),
-    ("playing_ball", "Playing (ball)", "playing",       {"variant": "ball"}),
-    ("affection",    "Affection",      "affection",     {"variant": "pets"}),
-    ("attention",      "Attention",        "attention", {"variant": "psst"}),
-    ("hearing_exclaim","Hearing (exclaim)","hearing",   {"icon": "exclaim"}),
-    ("hearing_heart",  "Hearing (heart)",  "hearing",   {"icon": "heart"}),
-    ("hearing_note",   "Hearing (note)",   "hearing",   {"icon": "note"}),
-    ("eating",         "Eating",           "eating",    None),  # special case
-    ("eating_treat",   "Eating (treat)",   "eating",    None),  # special case
+def get_behavior_entries():
+    return [
+    ("idle",         t("Idle"),           "idle",          {}),
+    ("sleeping",     t("Sleeping"),       "sleeping",      {}),
+    ("napping",      t("Napping"),        "napping",       {}),
+    ("stretching",   t("Stretching"),     "stretching",    {}),
+    ("kneading",     t("Kneading"),       "kneading",      {}),
+    ("lounging",     t("Lounging"),       "lounging",      {}),
+    ("investigating",t("Investigating"),  "investigating",  {}),
+    ("startled",     t("Startled"),       "startled",      {}),
+    ("observing",    t("Observing"),      "observing",     {}),
+    ("chattering",   t("Chattering"),     "chattering",    {}),
+    ("zoomies",      t("Zoomies"),        "zoomies",       {}),
+    ("vocalizing",   t("Vocalizing"),     "vocalizing",    {}),
+    ("self_grooming",t("Self Grooming"),  "self_grooming", {}),
+    ("being_groomed",t("Being Groomed"),  "being_groomed", {}),
+    ("hunting",      t("Hunting"),        "hunting",       {}),
+    ("gift_bringing",t("Gift Bringing"),  "gift_bringing", {}),
+    ("pacing",       t("Pacing"),         "pacing",        {}),
+    ("meandering",   t("Meandering"),     "meandering",    {}),
+    ("sulking",      t("Sulking"),        "sulking",       {}),
+    ("mischief",     t("Mischief"),       "mischief",      {}),
+    ("hiding",       t("Hiding"),         "hiding",        {}),
+    ("training",     t("Training"),       "training",      {}),
+    ("playing",      t("Playing"),        "playing",       {}),
+    ("playing_ball", t("Playing (ball)"), "playing",       {"variant": "ball"}),
+    ("affection",    t("Affection"),      "affection",     {"variant": "pets"}),
+    ("attention",      t("Attention"),        "attention", {"variant": "psst"}),
+    ("hearing_exclaim",t("Hearing (exclaim)"),"hearing",   {"icon": "exclaim"}),
+    ("hearing_heart",  t("Hearing (heart)"),  "hearing",   {"icon": "heart"}),
+    ("hearing_note",   t("Hearing (note)"),   "hearing",   {"icon": "note"}),
+    ("eating",         t("Eating"),           "eating",    None),  # special case
+    ("eating_treat",   t("Eating (treat)"),   "eating",    None),  # special case
 ]
 
+
+BEHAVIOR_ENTRIES = get_behavior_entries
 
 class DebugBehaviorsScene(Scene):
     """Debug scene for testing behavior execution."""

@@ -1,4 +1,22 @@
-_SAVE_PATH = '/save.json'
+# Build a list of save paths to try, in priority order.
+# On desktop: config.SAVE_PATH is defined and tried first.
+# On ESP32:   only '/save.json' exists.
+# Both platforms always try all paths and silently skip failures.
+def _get_save_paths():
+    paths = []
+    try:
+        import config as _cfg
+        p = getattr(_cfg, 'SAVE_PATH', None)
+        if p:
+            paths.append(p)
+    except Exception:
+        pass
+    if '/save.json' not in paths:
+        paths.append('/save.json')
+    return paths
+
+_SAVE_PATHS = _get_save_paths()
+_SAVE_PATH  = _SAVE_PATHS[0]   # primary path (used in log messages)
 
 
 _STAT_KEYS = (
@@ -137,16 +155,24 @@ class GameContext:
                 'recent_meals': self.recent_meals}
         for key in _STAT_KEYS:
             data[key] = getattr(self, key)
-        try:
-            with open(_SAVE_PATH, 'w') as f:
-                ujson.dump(data, f)
-            import uos
-            uos.sync()
+        saved = False
+        for path in _SAVE_PATHS:
+            try:
+                with open(path, 'w') as f:
+                    ujson.dump(data, f)
+                try:
+                    import uos
+                    uos.sync()
+                except Exception:
+                    pass   # no sync on desktop — that is fine
+                print("[Context] Saved to " + path)
+                saved = True
+                break      # stop after first successful save
+            except Exception as e:
+                print("[Context] Could not save to " + path + ": " + str(e))
+        if saved:
             self.last_save_time = time.ticks_ms()
-            return True
-        except Exception as e:
-            print("[Context] Save failed: " + str(e))
-            return False
+        return saved
 
     def reset_plants(self):
         """Restore all plants to the default starter set."""
@@ -156,25 +182,49 @@ class GameContext:
         sys.modules.pop('reset_context', None)
 
     def save(self):
-        """Write stats to flash then reboot."""
+        """Write stats to storage.
+        On ESP32: reboots after saving (unless running under mpremote).
+        On desktop: saves silently, no reboot needed.
+        """
         import sys
         if not self._write_to_flash():
             return
-        if '/remote' in sys.path:
-            # Running under mpremote mount (dev mode) — soft reset would
-            # kill the mount and crash mpremote, so skip it.
-            print("[Context] Saved to " + _SAVE_PATH + " (dev mode, no reboot)")
+        # Detect desktop: config defines SAVE_PATH and there is no /remote mount
+        is_desktop = False
+        try:
+            import config as _cfg
+            is_desktop = hasattr(_cfg, 'SAVE_PATH') and hasattr(_cfg, 'DISPLAY_SCALE')
+        except Exception:
+            pass
+        if is_desktop:
+            print("[Context] Save complete")
+        elif '/remote' in sys.path:
+            print("[Context] Saved (dev mode, no reboot)")
         else:
-            print("[Context] Saved to " + _SAVE_PATH + ", rebooting...")
-            import machine
-            machine.soft_reset()
+            print("[Context] Saved, rebooting...")
+            try:
+                import machine
+                machine.soft_reset()
+            except Exception:
+                pass   # machine not available on desktop
 
     def load(self):
         """Load stats from flash storage. Returns True if successful."""
         import ujson
+        # Try each save path in order until one loads successfully
+        data = None
+        _loaded_path = None
+        for _path in _SAVE_PATHS:
+            try:
+                with open(_path, 'r') as f:
+                    data = ujson.load(f)
+                _loaded_path = _path
+                break
+            except Exception:
+                continue
         try:
-            with open(_SAVE_PATH, 'r') as f:
-                data = ujson.load(f)
+            if data is None:
+                raise Exception("No save file found")
             for key in _STAT_KEYS:
                 if key in data:
                     setattr(self, key, data[key])
@@ -226,7 +276,7 @@ class GameContext:
             self.recompute_health()
             import time
             self.last_save_time = time.ticks_ms()
-            print("[Context] Loaded from " + _SAVE_PATH)
+            print("[Context] Loaded from " + (_loaded_path or _SAVE_PATH))
             return True
         except Exception as e:
             print("[Context] Load skipped: " + str(e))

@@ -1,3 +1,4 @@
+from lang import t
 from scene import Scene
 from weather_system import WeatherSystem
 from assets.icons import (
@@ -25,13 +26,13 @@ _VIS_COLS = 128 // _COL_W           # = 4 full columns visible
 
 def _fmt_hour(h):
     if h == 0:
-        return "12A"
+        return t("12A")
     elif h < 12:
-        return "%dA" % h
+        return t("{h}A", h=h)
     elif h == 12:
-        return "12P"
+        return t("12P")
     else:
-        return "%dP" % (h - 12)
+        return t("{h}P", h=(h - 12))
 
 
 _NIGHT_ICONS = {
@@ -134,7 +135,7 @@ class ForecastScene(Scene):
 
         # Header: name of the highlighted slot's weather
         _, sel_weather, _ = self._slots[self._cursor]
-        self.renderer.draw_text(sel_weather, 0, 0)
+        self.renderer.draw_text(t(sel_weather), 0, 0)
         self.renderer.draw_line(0, 9, 127, 9)
 
         # Hourly columns — one extra to fill partial column at the right edge

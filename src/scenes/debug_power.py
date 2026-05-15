@@ -1,3 +1,4 @@
+from lang import t
 import machine
 from scene import Scene
 
@@ -19,7 +20,7 @@ class DebugPowerScene(Scene):
 
     def draw(self):
         r = self.renderer
-        r.draw_text("Power Control", 2, 4)
+        r.draw_text(t("Power Control"), 2, 4)
         r.draw_line(0, 16, 127, 16)
 
         for i, label in enumerate(_ACTIONS):

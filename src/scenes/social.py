@@ -1,3 +1,4 @@
+from lang import t
 """social.py - Discovery, invite, and playdate management scene.
 
 Both players must be on this scene for the flow to work. While here:
@@ -120,18 +121,18 @@ class SocialScene(Scene):
     def draw(self):
         r = self.renderer
         if self._state == _ST_BROWSING:
-            r.draw_text('Social', 0, 0)
+            r.draw_text(t("Social"), 0, 0)
             nearby_list = list(self._nearby.items())
             if not nearby_list:
-                r.draw_text('No cats nearby...', 0, 18)
+                r.draw_text(t("No cats nearby..."), 0, 18)
             else:
                 for i, (mac, data) in enumerate(nearby_list):
                     prefix = '>' if i == self._selected else ' '
                     r.draw_text((prefix + data['n'])[:21], 0, 16 + i * 9)
-            r.draw_text('A=invite  B=back', 0, 56)
+            r.draw_text(t("A=invite  B=back"), 0, 56)
 
         elif self._state == _ST_INVITING:
-            r.draw_text('Inviting...', 0, 0)
+            r.draw_text(t("Inviting..."), 0, 0)
             r.draw_text((self._invite_name or '?')[:21], 0, 16)
             r.draw_text('Waiting...', 0, 32)
             r.draw_text('B=cancel', 0, 56)

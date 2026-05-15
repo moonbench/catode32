@@ -1,3 +1,4 @@
+from lang import t
 """debug_context.py - Debug scene for editing key context values."""
 
 from scene import Scene
@@ -70,8 +71,8 @@ class DebugContextScene(Scene):
                 self._mode = 'seed'
                 return None
             if item.key == 'reset_plants':
-                reset_item = MenuItem("Reset Plants", action=('reset_plants',),
-                                      confirm="Reset all plants?")
+                reset_item = MenuItem(t("Reset Plants"), action=('reset_plants',),
+                                      confirm=t("Reset all plants?"))
                 self._menu.open([reset_item])
                 self._menu.pending_confirmation = reset_item
                 self._mode = 'confirm_reset'
@@ -90,8 +91,8 @@ class DebugContextScene(Scene):
     def _open_settings(self):
         seed_hex = ('%016X' % self.context.pet_seed) if self.context.pet_seed else '?'
         self._settings.open([
-            SettingItem("Coins",        "coins",        min_val=0, max_val=99999, step=1,
+            SettingItem(t("Coins"),        "coins",        min_val=0, max_val=99999, step=1,
                         value=int(self.context.coins)),
-            SettingItem("Reset Plants", "reset_plants", value=""),
-            SettingItem("Seed",         "seed",         value=""),
+            SettingItem(t("Reset Plants"), "reset_plants", value=""),
+            SettingItem(t("Seed"),         "seed",         value=""),
         ])

@@ -1,3 +1,4 @@
+from lang import t
 """
 Credits scene - scrollable credits text.
 Up/Down to scroll, B or Menu to exit.
@@ -8,7 +9,7 @@ from config import VERSION
 
 YEAR = "2026"
 
-CREDITS = """\
+CREDITS = r"""
    Catode 32   
 ===============
 
@@ -122,7 +123,7 @@ class CreditsScene(Scene):
         super().load()
         # Full-screen popup: 15 chars/line, 7 visible lines
         self.popup = Popup(self.renderer, x=0, y=0, width=128, height=64, padding=4)
-        self.popup.set_text(CREDITS, wrap=False)
+        self.popup.set_text(t("CREDITS"), wrap=False)
 
     def unload(self):
         super().unload()

@@ -1,3 +1,4 @@
+from lang import t
 """
 TicTacToe scene - Play tic-tac-toe against the pet
 """
@@ -361,9 +362,9 @@ class TicTacToeScene(Scene):
     def _draw_score(self):
         """Draw score in the top-right area"""
         score_x = 62
-        self.renderer.draw_text("You", score_x, 4)
+        self.renderer.draw_text(t("You"), score_x, 4)
         self.renderer.draw_text(self._fmt_score(self.player_score), score_x, 12)
-        self.renderer.draw_text("Pet", score_x + 28, 4)
+        self.renderer.draw_text(t("Pet"), score_x + 28, 4)
         self.renderer.draw_text(self._fmt_score(self.pet_score), score_x + 28, 12)
 
     def _draw_state_message(self):

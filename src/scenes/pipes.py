@@ -1,3 +1,4 @@
+from lang import t
 """
 Pipes minigame — rotate pipe pieces to route water from inlet to outlet.
 Water flows automatically; arrange pieces ahead of the flow to win.
@@ -382,7 +383,7 @@ class PipeScene(Scene):
 
         if self.input.was_just_pressed('menu2'):
             self.menu_active = True
-            self.options_menu.open([MenuItem("New Board", action='new_board')])
+            self.options_menu.open([MenuItem(t("New Board"), action='new_board')])
             return None
 
         # Cursor movement (always available)

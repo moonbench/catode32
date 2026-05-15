@@ -1,26 +1,27 @@
+from lang import t
 from scene import Scene
 from settings import Settings, SettingItem
 
 
 STATS = [
-    ("Fullness",      "fullness"),
-    ("Energy",        "energy"),
-    ("Comfort",       "comfort"),
-    ("Playfulness",   "playfulness"),
-    ("Focus",         "focus"),
-    ("Health",        "health"),
-    ("Fulfillment",   "fulfillment"),
-    ("Cleanliness",   "cleanliness"),
-    ("Curiosity",     "curiosity"),
-    ("Sociability",   "sociability"),
-    ("Intelligence",  "intelligence"),
-    ("Maturity",      "maturity"),
-    ("Affection",     "affection"),
-    ("Fitness",       "fitness"),
-    ("Serenity",      "serenity"),
-    ("Courage",       "courage"),
-    ("Loyalty",       "loyalty"),
-    ("Mischief",      "mischievousness"),
+    (t("Fullness"),      "fullness"),
+    (t("Energy"),        "energy"),
+    (t("Comfort"),       "comfort"),
+    (t("Playfulness"),   "playfulness"),
+    (t("Focus"),         "focus"),
+    (t("Health"),        "health"),
+    (t("Fulfillment"),   "fulfillment"),
+    (t("Cleanliness"),   "cleanliness"),
+    (t("Curiosity"),     "curiosity"),
+    (t("Sociability"),   "sociability"),
+    (t("Intelligence"),  "intelligence"),
+    (t("Maturity"),      "maturity"),
+    (t("Affection"),     "affection"),
+    (t("Fitness"),       "fitness"),
+    (t("Serenity"),      "serenity"),
+    (t("Courage"),       "courage"),
+    (t("Loyalty"),       "loyalty"),
+    (t("Mischief"),      "mischievousness"),
 ]
 
 

@@ -1,3 +1,4 @@
+from lang import t
 """
 Breakout scene - Brick breaker minigame
 """
@@ -427,11 +428,11 @@ class BreakoutScene(Scene):
 
         # Draw state messages
         if self.state == self.STATE_READY:
-            self.renderer.draw_text("A: Start", 32, 30)
+            self.renderer.draw_text(t("A: Start"), 32, 30)
         elif self.state == self.STATE_WIN:
-            self.renderer.draw_text("WIN!", 50, 30)
+            self.renderer.draw_text(t("WIN!"), 50, 30)
         elif self.state == self.STATE_LOSE:
-            self.renderer.draw_text("GAME OVER", 34, 30)
+            self.renderer.draw_text(t("GAME OVER"), 34, 30)
 
     def _draw_bricks(self):
         """Draw all bricks"""

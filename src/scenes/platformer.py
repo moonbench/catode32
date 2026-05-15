@@ -1,3 +1,4 @@
+from lang import t
 """
 Prowl - platformer minigame
 Character controller: walk, jump, solid blocks, one-way platforms, camera scrolling.
@@ -1243,7 +1244,7 @@ class PlatformerScene(Scene):
                     and self._slimes_killed == self._total_slimes
                     and self._level_coins_collected == self._total_coins)
         if flawless:
-            r.draw_text("Flawless!", 128 - 9 * 8, text_y)
+            r.draw_text(t("Flawless!"), 128 - 9 * 8, text_y)
 
         # Slime icon — slimes killed row (draw_sprite_obj handles fill + outline)
         sh = PLATFORMER_SLIME_IDLE["height"]
