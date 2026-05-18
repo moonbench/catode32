@@ -41,15 +41,15 @@ class EatingBehavior(BaseBehavior):
         "caught_snack": {"stats": {"fullness": 20}, "eating_speed": 0.5, "appeal": 1.0},
 
         # Snacks
-        "carrots":    {"stats": {"fullness": 2, "affection": 1}, "eating_speed": 1, "appeal": 0.15},
-        "pumpkin":    {"stats": {"fullness": 3, "fitness": 2}, "eating_speed": 1, "appeal": 0.25},
-        "treats":     {"stats": {"fullness": 2, "affection": 3, "playfulness": 1}, "eating_speed": 1.25, "appeal": 0.75},
-        "fish_bite":  {"stats": {"fullness": 4, "affection": 2, "playfulness": 1, "curiosity": 2}, "eating_speed": 1.25, "appeal": 0.8},
-        "eggs":       {"stats": {"fullness": 8, "energy": 3, "fitness": 3}, "eating_speed": 1.25, "appeal": 0.5},
-        "nugget":     {"stats": {"fullness": 12, "energy": 3, "affection": 2}, "eating_speed": 1.25, "appeal": 0.55},
-        "milk":       {"stats": {"fullness": 8, "affection": 3, "comfort": 5, "mischievousness": 1}, "eating_speed": 0.25, "appeal": 0.7},
-        "chew_stick": {"stats": {"fullness": 6, "fitness": 1, "playfulness": 2, "comfort": 3}, "eating_speed": 1.0, "appeal": 0.4},
-        "puree":      {"stats": {"fullness": 8, "affection": 4, "comfort": 4, "fulfillment": 2}, "eating_speed": 1.5, "appeal": 0.85},
+        "carrots":    {"stats": {"fullness": 2, "affection": 1}, "eating_speed": 1, "appeal": 0.15, "unhealthiness": 0.15},
+        "pumpkin":    {"stats": {"fullness": 3, "fitness": 2}, "eating_speed": 1, "appeal": 0.25, "unhealthiness": 0.05},
+        "treats":     {"stats": {"fullness": 2, "affection": 3, "playfulness": 1}, "eating_speed": 1.25, "appeal": 0.75, "unhealthiness": 0.55},
+        "fish_bite":  {"stats": {"fullness": 4, "affection": 2, "playfulness": 1, "curiosity": 2}, "eating_speed": 1.25, "appeal": 0.8, "unhealthiness": 0.2},
+        "eggs":       {"stats": {"fullness": 8, "energy": 3, "fitness": 3}, "eating_speed": 1.25, "appeal": 0.5, "unhealthiness": 0.1},
+        "nugget":     {"stats": {"fullness": 12, "energy": 3, "affection": 2}, "eating_speed": 1.25, "appeal": 0.55, "unhealthiness": 0.7},
+        "milk":       {"stats": {"fullness": 8, "affection": 3, "comfort": 5, "mischievousness": 1}, "eating_speed": 0.25, "appeal": 0.7, "unhealthiness": 0.65},
+        "chew_stick": {"stats": {"fullness": 6, "fitness": 1, "playfulness": 2, "comfort": 3}, "eating_speed": 1.0, "appeal": 0.4, "unhealthiness": 0.25},
+        "puree":      {"stats": {"fullness": 8, "affection": 4, "comfort": 4, "fulfillment": 2}, "eating_speed": 1.5, "appeal": 0.85, "unhealthiness": 0.35},
     }
     DEFAULT_FOOD_CONFIG = {"stats": {"fullness": 8}, "eating_speed": 0.4, "appeal": 0.5}
 
@@ -163,13 +163,17 @@ class EatingBehavior(BaseBehavior):
         context.record_meal(self._food_type)
 
         if self._food_type in self.SNACK_TYPES:
-            snack_count = sum(1 for m in context.recent_meals if m in self.SNACK_TYPES)
-            if snack_count >= 5:
-                context.sickness = min(10.0, context.sickness + 2.0)
-                print("[Sickness] Snack overload (5/5) +2.0 -> %.2f" % context.sickness)
-            elif snack_count >= 4:
-                context.sickness = min(10.0, context.sickness + 1.0)
-                print("[Sickness] Too many snacks (4/5) +1.0 -> %.2f" % context.sickness)
+            recent_snacks = [m for m in context.recent_meals if m in self.SNACK_TYPES]
+            snack_count = len(recent_snacks)
+            if snack_count >= 4:
+                avg_unhealthiness = sum(
+                    self.FOOD_CONFIG.get(m, self.DEFAULT_FOOD_CONFIG).get("unhealthiness", 0.5)
+                    for m in recent_snacks
+                ) / snack_count
+                base = 2.0 if snack_count >= 5 else 1.0
+                penalty = base * avg_unhealthiness
+                context.sickness = min(10.0, context.sickness + penalty)
+                print("[Sickness] Snack streak (%d/5, avg_unhealthy=%.2f) +%.2f -> %.2f" % (snack_count, avg_unhealthiness, penalty, context.sickness))
 
         bonus = self.apply_location_bonus(context, bonus)
         if self._food_type in self.SNACK_TYPES:
