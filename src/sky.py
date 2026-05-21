@@ -3,7 +3,7 @@
 import math
 import random
 import config
-from assets.nature import SUN, MOON, CLOUD1, CLOUD2, CLOUD3, HOT_AIR_BALLOON, PLANE_TINY
+from assets.nature import SUN, SUN_HOT, MOON, CLOUD1, CLOUD2, CLOUD3, HOT_AIR_BALLOON, PLANE_TINY
 
 
 def _xorshift32(x):
@@ -377,6 +377,7 @@ class SkyRenderer:
 
         # Current fractional hours (set by configure/set_time)
         self._hours_f = 12.0
+        self.temperature = 20.0
 
         # Managed objects (added to environment layer)
         self._sun_obj = None
@@ -439,6 +440,7 @@ class SkyRenderer:
         self.moon_phase = environment_settings.get("moon_phase", "Full")
         self.weather = environment_settings.get("weather", "Clear")
         self.season = environment_settings.get("season", "Summer")
+        self.temperature = float(environment_settings.get("temperature", 20.0))
         self.world_width = world_width
         self.day_of_year = day_of_year
 
@@ -556,7 +558,8 @@ class SkyRenderer:
 
         # Initialise sun obj then register its draw immediately after moon.
         sx, sy = _calc_sun_position(self._hours_f)
-        self._sun_obj = {"sprite": SUN, "x": sx, "y": sy, "frame": self._sun_anim_frame}
+        sun_sprite = SUN_HOT if self.temperature > 30 else SUN
+        self._sun_obj = {"sprite": sun_sprite, "x": sx, "y": sy, "frame": self._sun_anim_frame}
         environment.add_custom_draw(layer, self._draw_sun)
 
         environment.add_custom_draw(layer, self._draw_shooting_star)
@@ -628,7 +631,8 @@ class SkyRenderer:
         self._sun_anim_timer += dt
         if self._sun_anim_timer > 0.5:
             self._sun_anim_timer = 0
-            self._sun_anim_frame = (self._sun_anim_frame + 1) % len(SUN["frames"])
+            sun_frames = self._sun_obj["sprite"]["frames"] if self._sun_obj else SUN["frames"]
+            self._sun_anim_frame = (self._sun_anim_frame + 1) % len(sun_frames)
         if self._sun_obj:
             self._sun_obj["frame"] = self._sun_anim_frame
 

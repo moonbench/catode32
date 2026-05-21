@@ -43,6 +43,11 @@ class EnvironmentSettingsScene(Scene):
                 options=["Clear", "Cloudy", "Overcast", "Rain", "Storm", "Snow", "Windy"],
                 value=env.get('weather', "Clear")
             ),
+            SettingItem(
+                "Temp", "temperature",
+                min_val=-20, max_val=50, step=1,
+                value=int(env.get('temperature', 20))
+            ),
         ]
         self.settings.open(items)
 
