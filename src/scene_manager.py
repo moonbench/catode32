@@ -456,6 +456,12 @@ class SceneManager:
         """Reset the inactivity timer (e.g. immediately after waking from sleep)."""
         self._idle_timer = 0.0
 
+    def on_device_wake(self):
+        """Forward a device-wake signal to the current scene's character."""
+        char = getattr(self.current_scene, 'character', None)
+        if char:
+            char.on_device_wake()
+
     def unload_all(self):
         """Unload current scene - call this on shutdown"""
         if self.current_scene:

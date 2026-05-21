@@ -65,6 +65,18 @@ class CharacterEntity(Entity):
             self.behavior_manager.trigger('idle')
             context.current_behavior_name = _prior
 
+    def on_device_wake(self):
+        """Signal that the device just woke from idle sleep.
+
+        Sets a pending greeting flag and fast-forwards the current behavior
+        so the pet reacts shortly after the screen comes back on.
+        """
+        if not self.context or not self.behavior_manager:
+            return
+        self.context.pending_wake_greeting = True
+        if self.current_behavior and self.current_behavior.active:
+            self.current_behavior._mark_almost_done()
+
     def trigger(self, name, **kwargs):
         """Interrupt the current behavior and start a player-initiated one.
 

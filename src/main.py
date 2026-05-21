@@ -156,6 +156,7 @@ class Game:
         # Kick off the reveal transition and reset housekeeping state
         self.scene_manager.transitions.start_in_only()
         self.scene_manager.reset_idle_timer()
+        self.scene_manager.on_device_wake()
         self._sleep_pending = False
         self._woke_from_sleep = True
 
@@ -230,11 +231,15 @@ class Game:
                           f" transition={self.scene_manager.transitions.active}"
                           f" visit={getattr(self.context, 'visit', None)}"
                           f" should_sleep={self.sleep_manager.should_sleep()}")
-                if (not self.scene_manager.transitions.active
-                        and getattr(self.context, 'visit', None) is None
-                        and self.sleep_manager.should_sleep()):
-                    self._sleep_pending = True
-                    self.scene_manager.transitions.start(on_midpoint=self._on_sleep_midpoint)
+                if not self.scene_manager.transitions.active:
+                    if getattr(self.context, 'pending_light_sleep', False):
+                        self.context.pending_light_sleep = False
+                        self._sleep_pending = True
+                        self.scene_manager.transitions.start(on_midpoint=self._on_sleep_midpoint)
+                    elif (getattr(self.context, 'visit', None) is None
+                            and self.sleep_manager.should_sleep()):
+                        self._sleep_pending = True
+                        self.scene_manager.transitions.start(on_midpoint=self._on_sleep_midpoint)
 
 
 def main():

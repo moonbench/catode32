@@ -132,6 +132,22 @@ class SleepingBehavior(BaseBehavior):
 
         self._sleep_pose = None
 
+    def _mark_almost_done(self):
+        if self._phase != 'sleeping':
+            return  # settling or waking — let it finish naturally
+        import random
+        ctx = self._character.context
+        serenity = ctx.serenity if ctx else 50.0
+        # More serene cats sleep more deeply and are less likely to stir.
+        stay_chance = 0.1 + (serenity / 100.0) * 0.7
+        if random.random() < stay_chance:
+            print('[WakeReact] Deep sleeper stays asleep (serenity=%.1f)' % serenity)
+            if ctx:
+                ctx.pending_wake_greeting = False
+            return
+        self.sleep_duration = self._phase_timer + 3.0
+        print('[WakeReact] Rousing from sleep in ~3s')
+
     def start(self, on_complete=None):
         if self._active:
             return

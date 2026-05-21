@@ -1,7 +1,7 @@
 import machine
 from scene import Scene
 
-_ACTIONS = ["Reboot", "Deep Sleep"]
+_ACTIONS = ["Reboot", "Light Sleep", "Deep Sleep"]
 
 _ROW_H = 16
 _ACTIONS_START_Y = 24
@@ -46,6 +46,9 @@ class DebugPowerScene(Scene):
             if self.selected == 0:
                 machine.reset()
             elif self.selected == 1:
+                self.context.pending_light_sleep = True
+                return ('change_scene', 'last_main')
+            elif self.selected == 2:
                 try:
                     for pin in self.input.buttons.values():
                         pin.irq(trigger=machine.Pin.IRQ_FALLING, wake=machine.DEEPSLEEP)

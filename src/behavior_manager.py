@@ -114,6 +114,13 @@ class BehaviorManager:
                 self._apply_sickness_accumulation(context)
 
         if name is None:
+            if context and getattr(context, 'pending_wake_greeting', False):
+                context.pending_wake_greeting = False
+                wake_name = self._pick_wake_greeting(context)
+                if wake_name:
+                    print('[WakeReact] Greeting: %s' % wake_name)
+                    self._load_and_start(wake_name)
+                    return
             name, kwargs = self._auto_select(context)
         if name is None:
             name = 'idle'
@@ -454,6 +461,26 @@ class BehaviorManager:
             print("[Sickness] Blocking '%s' (sickness=%.2f)" % (name, s))
             return True
         return False
+
+    # ------------------------------------------------------------------
+    # Wake greeting
+    # ------------------------------------------------------------------
+
+    def _pick_wake_greeting(self, ctx):
+        """Return a behavior name for the wake-from-sleep greeting, or None to skip."""
+        if getattr(ctx, 'sickness', 0.0) >= 8.0:
+            return None
+        _NEED = 50
+        has_unmet_need = (
+            ctx.fullness < _NEED or ctx.affection < _NEED
+            or ctx.comfort < _NEED or ctx.fulfillment < _NEED
+        )
+        is_happy = ctx.energy > 40 and ctx.playfulness > 45
+        if has_unmet_need and random.random() < 0.75:
+            return 'vocalizing'
+        if is_happy and random.random() < 0.55:
+            return 'vocalizing'
+        return None
 
     # ------------------------------------------------------------------
     # can_trigger methods

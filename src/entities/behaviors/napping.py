@@ -120,6 +120,22 @@ class NappingBehavior(BaseBehavior):
 
         self._nap_pose = None
 
+    def _mark_almost_done(self):
+        if self._phase != 'napping':
+            return  # settling or waking — let it finish naturally
+        import random
+        ctx = self._character.context
+        serenity = ctx.serenity if ctx else 50.0
+        # Napping is lighter sleep, so the stay-asleep ceiling is lower.
+        stay_chance = 0.05 + (serenity / 100.0) * 0.45
+        if random.random() < stay_chance:
+            print('[WakeReact] Napping pet stays asleep (serenity=%.1f)' % serenity)
+            if ctx:
+                ctx.pending_wake_greeting = False
+            return
+        self.nap_duration = self._phase_timer + 3.0
+        print('[WakeReact] Rousing from nap in ~3s')
+
     def next(self, context):
         return 'stretching'
 

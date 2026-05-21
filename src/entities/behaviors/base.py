@@ -181,6 +181,15 @@ class BaseBehavior:
         """
         return None
 
+    def _mark_almost_done(self):
+        """Advance the behavior so the current phase completes within the next frame.
+
+        Called when the device wakes from sleep so the pet finishes what it was
+        doing quickly before the wake greeting fires.  Subclasses with meaningful
+        winding-down animations (sleep, nap) override this to fade out gracefully.
+        """
+        self._phase_timer = 999999.0
+
     def draw(self, renderer, char_x, char_y, mirror=False):
         """Draw behavior visual effects (bubbles, particles, etc.).
 
