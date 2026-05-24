@@ -85,7 +85,7 @@ class Game:
 
         self.input = InputHandler()
         self.context = GameContext()
-        self.context.load()
+        _has_save = self.context.load()
         self.context.input = self.input  # expose input to behaviors
 
         if config.WIFI_ENABLED:
@@ -105,7 +105,12 @@ class Game:
 
         self.scene_manager = SceneManager(self.context, self.renderer, self.input)
         _resume = _check_resume_intent()
-        self.scene_manager.change_scene_by_name(_resume or 'inside')
+        if _resume:
+            self.scene_manager.change_scene_by_name(_resume)
+        elif _has_save:
+            self.scene_manager.change_scene_by_name('inside')
+        else:
+            self.scene_manager.change_scene_by_name('adoption')
 
         self.weather_system = WeatherSystem()
         if 'weather' not in self.context.environment:

@@ -143,13 +143,16 @@ class GameContext:
                 'next_plant_id': self.next_plant_id,
                 'pet_seed': self.pet_seed,
                 'pet_gender': self.pet_gender,
+                'fav_weather': getattr(self, 'fav_weather', None),
+                'star_sign': getattr(self, 'star_sign', None),
                 'fav_meal': self.fav_meal, 'least_fav_meal': self.least_fav_meal,
                 'fav_snack': self.fav_snack, 'least_fav_snack': self.least_fav_snack,
                 'fav_toy': self.fav_toy, 'least_fav_toy': self.least_fav_toy,
                 'fav_location': self.fav_location, 'least_fav_location': self.least_fav_location,
                 'wifi_familiar': self.wifi_familiar, 'wifi_recent': self.wifi_recent,
                 'pet_name': self.pet_name, 'friends': self.friends,
-                'recent_meals': self.recent_meals}
+                'recent_meals': self.recent_meals,
+                'milestones': getattr(self, 'milestones', {})}
         for key in _STAT_KEYS:
             data[key] = getattr(self, key)
         try:
@@ -194,7 +197,8 @@ class GameContext:
                 if key in data:
                     setattr(self, key, data[key])
             self.pet_seed = data['pet_seed']
-            _FAVOR_KEYS = ('pet_gender', 'fav_meal', 'least_fav_meal',
+            _FAVOR_KEYS = ('pet_gender', 'fav_weather', 'star_sign',
+                           'fav_meal', 'least_fav_meal',
                            'fav_snack', 'least_fav_snack',
                            'fav_toy', 'least_fav_toy',
                            'fav_location', 'least_fav_location')
@@ -242,6 +246,13 @@ class GameContext:
             self.wifi_recent   = data.get('wifi_recent',   [])
             self.friends       = data.get('friends',       {})
             self.recent_meals  = data.get('recent_meals',  [])
+            # Milestones default to True for existing saves (player has already done these)
+            self.milestones = data.get('milestones', {
+                'fed': True, 'groomed': True, 'played': True,
+                'petted': True, 'store': True
+            })
+            self.pending_popup = None
+            self.first_impressions = False
             self.recompute_health()
             import time
             self.last_save_time = time.ticks_ms()

@@ -81,6 +81,26 @@ class VocalizingBehavior(BaseBehavior):
             return 'zoomies'
         return None
 
+    @classmethod
+    def _hint_text(cls, icon, context):
+        """Return a one-time hint string for unlearned care actions, or None."""
+        ms = getattr(context, 'milestones', None)
+        if ms is None:
+            return None
+        if icon == 'hunger' and not ms.get('fed'):
+            has_food = any(v > 0 for v in context.food_stock.values())
+            if has_food:
+                return "Your pet is hungry!\nUse 'Menu 2' to feed them."
+            if not ms.get('store'):
+                return "Your pet is hungry but you have no food! Press 'Menu 1' to visit the store. Play minigames to earn more coins."
+        elif icon == 'bored' and not ms.get('played'):
+            return "Your pet is bored. Press 'Menu 2' to use some toys to play with them."
+        elif icon == 'lonely' and not ms.get('petted'):
+            return "Your pe tis lonely. Use 'Menu 2' to give them some affection."
+        if not ms.get('groomed') and context.cleanliness < 45:
+            return "Your pet is unkempt. Use 'Menu 2' to groom them through the affection menu."
+        return None
+
     def start(self, on_complete=None):
         if self._active:
             return
@@ -102,6 +122,11 @@ class VocalizingBehavior(BaseBehavior):
                 self._phase = "vocalizing"
                 self._phase_timer = 0.0
                 self._character.set_pose("yelling.forward.lift_and_yell")
+                ctx = self._character.context
+                if ctx and not getattr(ctx, 'pending_popup', None):
+                    hint = self._hint_text(self._vocalize_icon, ctx)
+                    if hint:
+                        ctx.pending_popup = hint
 
         elif self._phase == "vocalizing":
             if not self._broadcast_sent:

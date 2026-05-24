@@ -130,6 +130,11 @@ class MainScene(Scene):
             self._plant_selection.update(dt)
         prev_x = self.character.x
         self.on_update(dt)
+        pending = getattr(self.context, 'pending_popup', None)
+        if pending and self._popup_msg is None:
+            self._popup_msg = pending
+            self._popup.set_text(pending)
+            self.context.pending_popup = None
         if not (self.input.is_pressed('left') or self.input.is_pressed('right')) and not self._plant_selection.active:
             if int(prev_x) != int(self.character.x):
                 margin = 32

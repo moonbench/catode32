@@ -198,6 +198,9 @@ class EatingBehavior(BaseBehavior):
                     bonus[stat] = bonus[stat] * 1.2
         return bonus
 
+    def _on_first_complete(self, milestones):
+        milestones['fed'] = True
+
     def stop(self, completed=True):
         if not self._active:
             return

@@ -145,6 +145,9 @@ class BaseBehavior:
             context = self._character.context
             if context:
                 self.apply_completion_bonus(context, final_progress)
+                ms = getattr(context, 'milestones', None)
+                if ms is not None:
+                    self._on_first_complete(ms)
 
             next_result = self.next(context)
             if isinstance(next_result, tuple):
@@ -213,12 +216,21 @@ class BaseBehavior:
         """
         return self.COMPLETION_BONUS
 
+    def _on_first_complete(self, milestones):
+        """Called on natural completion to mark first-time milestones.
+
+        Override in behaviors that teach the player a care action.
+        """
+        pass
+
     def apply_location_bonus(self, context, bonus):
         """Apply location and weather modifiers to the completion bonus.
 
         Override in subclasses to modify bonus values based on the current
         scene (context.last_main_scene) and weather
         (context.environment.get('weather')).
+        Subclasses should call super() at the end so the favourite-weather
+        bonus is always applied after any scene-specific adjustments.
 
         Args:
             context: The GameContext.
@@ -227,6 +239,15 @@ class BaseBehavior:
         Returns:
             The modified bonus dict.
         """
+        fav = getattr(context, 'fav_weather', None)
+        if fav:
+            weather = context.environment.get('weather', 'Clear')
+            if ((fav == 'sunny'    and weather in ('Clear', 'Windy'))   or
+                    (fav == 'rainy'    and weather in ('Rain', 'Storm'))     or
+                    (fav == 'snowy'    and weather == 'Snow')                or
+                    (fav == 'overcast' and weather in ('Cloudy', 'Overcast'))):
+                bonus['comfort']  = bonus.get('comfort',  0) + 0.8
+                bonus['serenity'] = bonus.get('serenity', 0) + 0.3
         return bonus
 
     def apply_completion_bonus(self, context, progress=1.0):

@@ -188,6 +188,10 @@ class AffectionBehavior(BaseBehavior):
             self._character.play_bursts()
             self.stop(completed=True)
 
+    def _on_first_complete(self, milestones):
+        if not getattr(self, '_rejecting', False) and not getattr(self, '_sick', False):
+            milestones['petted'] = True
+
     def stop(self, completed=True):
         """End the reaction."""
         self._bubble = None

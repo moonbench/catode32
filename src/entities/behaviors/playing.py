@@ -264,6 +264,10 @@ class PlayingBehavior(BaseBehavior):
     # Start / stop
     # ------------------------------------------------------------------
 
+    def _on_first_complete(self, milestones):
+        if not self._rejecting:
+            milestones['played'] = True
+
     def stop(self, completed=True):
         if completed and not self._rejecting:
             context = self._character.context

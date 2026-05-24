@@ -87,6 +87,9 @@ class BeingGroomedBehavior(BaseBehavior):
             bonus = {k: v * self.REJECTION_STAT_MULTIPLIER for k, v in bonus.items()}
         return bonus
 
+    def _on_first_complete(self, milestones):
+        milestones['groomed'] = True
+
     def apply_location_bonus(self, context, bonus):
         if getattr(context, 'in_familiar_location', False):
             bonus['affection'] = bonus.get('affection', 0) * 1.2

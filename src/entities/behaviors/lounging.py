@@ -4,6 +4,9 @@ import random
 from entities.behaviors.base import BaseBehavior
 
 
+
+
+
 class LoungeingBehavior(BaseBehavior):
     """Pet lounges comfortably.
 
@@ -99,7 +102,7 @@ class LoungeingBehavior(BaseBehavior):
             bonus['serenity'] = bonus.get('serenity', 0) + ph * 0.2
             bonus['comfort'] = bonus.get('comfort', 0) + ph * 0.15
             bonus['fulfillment'] = bonus.get('fulfillment', 0) + ph * 0.05
-        return bonus
+        return super().apply_location_bonus(context, bonus)
 
     def next(self, context):
         # Low serenity -> more likely to knead (restless, not fully settled)

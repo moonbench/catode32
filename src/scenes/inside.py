@@ -62,6 +62,20 @@ class InsideScene(MainScene):
         self.environment.add_custom_draw(LAYER_MIDGROUND, self.sky.make_precipitation_drawer(0.3, 0))
         self.environment.add_custom_draw(LAYER_MIDGROUND, self._draw_window)
         self.environment.add_custom_draw(LAYER_MIDGROUND, self.clock.draw)
+        if getattr(self.context, 'first_impressions', False):
+            self.context.first_impressions = False
+            self.character.trigger(self._first_impression_behavior())
+
+    def _first_impression_behavior(self):
+        ctx = self.context
+        mis = ctx.mischievousness - 50
+        cour = ctx.courage - 50
+        cur = ctx.curiosity - 50
+        if mis >= 5 and mis > cur and mis > cour:
+            return 'zoomies'
+        if cour <= -5 and cour <= mis and cour <= cur:
+            return 'sulking'
+        return 'investigating'
 
     def on_exit(self):
         self.sky.remove_from_environment(self.environment, LAYER_BACKGROUND)

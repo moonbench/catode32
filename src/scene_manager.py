@@ -114,6 +114,7 @@ class SceneManager:
             'environment_settings': ('scenes.environment_settings', 'EnvironmentSettingsScene'),
             'time_settings': ('scenes.time_settings', 'TimeSettingsScene'),
             'forecast': ('scenes.forecast', 'ForecastScene'),
+            'adoption': ('scenes.adoption', 'AdoptionScene'),
             'store': ('scenes.store', 'StoreScene'),
             'social': ('scenes.social', 'SocialScene'),
             'pet_info': ('scenes.pet_info', 'PetInfoScene'),

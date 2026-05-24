@@ -35,6 +35,9 @@ _SNACKS = ('carrots', 'pumpkin', 'treats', 'fish_bite', 'eggs',
            'nugget', 'milk', 'chew_stick', 'puree')
 _TOY_VARIANTS = ('string', 'feather', 'ball', 'laser', 'mouse')
 _LOCATIONS = ('outside', 'kitchen', 'treehouse', 'bedroom')
+_FAV_WEATHERS = ('sunny', 'rainy', 'snowy', 'overcast')
+_STAR_SIGNS = ('Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+               'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces')
 _TRAIT_MAGNITUDE = 10  # max offset in either direction
 
 
@@ -69,6 +72,7 @@ def _derive_favorites(seed):
         return state
 
     gender = 'tom' if _next() % 2 == 0 else 'queen'
+    fav_weather = _FAV_WEATHERS[_next() % 4]
 
     def _pick_two(items):
         n = len(items)
@@ -83,6 +87,8 @@ def _derive_favorites(seed):
 
     return {
         'pet_gender':       gender,
+        'fav_weather':      fav_weather,
+        'star_sign':        _STAR_SIGNS[seed % 12],
         'fav_meal':         fav_meal,
         'least_fav_meal':   least_fav_meal,
         'fav_snack':        fav_snack,
@@ -274,6 +280,11 @@ def do_reset(ctx, delete_save):
 
     # Pet display name. Derived from MAC on first social scene entry; None until then.
     ctx.pet_name = None
+
+    # First-run tutorial state (not persisted)
+    ctx.first_impressions = False
+    ctx.pending_popup = None
+    ctx.milestones = {'fed': False, 'groomed': False, 'played': False, 'petted': False, 'store': False}
 
     # Active visit state. None when not visiting, otherwise:
     #   {'peer_mac': bytes, 'peer_name': str, 'role': str,

@@ -111,6 +111,9 @@ class StoreScene(Scene):
         self._purchase_msg = None
 
     def enter(self):
+        ms = getattr(self.context, 'milestones', None)
+        if ms is not None:
+            ms['store'] = True
         self.menu.open(self._build_menu())
 
     def exit(self):

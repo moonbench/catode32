@@ -57,6 +57,13 @@ class DebugContextScene(Scene):
             result = self._menu.handle_input()
             if result == ('reset_plants',):
                 self.context.reset_plants()
+            elif result == ('factory_reset',):
+                import uos, machine
+                try: uos.remove('/save.json')
+                except: pass
+                try: uos.remove('/intent.json')
+                except: pass
+                machine.reset()
             if result is not None or not self._menu.pending_confirmation:
                 self._mode = 'settings'
             return None
@@ -72,6 +79,13 @@ class DebugContextScene(Scene):
             if item.key == 'reset_plants':
                 reset_item = MenuItem("Reset Plants", action=('reset_plants',),
                                       confirm="Reset all plants?")
+                self._menu.open([reset_item])
+                self._menu.pending_confirmation = reset_item
+                self._mode = 'confirm_reset'
+                return None
+            if item.key == 'factory_reset':
+                reset_item = MenuItem("Factory Reset", action=('factory_reset',),
+                                      confirm="Factory reset?\nAll data lost!")
                 self._menu.open([reset_item])
                 self._menu.pending_confirmation = reset_item
                 self._mode = 'confirm_reset'
@@ -92,6 +106,7 @@ class DebugContextScene(Scene):
         self._settings.open([
             SettingItem("Coins",        "coins",        min_val=0, max_val=99999, step=1,
                         value=int(self.context.coins)),
-            SettingItem("Reset Plants", "reset_plants", value=""),
-            SettingItem("Seed",         "seed",         value=""),
+            SettingItem("Reset Plants",  "reset_plants",  value=""),
+            SettingItem("Factory Reset", "factory_reset", value=""),
+            SettingItem("Seed",          "seed",          value=""),
         ])

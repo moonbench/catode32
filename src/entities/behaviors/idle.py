@@ -4,6 +4,9 @@ import random
 from entities.behaviors.base import BaseBehavior
 
 
+
+
+
 class IdleBehavior(BaseBehavior):
     """Default idle behavior — runs when nothing else is active.
 
@@ -97,7 +100,7 @@ class IdleBehavior(BaseBehavior):
         if ph != 0:
             bonus['serenity'] = bonus.get('serenity', 0) + ph * 0.15
             bonus['comfort'] = bonus.get('comfort', 0) + ph * 0.1
-        return bonus
+        return super().apply_location_bonus(context, bonus)
 
     def __init__(self, character):
         super().__init__(character)
