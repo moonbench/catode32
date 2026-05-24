@@ -130,27 +130,15 @@ def _make_starter_plants():
 
     return [
         _p('inside', 'midground', 110, 29, 'small', 'rose', stage='growing', age_hours=200),
-        _p('inside', 'midground', 130, 29, 'planter', 'freesia', stage='young', age_hours=400, mirror=True),
-        _p('inside', 'foreground', 15, 15, 'small', 'freesia', stage='young', age_hours=96),
-        _p('inside', 'foreground', 140, 63, 'medium', 'cat_grass', stage='thriving', age_hours=80),
 
-        _p('kitchen', 'foreground', 10, 63, 'small', 'cat_grass', stage='growing', age_hours=180, mirror=True),
         _p('kitchen', 'midground', 130, 24, 'medium', 'cat_grass', stage='mature', age_hours=160),
-        _p('kitchen', 'midground', 46, 24, 'small', 'rose', stage='growing', age_hours=85, mirror=True),
-        _p('kitchen', 'midground', 32, 24, 'small', 'cat_grass', stage='growing', age_hours=170),
 
         _p('outside', 'foreground', 10, 63, 'small', 'cat_grass', stage='growing', age_hours=160),
-        _p('outside', 'foreground', 180, 63, 'small', 'freesia', stage='growing', age_hours=155),
-        _p('outside', 'foreground', 210, 63, 'ground', 'cat_grass', stage='mature', age_hours=145, mirror=True),
-        _p('outside', 'midground', 154, 61, 'ground', 'cat_grass', stage='growing', age_hours=150),
         _p('outside', 'midground', 130, 61, 'ground', 'sunflower', stage='mature', age_hours=360, mirror=True),
         _p('outside', 'midground', 40, 61, 'ground', 'cat_grass', stage='thriving', age_hours=150),
         _p('outside', 'background', 110, 56, 'ground', 'cat_grass', stage='thriving', age_hours=320),
-        _p('outside', 'background', 55, 56, 'ground', 'cat_grass', stage='mature', age_hours=320),
 
         _p('treehouse', 'foreground', 15, 63, 'small', 'rose', stage='young', age_hours=72),
-        _p('treehouse', 'foreground', 200, 63, 'medium', 'cat_grass', stage='growing', age_hours=155, mirror=True),
-        _p('treehouse', 'midground', 30, 59, 'small', 'cat_grass', stage='growing', age_hours=150),
         _p('treehouse', 'midground', 120, 59, 'medium', 'freesia', stage='thriving', age_hours=88, mirror=True),
     ]
 

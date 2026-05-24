@@ -3,6 +3,10 @@ menu.py - Composable menu component for UI navigation
 """
 
 from ui import Scrollbar, adjust_scroll_offset
+from assets.icons import UP_ICON, DOWN_ICON
+
+_CONFIRM_CHARS = 14   # chars per line in confirmation dialog
+_CONFIRM_VISIBLE = 3  # visible text lines in confirmation dialog
 
 
 class MenuItem:
@@ -45,7 +49,9 @@ class Menu:
         self.selected_index = 0
         self.scroll_offset = 0
         self.menu_stack = []  # Stack of {items, index, scroll} for submenu navigation
-        self.pending_confirmation = None  # MenuItem awaiting confirmation
+        self._pending_confirmation = None
+        self.confirm_scroll = 0
+        self._confirm_lines = []
 
     def open(self, items):
         """Open the menu with the given items"""
@@ -118,7 +124,6 @@ class Menu:
             if selected.submenu:
                 return self._enter_submenu(selected)
             elif selected.confirm:
-                # Show confirmation dialog
                 self.pending_confirmation = selected
             elif selected.action is not None:
                 # Execute action
@@ -148,14 +153,18 @@ class Menu:
     def _handle_confirmation_input(self):
         """Handle input during confirmation dialog"""
         if self.input.was_just_pressed('a'):
-            # Confirmed - execute action
             action = self.pending_confirmation.action
             self.close()
             return action
 
         if self.input.was_just_pressed('b'):
-            # Cancelled - return to menu
             self.pending_confirmation = None
+
+        max_scroll = max(0, len(self._confirm_lines) - _CONFIRM_VISIBLE)
+        if self.input.was_just_pressed('up') and self.confirm_scroll > 0:
+            self.confirm_scroll -= 1
+        if self.input.was_just_pressed('down') and self.confirm_scroll < max_scroll:
+            self.confirm_scroll += 1
 
         return None
 
@@ -220,35 +229,59 @@ class Menu:
         """Draw scrollbar if items exceed visible area"""
         self.scrollbar.draw(len(self.items), self.VISIBLE_ITEMS, self.scroll_offset)
 
+    @property
+    def pending_confirmation(self):
+        return self._pending_confirmation
+
+    @pending_confirmation.setter
+    def pending_confirmation(self, item):
+        self._pending_confirmation = item
+        self.confirm_scroll = 0
+        if item is not None:
+            self._confirm_lines = self._wrap_confirm_message(item.confirm)
+        else:
+            self._confirm_lines = []
+
+    def _wrap_confirm_message(self, message):
+        lines = []
+        for paragraph in message.split('\n'):
+            words = paragraph.split(' ')
+            current = ""
+            for word in words:
+                test = current + (" " if current else "") + word
+                if len(test) <= _CONFIRM_CHARS:
+                    current = test
+                else:
+                    if current:
+                        lines.append(current)
+                    current = word
+            lines.append(current)
+        return lines
+
     def _draw_confirmation(self):
         """Draw confirmation dialog"""
-        # Draw border
         self.renderer.draw_rect(4, 12, 120, 40, filled=False)
-
-        # Clear inside
         self.renderer.draw_rect(5, 13, 118, 38, filled=True, color=0)
 
-        # Draw confirmation message with word-wrap
-        # Inner box: x=5 width=118, text at x=8 with ~4px right padding → 14 chars/line
-        message = self.pending_confirmation.confirm
-        chars_per_line = 14
-        words = message.split(' ')
-        lines = []
-        current = ""
-        for word in words:
-            test = current + (" " if current else "") + word
-            if len(test) <= chars_per_line:
-                current = test
-            else:
-                if current:
-                    lines.append(current)
-                current = word
-        if current:
-            lines.append(current)
-        # Two lines fit above the button row; center vertically in the available space
-        y_start = 18 if len(lines) > 1 else 22
-        for i, line in enumerate(lines[:2]):
-            self.renderer.draw_text(line, 8, y_start + i * 10)
+        lines = self._confirm_lines
+        total = len(lines)
+        can_scroll = total > _CONFIRM_VISIBLE
+        max_scroll = max(0, total - _CONFIRM_VISIBLE)
 
-        # Draw button hints
+        # Text area: y=14 to y=42 (28px). Vertically center when no scroll needed.
+        if can_scroll:
+            y_start = 14
+        else:
+            y_start = 14 + (28 - total * 8) // 2
+
+        visible = lines[self.confirm_scroll:self.confirm_scroll + _CONFIRM_VISIBLE]
+        for i, line in enumerate(visible):
+            self.renderer.draw_text(line, 8, y_start + i * 8)
+
+        if can_scroll:
+            if self.confirm_scroll > 0:
+                self.renderer.draw_sprite(UP_ICON, 8, 8, 116, 14)
+            if self.confirm_scroll < max_scroll:
+                self.renderer.draw_sprite(DOWN_ICON, 8, 8, 116, 32)
+
         self.renderer.draw_text("[A]Yes [B]No", 20, 42)
