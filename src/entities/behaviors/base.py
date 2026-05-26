@@ -1,6 +1,20 @@
 """Base class for all character behaviors."""
 
 
+def serenity_wellbeing_factor(context):
+    """0.0–1.0 multiplier for serenity gains based on how well the pet's needs are met.
+
+    Each condition (well fed, well rested, clean, not lonely) contributes 0.25.
+    Serenity should only rise significantly when the pet is genuinely content.
+    """
+    score = 0
+    if context.fullness    >= 60: score += 1
+    if context.energy      >= 60: score += 1
+    if context.cleanliness >= 60: score += 1
+    if context.affection   >= 50: score += 1
+    return score / 4.0
+
+
 class BaseBehavior:
     """Abstract base class for all behaviors.
 
@@ -247,7 +261,7 @@ class BaseBehavior:
                     (fav == 'snowy'    and weather == 'Snow')                or
                     (fav == 'overcast' and weather in ('Cloudy', 'Overcast'))):
                 bonus['comfort']  = bonus.get('comfort',  0) + 0.8
-                bonus['serenity'] = bonus.get('serenity', 0) + 0.3
+                bonus['serenity'] = bonus.get('serenity', 0) + 0.3 * serenity_wellbeing_factor(context)
         return bonus
 
     def apply_completion_bonus(self, context, progress=1.0):

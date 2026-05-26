@@ -2,7 +2,7 @@
 
 import math
 import random
-from entities.behaviors.base import BaseBehavior
+from entities.behaviors.base import BaseBehavior, serenity_wellbeing_factor
 
 
 
@@ -96,8 +96,9 @@ class NappingBehavior(BaseBehavior):
             self._character.play_bursts()
         if scene in ('outside', 'treehouse') and weather in ('Rain', 'Storm', 'Snow'):
             bonus['comfort'] = bonus.get('comfort', 0) - 7
+        wf = serenity_wellbeing_factor(context)
         if getattr(context, 'in_familiar_location', False):
-            bonus['serenity'] = bonus.get('serenity', 0) + 1.5
+            bonus['serenity'] = bonus.get('serenity', 0) + 1.5 * wf
         else:
             bonus['serenity'] = bonus.get('serenity', 0) - 1
             bonus['comfort'] = bonus.get('comfort', 0) * 0.9
@@ -107,7 +108,7 @@ class NappingBehavior(BaseBehavior):
         if getattr(context, 'in_cat_bed', False):
             bonus['energy'] = bonus.get('energy', 0) * 1.15
             bonus['comfort'] = bonus.get('comfort', 0) + 5
-            bonus['serenity'] = bonus.get('serenity', 0) + 1.5
+            bonus['serenity'] = bonus.get('serenity', 0) + 1.5 * wf
         ph = getattr(context, 'scene_plant_health', 0)
         if ph != 0:
             bonus['serenity'] = bonus.get('serenity', 0) + ph * 0.1

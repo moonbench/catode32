@@ -1,7 +1,7 @@
 """Lounging behavior - comfortable resting between activities."""
 
 import random
-from entities.behaviors.base import BaseBehavior
+from entities.behaviors.base import BaseBehavior, serenity_wellbeing_factor
 
 
 
@@ -77,8 +77,9 @@ class LoungeingBehavior(BaseBehavior):
             bonus['comfort'] = bonus.get('comfort', 0) * 1.3
         if scene in ('outside', 'treehouse') and weather in ('Rain', 'Storm', 'Snow'):
             bonus['comfort'] = bonus.get('comfort', 0) - 6
+        wf = serenity_wellbeing_factor(context)
         if getattr(context, 'in_familiar_location', False):
-            bonus['serenity'] = bonus.get('serenity', 0) + 1.5
+            bonus['serenity'] = bonus.get('serenity', 0) + 1.5 * wf
             bonus['comfort'] = bonus.get('comfort', 0) * 1.15  # truly settled at home
         else:
             bonus['serenity'] = bonus.get('serenity', 0) - 1
@@ -96,7 +97,7 @@ class LoungeingBehavior(BaseBehavior):
             bonus['maturity'] = bonus.get('maturity', 0) + 0.5
         if getattr(context, 'in_cat_bed', False):
             bonus['comfort'] = bonus.get('comfort', 0) + 5
-            bonus['serenity'] = bonus.get('serenity', 0) + 2
+            bonus['serenity'] = bonus.get('serenity', 0) + 2 * wf
         ph = getattr(context, 'scene_plant_health', 0)
         if ph != 0:
             bonus['serenity'] = bonus.get('serenity', 0) + ph * 0.2
