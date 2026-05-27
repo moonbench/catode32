@@ -118,7 +118,7 @@ class AdoptionScene(Scene):
             parts = pname.split('.')
             pose  = POSES[parts[0]][parts[1]][parts[2]]
             portrait_key = (id(pose['head']), id(pose['eyes']))
-            identity = (offs.index(max(offs)), seed % 12)  # (temper, star_sign)
+            identity = (offs.index(max(offs)), favs['star_sign'])  # (temper, star_sign)
             id_set  = used_tom_id if gender == 'tom' else used_queen_id
             if portrait_key in used_portraits or identity in id_set:
                 continue
@@ -312,12 +312,7 @@ class AdoptionScene(Scene):
             self._draw_cell(r, POSES, pp, cand, cx, cy, i == self._selected)
 
     def _draw_cell(self, r, POSES, portrait_poses, cand, cx, cy, selected):
-        # Border (double border when selected)
-        r.draw_rect(cx, cy, _CELL_W - 1, _CELL_H - 1, filled=False, color=1)
-        if selected:
-            r.draw_rect(cx + 1, cy + 1, _CELL_W - 3, _CELL_H - 3, filled=False, color=1)
-
-        # Headshot: pick pose from seed high bits, draw head + eyes
+        # Headshot first so the border renders on top of any sprite overlap
         seed   = cand['seed']
         pname  = portrait_poses[(seed >> 40) % len(portrait_poses)]
         parts  = pname.split('.')
@@ -336,6 +331,11 @@ class AdoptionScene(Scene):
         gender = cand['favs']['pet_gender']
         icon   = TOM_ICON if gender == 'tom' else QUEEN_ICON
         r.draw_sprite_obj(icon, cx + _CELL_W - 12, cy + _CELL_H - 12)
+
+        # Border drawn last so it's always visible over the sprite
+        r.draw_rect(cx, cy, _CELL_W - 1, _CELL_H - 1, filled=False, color=1)
+        if selected:
+            r.draw_rect(cx + 1, cy + 1, _CELL_W - 3, _CELL_H - 3, filled=False, color=1)
 
     # ------------------------------------------------------------------
     # Profile

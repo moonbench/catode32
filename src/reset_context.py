@@ -88,7 +88,7 @@ def _derive_favorites(seed):
     return {
         'pet_gender':       gender,
         'fav_weather':      fav_weather,
-        'star_sign':        _STAR_SIGNS[seed % 12],
+        'star_sign':        _STAR_SIGNS[_next() % 12],
         'fav_meal':         fav_meal,
         'least_fav_meal':   least_fav_meal,
         'fav_snack':        fav_snack,
