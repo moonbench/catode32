@@ -39,7 +39,7 @@ _SNACK_ITEMS = (
     ("Puree",      "puree",       8),
 )
 
-_TOY_DURABILITY = {'string': 28, 'feather': 28, 'ball': 42, 'mouse': 42, 'laser': 100}
+_TOY_DURABILITY = {'string': 28, 'feather': 28, 'ball': 42, 'mouse': 42, 'laser': 100, 'bubbles': 35}
 
 # (store_label, full_name, variant, cost)
 _TOY_ITEMS = (
@@ -47,6 +47,7 @@ _TOY_ITEMS = (
     ("Feather", "Feather",        "feather", 35),
     ("Mouse",   "Mouse Toy",      "mouse",   40),
     ("Yarn",    "Yarn Ball",      "ball",    50),
+    ("Bubbles", "Bubbles",        "bubbles", 45),
     ("Laser",   "Laser Pointer",  "laser",   75),
 )
 
@@ -175,8 +176,9 @@ class StoreScene(Scene):
                 return MenuItem(label + "*", action=("already_owned",),
                                 confirm="Already owned!")
             if self.context.coins >= cost:
+                verb = "Refill" if variant == "bubbles" else "Replace"
                 return MenuItem(label + "!", action=("replace_toy", full_name, variant, cost),
-                                confirm=f"Replace: {cost}c")
+                                confirm=f"{verb}: {cost}c")
             return MenuItem(label + "!", action=("no_funds",), confirm="Can't afford!")
         if self.context.coins >= cost:
             return MenuItem(label, action=("buy_toy", full_name, variant, cost),
@@ -355,7 +357,10 @@ class StoreScene(Scene):
                         self.context.coins -= cost
                         toy["durability"] = _TOY_DURABILITY.get(variant, 28)
                         print(f"[Store] Replaced toy {name} for {cost}c")
-                        self._purchase_msg = f"{name} replaced!"
+                        if variant == "bubbles":
+                            self._purchase_msg = "Bubbles refilled!"
+                        else:
+                            self._purchase_msg = f"{name} replaced!"
                         self._popup.set_text(self._purchase_msg, center=True)
                         return None
             self.menu.open(self._build_menu())

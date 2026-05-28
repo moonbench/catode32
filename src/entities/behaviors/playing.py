@@ -4,7 +4,7 @@ import math
 import random
 from entities.behaviors.base import BaseBehavior
 from ui import draw_bubble
-from assets.items import YARN_BALL, MOUSE_TOY, HAND_SCRATCH
+from assets.items import YARN_BALL, MOUSE_TOY, HAND_SCRATCH, BUBBLE_WAND, BUBBLE1, BUBBLE2, BUBBLE_POP
 
 
 # Variant configurations
@@ -27,6 +27,9 @@ VARIANTS = {
     "laser": {
         "stats": {"playfulness": -6, "energy": -3, "focus": -1, "fitness": 1.5, "fulfillment": 1.5, "courage": 0.4},
     },
+    "bubbles": {
+        "stats": {"playfulness": -6, "energy": -3, "focus": -1, "fitness": 1.5, "fulfillment": 1.5, "courage": 0.4},
+    },
 }
 
 # Shared pounce constants (reusable across play variants)
@@ -42,12 +45,15 @@ POUNCE_CATCH_DURATION = 1.5    # seconds of celebration after the final pounce
 POUNCE_COUNT_MIN = 4           # fewest pounces per session
 POUNCE_COUNT_MAX = 8           # most pounces per session
 
+# Shared toy movement bounds — toys travel between screen edges minus this margin
+TOY_SCREEN_MARGIN = 8
+
 # Ball variant constants
 BALL_PUSH_FORCE = 140          # pixels/s² acceleration when player holds a direction
 BALL_MAX_SPEED = 65            # max ball speed in pixels per second
 BALL_FRICTION = 0.20           # fraction of speed retained per second (lower = stops faster)
 BALL_BOUNCE_DAMPING = 0.55     # fraction of speed kept after hitting a boundary
-BALL_ROLL_RANGE = 60           # max horizontal offset left/right from cat center
+BALL_ROLL_RANGE = 60           # used only to normalise eye-gaze offset (not movement bounds)
 BALL_Y_OFFSET = 8              # pixels above cat's y anchor
 MOUSE_Y_OFFSET = 4             # pixels above cat's y anchor (sits lower, on the floor)
 HAND_Y_OFFSET = 6              # pixels above cat's y anchor
@@ -63,7 +69,6 @@ BALL_POUNCE_DELAY_MAX = 6.0   # maximum seconds before each pounce
 LASER_WOBBLE_AMPLITUDE = 8     # pixels of auto-oscillation around user-controlled position
 LASER_WOBBLE_SPEED = 2.5       # radians per second for the wobble sine wave
 LASER_USER_SPEED = 50          # pixels per second when player holds left/right
-LASER_USER_RANGE = 60          # max offset from cat center for player-controlled position
 LASER_Y_OFFSET = 1             # pixels above cat's y anchor
 LASER_POUNCE_DELAY_MIN = 2.0   # minimum seconds before each pounce
 LASER_POUNCE_DELAY_MAX = 5.0   # maximum seconds before each pounce
@@ -78,7 +83,6 @@ STRING_GRAVITY = 120           # pixels per second² downward pull on each node
 STRING_DAMPING = 0.45          # velocity damping per second (lower = more sluggish)
 STRING_ITERATIONS = 3          # constraint solver passes per frame
 STRING_ANCHOR_SPEED = 60       # pixels per second for player-driven anchor movement
-STRING_ANCHOR_RANGE = 60       # max horizontal offset from cat center for the anchor
 STRING_ANCHOR_Y = -70          # screen-y offset from char_y → anchor sits just above screen
 STRING_POUNCE_DELAY_MIN = 2.0
 STRING_POUNCE_DELAY_MAX = 8.0
@@ -86,6 +90,31 @@ STRING_POUNCE_DELAY_MAX = 8.0
 # Feather tip constants (used when variant == "feather")
 FEATHER_SEGMENTS = 8   # fewer rope nodes so feather hangs shorter
 FEATHER_WIDTH = 2      # perpendicular vane width in pixels
+
+# Bubble wand constants
+WAND_PUSH_FORCE = 200          # pixels/s² when player holds a direction
+WAND_MAX_SPEED = 80            # max wand speed in pixels per second
+WAND_FRICTION = 0.15           # fraction of speed retained per second (lower = stops faster)
+WAND_BOUNCE_DAMPING = 0.4      # fraction of speed kept after hitting a boundary
+WAND_RANGE = 60                # kept only for pounce target sampling — movement uses TOY_SCREEN_MARGIN
+WAND_SCREEN_TOP = 8            # y of the wand sprite's top edge (fixed screen position)
+WAND_POUNCE_DELAY_MIN = 2.5
+WAND_POUNCE_DELAY_MAX = 6.5
+BUBBLE_MAX = 16                # max simultaneous bubbles on screen
+BUBBLE_SPAWN_DIST = 20         # wand travel (px) between bubble spawns
+BUBBLE_SPAWN_SPEED_MIN = 12    # minimum wand speed (px/s) required to spawn bubbles
+BUBBLE_FALL_SPEED = 9          # pixels per second downward drift
+BUBBLE_DRIFT_SPEED = 2.5       # max horizontal drift speed in pixels per second
+BUBBLE_POP_FPS = 7.0           # pop animation playback speed in frames per second
+BUBBLE_POP_DURATION = 4 / BUBBLE_POP_FPS   # total pop animation duration in seconds
+
+# Surprised poses the cat cycles through while bubbles are floating
+BUBBLE_SURPRISED_POSES = (
+    "leaning_forward.side.crazy",
+    "playful.forward.wowed",
+    "sitting.forward.shocked",
+    "standing.side.crazy",
+)
 
 
 def _compute_eye_frame(ball_offset_x, mirror):
@@ -216,27 +245,40 @@ class PlayingBehavior(BaseBehavior):
         self._variant = "string"
         self._bubble = None
 
-        # Ball variant state
-        self._ball_offset_x = 0.0    # horizontal offset from character.x
-        self._ball_vel_x = 0.0       # rolling velocity in pixels per second
+        # Shared screen-space cache — updated every draw() so update() can read it
+        self._play_char_x = 64
+        self._play_char_y = 40
+
+        # Ball variant state  (absolute screen-space X)
+        self._ball_x = 64.0
+        self._ball_vel_x = 0.0
         self._ball_rotation = 0.0    # current rotation in degrees (drives frame selection)
 
-        # Mouse variant state
-        self._mouse_offset_x = 0.0
+        # Mouse variant state  (absolute screen-space X)
+        self._mouse_x = 64.0
         self._mouse_vel_x = 0.0
         self._mouse_facing_right = False
 
-        # Hand variant state
-        self._hand_offset_x = 0.0
+        # Hand variant state  (absolute screen-space X)
+        self._hand_x = 64.0
         self._hand_vel_x = 0.0
         self._hand_facing_right = False
         self._hand_anim_dist = 0.0   # accumulated travel distance for frame selection
 
-        # Laser variant state
-        self._laser_offset_x = 0.0    # current offset from character.x (wobble + user)
-        self._laser_user_x = 0.0      # player-controlled base position
-        self._laser_wobble_phase = 0.0 # phase of the auto-oscillation sine wave
-        self._laser_line_x_top = 64    # fixed screen-space x for the off-screen line end
+        # Laser variant state  (absolute screen-space X)
+        self._laser_x = 64.0         # final dot position (base + wobble)
+        self._laser_base_x = 64.0    # player-controlled base position
+        self._laser_wobble_phase = 0.0
+        self._laser_line_x_top = 64
+
+        # Bubbles variant state  (absolute screen-space X)
+        self._wand_x = 64.0
+        self._wand_vel_x = 0.0
+        self._wand_facing_right = True
+        self._wand_spawn_dist = 0.0
+        self._bubbles = []
+        self._bubble_pose_timer = 0.0
+        self._had_bubbles = False
 
         # String/feather variant state — all positions are screen-space floats
         # _str_px/py: current positions; _str_ox/oy: positions from previous frame
@@ -319,6 +361,8 @@ class PlayingBehavior(BaseBehavior):
             self._start_laser()
         elif self._variant in ("string", "feather"):
             self._start_string()
+        elif self._variant == "bubbles":
+            self._start_bubbles()
         else:
             config = VARIANTS[self._variant]
             self._bubble = config.get("bubble")
@@ -331,58 +375,50 @@ class PlayingBehavior(BaseBehavior):
 
     def _start_laser(self):
         """Initialise the laser variant state and enter the watching phase."""
-        self._laser_user_x = 0.0
+        self._laser_base_x = float(self._play_char_x)
+        self._laser_x = float(self._play_char_x)
         self._laser_wobble_phase = 0.0
-        self._laser_offset_x = 0.0
         self._pounces_total = random.randint(POUNCE_COUNT_MIN, POUNCE_COUNT_MAX)
         self._pounces_done = 0
         self._pounce_timer = random.uniform(LASER_POUNCE_DELAY_MIN, LASER_POUNCE_DELAY_MAX)
         self._laser_line_x_top = random.randint(20, 108)
-        self._eye_frame_override = _compute_eye_frame(
-            self._laser_offset_x, self._character.mirror
-        )
+        self._eye_frame_override = _compute_eye_frame(0.0, self._character.mirror)
         self._phase = "watching"
         self._character.set_pose("playful.forward.wowed")
 
     def _start_ball(self):
         """Initialise the ball variant state and enter the watching phase."""
-        self._ball_offset_x = 0.0
+        self._ball_x = float(self._play_char_x)
         self._ball_vel_x = 0.0
         self._ball_rotation = 0.0
         self._pounces_total = random.randint(POUNCE_COUNT_MIN, POUNCE_COUNT_MAX)
         self._pounces_done = 0
         self._pounce_timer = random.uniform(BALL_POUNCE_DELAY_MIN, BALL_POUNCE_DELAY_MAX)
-        self._eye_frame_override = _compute_eye_frame(
-            self._ball_offset_x, self._character.mirror
-        )
+        self._eye_frame_override = _compute_eye_frame(0.0, self._character.mirror)
         self._phase = "watching"
         self._character.set_pose("playful.forward.wowed")
 
     def _start_mouse(self):
         """Initialise the mouse toy variant state and enter the watching phase."""
-        self._mouse_offset_x = 0.0
+        self._mouse_x = float(self._play_char_x)
         self._mouse_vel_x = 0.0
         self._pounces_total = random.randint(POUNCE_COUNT_MIN, POUNCE_COUNT_MAX)
         self._pounces_done = 0
         self._pounce_timer = random.uniform(BALL_POUNCE_DELAY_MIN, BALL_POUNCE_DELAY_MAX)
-        self._eye_frame_override = _compute_eye_frame(
-            self._mouse_offset_x, self._character.mirror
-        )
+        self._eye_frame_override = _compute_eye_frame(0.0, self._character.mirror)
         self._phase = "watching"
         self._character.set_pose("playful.forward.wowed")
 
     def _start_hand(self):
         """Initialise the hand toy variant state and enter the watching phase."""
-        self._hand_offset_x = 0.0
+        self._hand_x = float(self._play_char_x)
         self._hand_vel_x = 0.0
         self._hand_facing_right = False
         self._hand_anim_dist = 0.0
         self._pounces_total = random.randint(POUNCE_COUNT_MIN, POUNCE_COUNT_MAX)
         self._pounces_done = 0
         self._pounce_timer = random.uniform(BALL_POUNCE_DELAY_MIN, BALL_POUNCE_DELAY_MAX)
-        self._eye_frame_override = _compute_eye_frame(
-            self._hand_offset_x, self._character.mirror
-        )
+        self._eye_frame_override = _compute_eye_frame(0.0, self._character.mirror)
         self._phase = "watching"
         self._character.set_pose("playful.forward.wowed")
 
@@ -405,6 +441,21 @@ class PlayingBehavior(BaseBehavior):
         self._str_anchor_x = 0.0
         self._phase = "watching"
         self._character.set_pose("playful.forward.wowed")
+
+    def _start_bubbles(self):
+        """Initialise the bubble wand state and enter the watching phase."""
+        self._wand_x = float(self._play_char_x)
+        self._wand_vel_x = 0.0
+        self._wand_facing_right = True
+        self._wand_spawn_dist = 0.0
+        self._bubbles = []
+        self._had_bubbles = False
+        self._bubble_pose_timer = 0.0
+        self._pounces_total = random.randint(POUNCE_COUNT_MIN, POUNCE_COUNT_MAX)
+        self._pounces_done = 0
+        self._pounce_timer = random.uniform(WAND_POUNCE_DELAY_MIN, WAND_POUNCE_DELAY_MAX)
+        self._phase = "watching"
+        self._character.set_pose("sitting.forward.neutral")
 
     # ------------------------------------------------------------------
     # Update
@@ -438,6 +489,8 @@ class PlayingBehavior(BaseBehavior):
             self._update_laser(dt)
         elif self._variant in ("string", "feather"):
             self._update_string(dt)
+        elif self._variant == "bubbles":
+            self._update_bubbles(dt)
         else:
             self._update_default(dt)
 
@@ -477,18 +530,20 @@ class PlayingBehavior(BaseBehavior):
             elif self._ball_vel_x < -BALL_MAX_SPEED:
                 self._ball_vel_x = -BALL_MAX_SPEED
         self._ball_vel_x *= BALL_FRICTION ** dt
-        self._ball_offset_x += self._ball_vel_x * dt
+        self._ball_x += self._ball_vel_x * dt
         ball_radius = YARN_BALL["width"] / 2.0
         angle_delta = self._ball_vel_x * dt / ball_radius * (180.0 / math.pi)
         self._ball_rotation = (self._ball_rotation + angle_delta) % 360.0
-        if self._ball_offset_x >= BALL_ROLL_RANGE:
-            self._ball_offset_x = BALL_ROLL_RANGE
+        lo = TOY_SCREEN_MARGIN
+        hi = 128 - TOY_SCREEN_MARGIN
+        if self._ball_x >= hi:
+            self._ball_x = hi
             self._ball_vel_x = -abs(self._ball_vel_x) * BALL_BOUNCE_DAMPING
-        elif self._ball_offset_x <= -BALL_ROLL_RANGE:
-            self._ball_offset_x = -BALL_ROLL_RANGE
+        elif self._ball_x <= lo:
+            self._ball_x = lo
             self._ball_vel_x = abs(self._ball_vel_x) * BALL_BOUNCE_DAMPING
         self._eye_frame_override = _compute_eye_frame(
-            self._ball_offset_x, self._character.mirror
+            self._ball_x - self._play_char_x, self._character.mirror
         )
 
         if self._phase == "watching":
@@ -496,7 +551,7 @@ class PlayingBehavior(BaseBehavior):
         elif self._phase == "pouncing":
             self._update_ball_pounce(dt)
         elif self._phase == "recovering":
-            self._update_recovering(dt, BALL_POUNCE_DELAY_MIN, BALL_POUNCE_DELAY_MAX, self._ball_offset_x)
+            self._update_recovering(dt, BALL_POUNCE_DELAY_MIN, BALL_POUNCE_DELAY_MAX, self._ball_x - self._play_char_x)
         elif self._phase == "catching":
             self._update_catching(dt)
 
@@ -506,18 +561,15 @@ class PlayingBehavior(BaseBehavior):
         if self._pounce_timer <= 0:
             if not self._rejecting:
                 self._pounces_done += 1
-                self._begin_pounce(self._ball_offset_x)
+                self._begin_pounce(self._ball_x - self._play_char_x)
                 return
             self._pounce_timer = random.uniform(BALL_POUNCE_DELAY_MIN, BALL_POUNCE_DELAY_MAX)
 
         self._progress = self._pounces_done / self._pounces_total
 
     def _update_ball_pounce(self, dt):
-        """Slide the cat toward the ball; keep the ball fixed on screen."""
-        slide = self._pounce_direction * POUNCE_SLIDE_SPEED * dt
-        self._character.x += slide
-        self._ball_offset_x -= slide  # keep ball at same screen position
-
+        """Slide the cat toward the ball; ball stays at its absolute screen position."""
+        self._character.x += self._pounce_direction * POUNCE_SLIDE_SPEED * dt
         if self._phase_timer >= POUNCE_SLIDE_DURATION:
             x_min, x_max = self._get_scene_bounds()
             self._character.x = max(x_min, min(x_max, self._character.x))
@@ -541,17 +593,19 @@ class PlayingBehavior(BaseBehavior):
             elif self._mouse_vel_x < -BALL_MAX_SPEED:
                 self._mouse_vel_x = -BALL_MAX_SPEED
         self._mouse_vel_x *= BALL_FRICTION ** dt
-        self._mouse_offset_x += self._mouse_vel_x * dt
+        self._mouse_x += self._mouse_vel_x * dt
         if abs(self._mouse_vel_x) > 2.0:
             self._mouse_facing_right = self._mouse_vel_x > 0
-        if self._mouse_offset_x >= BALL_ROLL_RANGE:
-            self._mouse_offset_x = BALL_ROLL_RANGE
+        lo = TOY_SCREEN_MARGIN
+        hi = 128 - TOY_SCREEN_MARGIN
+        if self._mouse_x >= hi:
+            self._mouse_x = hi
             self._mouse_vel_x = -abs(self._mouse_vel_x) * BALL_BOUNCE_DAMPING
-        elif self._mouse_offset_x <= -BALL_ROLL_RANGE:
-            self._mouse_offset_x = -BALL_ROLL_RANGE
+        elif self._mouse_x <= lo:
+            self._mouse_x = lo
             self._mouse_vel_x = abs(self._mouse_vel_x) * BALL_BOUNCE_DAMPING
         self._eye_frame_override = _compute_eye_frame(
-            self._mouse_offset_x, self._character.mirror
+            self._mouse_x - self._play_char_x, self._character.mirror
         )
 
         if self._phase == "watching":
@@ -559,7 +613,7 @@ class PlayingBehavior(BaseBehavior):
         elif self._phase == "pouncing":
             self._update_mouse_pounce(dt)
         elif self._phase == "recovering":
-            self._update_recovering(dt, BALL_POUNCE_DELAY_MIN, BALL_POUNCE_DELAY_MAX, self._mouse_offset_x)
+            self._update_recovering(dt, BALL_POUNCE_DELAY_MIN, BALL_POUNCE_DELAY_MAX, self._mouse_x - self._play_char_x)
         elif self._phase == "catching":
             self._update_catching(dt)
 
@@ -568,15 +622,13 @@ class PlayingBehavior(BaseBehavior):
         if self._pounce_timer <= 0:
             if not self._rejecting:
                 self._pounces_done += 1
-                self._begin_pounce(self._mouse_offset_x)
+                self._begin_pounce(self._mouse_x - self._play_char_x)
                 return
             self._pounce_timer = random.uniform(BALL_POUNCE_DELAY_MIN, BALL_POUNCE_DELAY_MAX)
         self._progress = self._pounces_done / self._pounces_total
 
     def _update_mouse_pounce(self, dt):
-        slide = self._pounce_direction * POUNCE_SLIDE_SPEED * dt
-        self._character.x += slide
-        self._mouse_offset_x -= slide
+        self._character.x += self._pounce_direction * POUNCE_SLIDE_SPEED * dt
         if self._phase_timer >= POUNCE_SLIDE_DURATION:
             x_min, x_max = self._get_scene_bounds()
             self._character.x = max(x_min, min(x_max, self._character.x))
@@ -599,18 +651,20 @@ class PlayingBehavior(BaseBehavior):
             elif self._hand_vel_x < -HAND_MAX_SPEED:
                 self._hand_vel_x = -HAND_MAX_SPEED
         self._hand_vel_x *= HAND_FRICTION ** dt
-        self._hand_offset_x += self._hand_vel_x * dt
+        self._hand_x += self._hand_vel_x * dt
         self._hand_anim_dist += abs(self._hand_vel_x) * dt
         if abs(self._hand_vel_x) > 2.0:
             self._hand_facing_right = self._hand_vel_x > 0
-        if self._hand_offset_x >= BALL_ROLL_RANGE:
-            self._hand_offset_x = BALL_ROLL_RANGE
+        lo = TOY_SCREEN_MARGIN
+        hi = 128 - TOY_SCREEN_MARGIN
+        if self._hand_x >= hi:
+            self._hand_x = hi
             self._hand_vel_x = -abs(self._hand_vel_x) * HAND_BOUNCE_DAMPING
-        elif self._hand_offset_x <= -BALL_ROLL_RANGE:
-            self._hand_offset_x = -BALL_ROLL_RANGE
+        elif self._hand_x <= lo:
+            self._hand_x = lo
             self._hand_vel_x = abs(self._hand_vel_x) * HAND_BOUNCE_DAMPING
         self._eye_frame_override = _compute_eye_frame(
-            self._hand_offset_x, self._character.mirror
+            self._hand_x - self._play_char_x, self._character.mirror
         )
 
         if self._phase == "watching":
@@ -618,7 +672,7 @@ class PlayingBehavior(BaseBehavior):
         elif self._phase == "pouncing":
             self._update_hand_pounce(dt)
         elif self._phase == "recovering":
-            self._update_recovering(dt, BALL_POUNCE_DELAY_MIN, BALL_POUNCE_DELAY_MAX, self._hand_offset_x)
+            self._update_recovering(dt, BALL_POUNCE_DELAY_MIN, BALL_POUNCE_DELAY_MAX, self._hand_x - self._play_char_x)
         elif self._phase == "catching":
             self._update_catching(dt)
 
@@ -627,15 +681,13 @@ class PlayingBehavior(BaseBehavior):
         if self._pounce_timer <= 0:
             if not self._rejecting:
                 self._pounces_done += 1
-                self._begin_pounce(self._hand_offset_x)
+                self._begin_pounce(self._hand_x - self._play_char_x)
                 return
             self._pounce_timer = random.uniform(BALL_POUNCE_DELAY_MIN, BALL_POUNCE_DELAY_MAX)
         self._progress = self._pounces_done / self._pounces_total
 
     def _update_hand_pounce(self, dt):
-        slide = self._pounce_direction * POUNCE_SLIDE_SPEED * dt
-        self._character.x += slide
-        self._hand_offset_x -= slide
+        self._character.x += self._pounce_direction * POUNCE_SLIDE_SPEED * dt
         if self._phase_timer >= POUNCE_SLIDE_DURATION:
             x_min, x_max = self._get_scene_bounds()
             self._character.x = max(x_min, min(x_max, self._character.x))
@@ -734,19 +786,17 @@ class PlayingBehavior(BaseBehavior):
             anchor_sy = char_y + STRING_ANCHOR_Y
             self._str_init_positions(char_x, anchor_sy, char_y)
 
-        # Move anchor based on player input
+        # Move anchor based on player input; bounds are screen edges
         inp = getattr(self._character.context, 'input', None)
         if inp:
             if inp.is_pressed('left'):
                 self._str_anchor_x -= STRING_ANCHOR_SPEED * dt
             if inp.is_pressed('right'):
                 self._str_anchor_x += STRING_ANCHOR_SPEED * dt
-        lo = char_x - STRING_ANCHOR_RANGE
-        hi = char_x + STRING_ANCHOR_RANGE
-        if self._str_anchor_x < lo:
-            self._str_anchor_x = lo
-        elif self._str_anchor_x > hi:
-            self._str_anchor_x = hi
+        if self._str_anchor_x < TOY_SCREEN_MARGIN:
+            self._str_anchor_x = TOY_SCREEN_MARGIN
+        elif self._str_anchor_x > 128 - TOY_SCREEN_MARGIN:
+            self._str_anchor_x = 128 - TOY_SCREEN_MARGIN
 
         anchor_sy = char_y + STRING_ANCHOR_Y
 
@@ -847,22 +897,23 @@ class PlayingBehavior(BaseBehavior):
     # --- Laser variant ---
 
     def _update_laser(self, dt):
-        # Input and dot position always update so the player can move the laser
-        # at any time. Skip during pouncing: slide compensation owns _laser_offset_x
-        # for that phase.
         inp = getattr(self._character.context, 'input', None)
         if inp:
             if inp.is_pressed('left'):
-                self._laser_user_x -= LASER_USER_SPEED * dt
+                self._laser_base_x -= LASER_USER_SPEED * dt
             if inp.is_pressed('right'):
-                self._laser_user_x += LASER_USER_SPEED * dt
-            self._laser_user_x = max(-LASER_USER_RANGE, min(LASER_USER_RANGE, self._laser_user_x))
+                self._laser_base_x += LASER_USER_SPEED * dt
+        lo = TOY_SCREEN_MARGIN
+        hi = 128 - TOY_SCREEN_MARGIN
+        if self._laser_base_x < lo:
+            self._laser_base_x = lo
+        elif self._laser_base_x > hi:
+            self._laser_base_x = hi
 
         self._laser_wobble_phase += LASER_WOBBLE_SPEED * dt
-        self._laser_offset_x = (self._laser_user_x
-                                 + LASER_WOBBLE_AMPLITUDE * math.sin(self._laser_wobble_phase))
+        self._laser_x = self._laser_base_x + LASER_WOBBLE_AMPLITUDE * math.sin(self._laser_wobble_phase)
         self._eye_frame_override = _compute_eye_frame(
-            self._laser_offset_x, self._character.mirror
+            self._laser_x - self._play_char_x, self._character.mirror
         )
 
         if self._phase == "watching":
@@ -870,7 +921,7 @@ class PlayingBehavior(BaseBehavior):
         elif self._phase == "pouncing":
             self._update_laser_pounce(dt)
         elif self._phase == "recovering":
-            self._update_recovering(dt, LASER_POUNCE_DELAY_MIN, LASER_POUNCE_DELAY_MAX, self._laser_offset_x)
+            self._update_recovering(dt, LASER_POUNCE_DELAY_MIN, LASER_POUNCE_DELAY_MAX, self._laser_x - self._play_char_x)
         elif self._phase == "catching":
             self._update_catching(dt)
 
@@ -880,19 +931,15 @@ class PlayingBehavior(BaseBehavior):
         if self._pounce_timer <= 0:
             if not self._rejecting:
                 self._pounces_done += 1
-                self._begin_pounce(self._laser_offset_x)
+                self._begin_pounce(self._laser_x - self._play_char_x)
                 return
             self._pounce_timer = random.uniform(LASER_POUNCE_DELAY_MIN, LASER_POUNCE_DELAY_MAX)
 
         self._progress = self._pounces_done / self._pounces_total
 
     def _update_laser_pounce(self, dt):
-        """Slide the cat toward the laser; keep the laser dot fixed on screen."""
-        slide = self._pounce_direction * POUNCE_SLIDE_SPEED * dt
-        self._character.x += slide
-        # Compensate offset so the dot stays at the same screen position
-        self._laser_offset_x -= slide
-
+        """Slide the cat toward the laser; dot stays at its absolute screen position."""
+        self._character.x += self._pounce_direction * POUNCE_SLIDE_SPEED * dt
         if self._phase_timer >= POUNCE_SLIDE_DURATION:
             x_min, x_max = self._get_scene_bounds()
             self._character.x = max(x_min, min(x_max, self._character.x))
@@ -900,6 +947,137 @@ class PlayingBehavior(BaseBehavior):
             self._phase_timer = 0.0
             self._character.set_pose("sitting_silly.side.happy")
 
+    # --- Bubbles variant ---
+
+    def _update_bubbles(self, dt):
+        # Bubble particles update every frame regardless of phase
+        self._update_bubble_particles(dt, self._play_char_y)
+
+        # During catching the wand is gone; just wait for remaining bubbles to clear
+        if self._phase == "catching":
+            self._update_bubbles_catching(dt)
+            return
+
+        # Wand input and physics always run — player can move it at any time
+        inp = getattr(self._character.context, 'input', None)
+        if inp:
+            if inp.is_pressed('left'):
+                self._wand_vel_x -= WAND_PUSH_FORCE * dt
+            if inp.is_pressed('right'):
+                self._wand_vel_x += WAND_PUSH_FORCE * dt
+            if self._wand_vel_x > WAND_MAX_SPEED:
+                self._wand_vel_x = WAND_MAX_SPEED
+            elif self._wand_vel_x < -WAND_MAX_SPEED:
+                self._wand_vel_x = -WAND_MAX_SPEED
+        self._wand_vel_x *= WAND_FRICTION ** dt
+        if abs(self._wand_vel_x) > 2.0:
+            self._wand_facing_right = self._wand_vel_x > 0
+        self._wand_x += self._wand_vel_x * dt
+        lo = TOY_SCREEN_MARGIN
+        hi = 128 - TOY_SCREEN_MARGIN
+        if self._wand_x >= hi:
+            self._wand_x = hi
+            self._wand_vel_x = -abs(self._wand_vel_x) * WAND_BOUNCE_DAMPING
+        elif self._wand_x <= lo:
+            self._wand_x = lo
+            self._wand_vel_x = abs(self._wand_vel_x) * WAND_BOUNCE_DAMPING
+
+        # Spawn bubbles proportional to wand speed (cap enforced by BUBBLE_MAX)
+        speed = abs(self._wand_vel_x)
+        if speed >= BUBBLE_SPAWN_SPEED_MIN and len(self._bubbles) < BUBBLE_MAX:
+            self._wand_spawn_dist += speed * dt
+            while self._wand_spawn_dist >= BUBBLE_SPAWN_DIST and len(self._bubbles) < BUBBLE_MAX:
+                self._wand_spawn_dist -= BUBBLE_SPAWN_DIST
+                drift = random.uniform(-BUBBLE_DRIFT_SPEED, BUBBLE_DRIFT_SPEED)
+                size = random.randint(0, 1)
+                wy = float(WAND_SCREEN_TOP + BUBBLE_WAND["height"] // 2)
+                self._bubbles.append([size, self._wand_x, wy, drift, -1.0])
+
+        if self._phase == "watching":
+            self._update_bubbles_watching(dt)
+        elif self._phase == "pouncing":
+            self._update_bubbles_pounce(dt)
+        elif self._phase == "recovering":
+            self._update_bubbles_recovering(dt)
+
+    def _update_bubble_particles(self, dt, ground_y):
+        """Advance bubble positions, start pops on ground contact, remove finished ones."""
+        i = 0
+        while i < len(self._bubbles):
+            b = self._bubbles[i]
+            if b[4] < 0:  # floating
+                b[2] += BUBBLE_FALL_SPEED * dt
+                b[1] += b[3] * dt
+                if b[2] >= ground_y:
+                    b[2] = float(ground_y)
+                    b[4] = 0.0  # begin pop animation
+            else:  # popping
+                b[4] += dt
+                if b[4] >= BUBBLE_POP_DURATION:
+                    self._bubbles.pop(i)
+                    continue
+            i += 1
+
+    def _update_bubbles_watching(self, dt):
+        # Manage surprised/idle pose transitions
+        has_bubbles = bool(self._bubbles)
+        if has_bubbles and not self._had_bubbles:
+            self._character.set_pose(random.choice(BUBBLE_SURPRISED_POSES))
+            self._had_bubbles = True
+            self._bubble_pose_timer = random.uniform(1.5, 3.0)
+        elif not has_bubbles and self._had_bubbles:
+            self._character.set_pose("sitting.forward.neutral")
+            self._had_bubbles = False
+        elif has_bubbles:
+            self._bubble_pose_timer -= dt
+            if self._bubble_pose_timer <= 0:
+                self._character.set_pose(random.choice(BUBBLE_SURPRISED_POSES))
+                self._bubble_pose_timer = random.uniform(1.5, 3.0)
+
+        # Pounce countdown
+        self._pounce_timer -= dt
+        if self._pounce_timer <= 0:
+            if not self._rejecting:
+                self._pounces_done += 1
+                target = random.uniform(-WAND_RANGE * 0.7, WAND_RANGE * 0.7)
+                self._begin_pounce(target)
+                return
+            self._pounce_timer = random.uniform(WAND_POUNCE_DELAY_MIN, WAND_POUNCE_DELAY_MAX)
+
+        self._progress = self._pounces_done / self._pounces_total
+
+    def _update_bubbles_pounce(self, dt):
+        self._character.x += self._pounce_direction * POUNCE_SLIDE_SPEED * dt
+        if self._phase_timer >= POUNCE_SLIDE_DURATION:
+            x_min, x_max = self._get_scene_bounds()
+            self._character.x = max(x_min, min(x_max, self._character.x))
+            self._phase = "recovering"
+            self._phase_timer = 0.0
+            self._character.set_pose("sitting_silly.side.happy")
+
+    def _update_bubbles_recovering(self, dt):
+        if self._phase_timer >= POUNCE_RECOVER_DURATION:
+            if self._pounces_done >= self._pounces_total:
+                self._phase = "catching"
+                self._phase_timer = 0.0
+            else:
+                self._pounce_timer = random.uniform(WAND_POUNCE_DELAY_MIN, WAND_POUNCE_DELAY_MAX)
+                self._phase = "watching"
+                self._phase_timer = 0.0
+                if self._bubbles:
+                    self._character.set_pose(random.choice(BUBBLE_SURPRISED_POSES))
+                    self._had_bubbles = True
+                    self._bubble_pose_timer = random.uniform(1.5, 3.0)
+                else:
+                    self._character.set_pose("sitting.forward.neutral")
+                    self._had_bubbles = False
+
+    def _update_bubbles_catching(self, dt):
+        """Wait for the celebration timer and all bubbles to clear before stopping."""
+        if self._phase_timer >= POUNCE_CATCH_DURATION and not self._bubbles:
+            self._progress = 1.0
+            self._character.play_bursts()
+            self.stop(completed=True)
 
     # ------------------------------------------------------------------
     # Shared pounce helpers
@@ -952,18 +1130,22 @@ class PlayingBehavior(BaseBehavior):
             self._draw_laser(renderer, char_x, char_y)
         elif self._variant in ("string", "feather"):
             self._draw_string(renderer, char_x, char_y)
+        elif self._variant == "bubbles":
+            self._draw_bubbles(renderer, char_x, char_y)
         elif self._bubble and self._phase == "excited":
             progress = min(1.0, self._phase_timer / self.excited_duration)
             draw_bubble(renderer, self._bubble, char_x, char_y, progress, mirror)
 
     def _draw_ball(self, renderer, char_x, char_y):
         """Draw the rolling yarn ball (visible in all active phases)."""
+        self._play_char_x = char_x
+        self._play_char_y = char_y
         if self._phase not in ("watching", "pouncing", "recovering"):
             return
 
         hw = YARN_BALL["width"] // 2
         hh = YARN_BALL["height"] // 2
-        ball_x = char_x + int(self._ball_offset_x) - hw
+        ball_x = int(self._ball_x) - hw
         ball_y = char_y - BALL_Y_OFFSET - hh
 
         # Map rotation to the nearest pre-baked 90° frame (0°/90°/180°/270°)
@@ -973,31 +1155,37 @@ class PlayingBehavior(BaseBehavior):
 
     def _draw_mouse(self, renderer, char_x, char_y):
         """Draw the mouse toy (no rotation animation)."""
+        self._play_char_x = char_x
+        self._play_char_y = char_y
         if self._phase not in ("watching", "pouncing", "recovering"):
             return
         hw = MOUSE_TOY["width"] // 2
         hh = MOUSE_TOY["height"] // 2
-        mouse_x = char_x + int(self._mouse_offset_x) - hw
+        mouse_x = int(self._mouse_x) - hw
         mouse_y = char_y - MOUSE_Y_OFFSET - hh
         renderer.draw_sprite_obj(MOUSE_TOY, mouse_x, mouse_y, mirror_h=self._mouse_facing_right)
 
     def _draw_hand(self, renderer, char_x, char_y):
         """Draw the hand toy, alternating open/closed frames based on distance traveled."""
+        self._play_char_x = char_x
+        self._play_char_y = char_y
         if self._phase not in ("watching", "pouncing", "recovering"):
             return
         hw = HAND_SCRATCH["width"] // 2
         hh = HAND_SCRATCH["height"] // 2
-        hand_x = char_x + int(self._hand_offset_x) - hw
+        hand_x = int(self._hand_x) - hw
         hand_y = char_y - HAND_Y_OFFSET - hh
         frame = int(self._hand_anim_dist / HAND_ANIM_STEP) % 2
         renderer.draw_sprite_obj(HAND_SCRATCH, hand_x, hand_y, frame=frame, mirror_h=self._hand_facing_right)
 
     def _draw_laser(self, renderer, char_x, char_y):
         """Draw the laser dot and beam line (always together while visible)."""
+        self._play_char_x = char_x
+        self._play_char_y = char_y
         if self._phase not in ("watching", "pouncing", "recovering"):
             return
 
-        dot_x = char_x + int(self._laser_offset_x)
+        dot_x = int(self._laser_x)
         dot_y = char_y - LASER_Y_OFFSET
 
         # Draw the beam line in all visible phases
@@ -1018,7 +1206,9 @@ class PlayingBehavior(BaseBehavior):
         if self._phase not in ("watching", "pouncing", "recovering"):
             return
 
-        # Cache positions for the physics update
+        # Cache positions for the physics update and shared eye tracking
+        self._play_char_x = char_x
+        self._play_char_y = char_y
         self._str_last_char_x = char_x
         self._str_last_char_y = char_y
 
@@ -1106,3 +1296,32 @@ class PlayingBehavior(BaseBehavior):
         renderer.draw_line(C[0], C[1], D[0], D[1])   # tip cap
         renderer.draw_line(D[0], D[1], E[0], E[1])   # far edge
         renderer.draw_line(E[0], E[1], F[0], F[1])   # base cap
+
+    def _draw_bubbles(self, renderer, char_x, char_y):
+        """Draw the wand and all floating/popping bubbles; cache char pos for update()."""
+        self._play_char_x = char_x
+        self._play_char_y = char_y
+
+        if self._phase not in ("watching", "pouncing", "recovering", "catching"):
+            return
+
+        # Wand — visible in all non-catching phases
+        if self._phase != "catching":
+            hw = BUBBLE_WAND["width"] // 2
+            wx = int(self._wand_x) - hw
+            renderer.draw_sprite_obj(BUBBLE_WAND, wx, WAND_SCREEN_TOP, mirror_h=not self._wand_facing_right)
+
+        # Bubbles — floating outlines and pop bursts
+        pw = BUBBLE_POP["width"] // 2
+        ph = BUBBLE_POP["height"] // 2
+        for b in self._bubbles:
+            bx = int(b[1])
+            by = int(b[2])
+            if b[4] < 0:  # floating
+                if b[0] == 0:
+                    renderer.draw_sprite_obj(BUBBLE1, bx - 3, by - 3)
+                else:
+                    renderer.draw_sprite_obj(BUBBLE2, bx - 4, by - 4)
+            else:  # popping
+                frame = min(3, int(b[4] * BUBBLE_POP_FPS))
+                renderer.draw_sprite_obj(BUBBLE_POP, bx - pw, by - ph, frame=frame)

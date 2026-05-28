@@ -40,12 +40,14 @@ _TOM_NAMES    = ('Jasper', 'Orion', 'Bennie', 'Winston', 'Reginald',
                  'Odie', 'Beasley', 'Yoshi', 'Zeus', 'Zeke', 'Leo',
                  'Ajax', 'Java', 'Rio', 'Gizmo', 'Loki', 'Smokey',
                  'Rebel', 'Milo', 'Simba', 'Rocky', 'Jet', 'Mozart',
-                 'Spunky', 'Yogi', 'Ollie', 'Otto', 'Skipper', 'Rex')
+                 'Spunky', 'Yogi', 'Ollie', 'Otto', 'Skipper', 'Rex',
+                 'Ace', 'Casper', 'Domino', 'Knox', 'Rocky')
 _QUEEN_NAMES  = ('Bean', 'Lyra', 'Tressym', 'Angel', 'Callie',
                  'Honey', 'Piper', 'Roxie', 'Daisy', 'Jasmine',
                  'Lizzy', 'Daphnie', 'Paprika', 'Mocha', 'Cocoa',
                  'Luna', 'Peaches', 'Kiki', 'Suki', 'Cleo', 'Violet',
-                 'Lilith', 'Buffie', 'Piper', 'Star', 'Maya', 'Hidey')
+                 'Lilith', 'Buffie', 'Piper', 'Star', 'Maya', 'Hidey',
+                 'Bubbles', 'Rose', 'Fiona', )
 _EITHER_NAMES = ('Juno', 'Jessie', 'Remy', 'Jiji', 'Turtle',
                  'Bandit', 'Fuzzy', 'June', 'Koko', 'Noodle',
                  'Pixel', 'Scratches', 'Scraps', 'Silver', 'Sushi',
@@ -53,7 +55,11 @@ _EITHER_NAMES = ('Juno', 'Jessie', 'Remy', 'Jiji', 'Turtle',
                  'Midnight', 'Gato', 'Hunter', 'Pepper', 'Bengie',
                  'Kitty', 'Snowball', 'Star', 'Artemis', 'Tang',
                  'Titch', 'Rainbow', 'Speedy', 'Lemony', 'Milkshake',
-                 'Jingles', 'Muffin', 'Taco', 'Turbo', 'Speedy')
+                 'Jingles', 'Muffin', 'Taco', 'Turbo', 'Speedy', 'Ash',
+                 'Copper', 'Cloud', 'Dusk', 'Echo', 'Hero', 'Karma',
+                 'Lynx', 'Marble', 'Mittens', 'Mocha', 'Mint', 'Nutmeg',
+                 'Patches', 'Saturn', 'Scout', 'Toast', 'Xylo', 'Yoko',
+                 'Zero', 'Zephyr', 'Nimbus')
 
 # Grid layout constants (title 9px, two rows of 27px each = 63px total)
 _TITLE_H   = 9

@@ -298,7 +298,7 @@ class MainScene(Scene):
         player_controls_toy = (
             behavior
             and getattr(behavior, 'active', False)
-            and getattr(behavior, '_variant', None) in ('laser', 'ball', 'string', 'feather', 'mouse', 'hand')
+            and getattr(behavior, '_variant', None) in ('laser', 'ball', 'string', 'feather', 'mouse', 'hand', 'bubbles')
         )
         dx, dy = self.input.get_direction()
         if dx != 0 and not player_controls_toy:
