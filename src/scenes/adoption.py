@@ -39,17 +39,21 @@ _PORTRAIT_EXCLUDE = frozenset(('costume_sitting', 'sitting_back'))
 _TOM_NAMES    = ('Jasper', 'Orion', 'Bennie', 'Winston', 'Reginald',
                  'Odie', 'Beasley', 'Yoshi', 'Zeus', 'Zeke', 'Leo',
                  'Ajax', 'Java', 'Rio', 'Gizmo', 'Loki', 'Smokey',
-                 'Rebel', 'Milo', 'Simba', 'Rocky', 'Jet', 'Mozart')
+                 'Rebel', 'Milo', 'Simba', 'Rocky', 'Jet', 'Mozart',
+                 'Spunky', 'Yogi', 'Ollie', 'Otto', 'Skipper', 'Rex')
 _QUEEN_NAMES  = ('Bean', 'Lyra', 'Tressym', 'Angel', 'Callie',
                  'Honey', 'Piper', 'Roxie', 'Daisy', 'Jasmine',
                  'Lizzy', 'Daphnie', 'Paprika', 'Mocha', 'Cocoa',
-                 'Luna', 'Peaches', 'Kiki', 'Suki', 'Cleo')
+                 'Luna', 'Peaches', 'Kiki', 'Suki', 'Cleo', 'Violet',
+                 'Lilith', 'Buffie', 'Piper', 'Star', 'Maya', 'Hidey')
 _EITHER_NAMES = ('Juno', 'Jessie', 'Remy', 'Jiji', 'Turtle',
                  'Bandit', 'Fuzzy', 'June', 'Koko', 'Noodle',
                  'Pixel', 'Scratches', 'Scraps', 'Silver', 'Sushi',
                  'Tiger', 'Tux', 'Umi', 'Whiskers', 'Ziggy', 'Patch',
                  'Midnight', 'Gato', 'Hunter', 'Pepper', 'Bengie',
-                 'Kitty', 'Snowball', 'Star', 'Artemis', 'Tang')
+                 'Kitty', 'Snowball', 'Star', 'Artemis', 'Tang',
+                 'Titch', 'Rainbow', 'Speedy', 'Lemony', 'Milkshake',
+                 'Jingles', 'Muffin', 'Taco', 'Turbo', 'Speedy')
 
 # Grid layout constants (title 9px, two rows of 27px each = 63px total)
 _TITLE_H   = 9
