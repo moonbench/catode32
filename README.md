@@ -301,6 +301,47 @@ BOARD_TYPE = "ESP32-C6"  # or "ESP32-C3"
 
 This installs the `ssd1306` library, compiles and uploads all game logic. Asset files are not uploaded since they live in the firmware.
 
+
+
+## Desktop Emulator
+
+The game can be run on your computer using pygame, which allows you to experiment with it without needing to setup an ESP32.
+
+### Requirements
+
+- Python 3
+- pygame (`pip install pygame`)
+
+> If your system Python is externally managed (e.g. Homebrew on macOS), use a virtual environment:
+> ```bash
+> python3 -m venv venv
+> source venv/bin/activate
+> pip install pygame
+> ```
+
+### Running
+
+From the `src/` directory:
+
+```bash
+python main_desktop.py
+```
+
+### Controls
+
+| Key | Action |
+|-----|--------|
+| Arrow keys | D-pad |
+| Z / X | A / B |
+| A / S | Menu 1 / Menu 2 |
+| Escape | Quit (saves first) |
+
+### Save file
+
+The desktop save is stored at `src/save.json`, separate from the device save at `/save.json` on the ESP32.
+
+
+
 ## Development Workflow
 
 For the fastest iteration during development, use the `dev.sh` script which compiles Python to bytecode and runs via `mpremote mount`:

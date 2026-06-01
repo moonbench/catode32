@@ -200,9 +200,7 @@ def do_reset(ctx, delete_save):
 
     # Inventory of owned items
     ctx.inventory = {
-        "toys": [
-            {"name": "Feather", "variant": "toy"},
-        ],
+        "toys": [],
         "pots":       {"small": 0, "medium": 0, "large": 0, "planter": 0},
         "seeds":      {"cat_grass": 0, "sunflower": 0, "rose": 0, "tulip": 0},
         "tools":      {"watering_can": False, "spade": False},
@@ -284,8 +282,13 @@ def do_reset(ctx, delete_save):
 
     if delete_save:
         try:
+            from context import _SAVE_PATH
+            _path = _SAVE_PATH
+        except Exception:
+            _path = '/save.json'
+        try:
             import uos
-            uos.remove('/save.json')
+            uos.remove(_path)
             print("[Context] Save file deleted")
         except:
             pass

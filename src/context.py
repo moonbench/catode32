@@ -1,18 +1,14 @@
-def _get_save_paths():
-    paths = []
+def _get_save_path():
     try:
         import config as _cfg
         p = getattr(_cfg, 'SAVE_PATH', None)
         if p:
-            paths.append(p)
+            return p
     except Exception:
         pass
-    if '/save.json' not in paths:
-        paths.append('/save.json')
-    return paths
+    return '/save.json'
 
-_SAVE_PATHS = _get_save_paths()
-_SAVE_PATH  = _SAVE_PATHS[0]
+_SAVE_PATH = _get_save_path()
 
 
 _SICKNESS_AFFECTED_STATS = frozenset((
@@ -169,28 +165,27 @@ class GameContext:
                 'milestones': getattr(self, 'milestones', {})}
         for key in _STAT_KEYS:
             data[key] = getattr(self, key)
-        for path in _SAVE_PATHS:
+        try:
+            with open(_SAVE_PATH, 'w') as f:
+                ujson.dump(data, f)
             try:
-                with open(path, 'w') as f:
-                    ujson.dump(data, f)
-                try:
-                    import uos
-                    uos.sync()
-                except Exception:
-                    pass
-                self.last_save_time = time.ticks_ms()
-                try:
-                    import backup as _bk
-                    import sys as _sys
-                    _bk.maybe_write_snapshot(self)
-                    _sys.modules.pop('backup', None)
-                except Exception as _be:
-                    print("[Backup] Snapshot error: " + str(_be))
-                print("[Context] Saved to " + path)
-                return True
-            except Exception as e:
-                print("[Context] Could not save to " + path + ": " + str(e))
-        return False
+                import uos
+                uos.sync()
+            except Exception:
+                pass
+            self.last_save_time = time.ticks_ms()
+            try:
+                import backup as _bk
+                import sys as _sys
+                _bk.maybe_write_snapshot(self)
+                _sys.modules.pop('backup', None)
+            except Exception as _be:
+                print("[Backup] Snapshot error: " + str(_be))
+            print("[Context] Saved to " + _SAVE_PATH)
+            return True
+        except Exception as e:
+            print("[Context] Save failed: " + str(e))
+            return False
 
     def reset_plants(self):
         """Restore all plants to the default starter set."""
@@ -217,19 +212,9 @@ class GameContext:
     def load(self):
         """Load stats from flash storage. Returns True if successful."""
         import ujson
-        data = None
-        loaded_path = None
-        for path in _SAVE_PATHS:
-            try:
-                with open(path, 'r') as f:
-                    data = ujson.load(f)
-                loaded_path = path
-                break
-            except Exception:
-                continue
         try:
-            if data is None:
-                raise Exception("No save file found")
+            with open(_SAVE_PATH, 'r') as f:
+                data = ujson.load(f)
             for key in _STAT_KEYS:
                 if key in data:
                     setattr(self, key, data[key])
@@ -293,7 +278,7 @@ class GameContext:
             self.recompute_health()
             import time
             self.last_save_time = time.ticks_ms()
-            print("[Context] Loaded from " + (loaded_path or _SAVE_PATH))
+            print("[Context] Loaded from " + _SAVE_PATH)
             return True
         except Exception as e:
             print("[Context] Load skipped: " + str(e))

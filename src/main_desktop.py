@@ -107,11 +107,11 @@ class Game:
 
         self.input   = InputHandler()
         self.context = GameContext()
-        self.context.load()
+        _has_save = self.context.load()
         self.context.input = self.input
 
         self.scene_manager = SceneManager(self.context, self.renderer, self.input)
-        self.scene_manager.change_scene_by_name('inside')
+        self.scene_manager.change_scene_by_name('inside' if _has_save else 'adoption')
 
         self.weather_system = WeatherSystem()
         if 'weather' not in self.context.environment:
@@ -119,7 +119,10 @@ class Game:
                 self.context.environment, self.context.pet_seed)
 
         self.time_system = TimeSystem()
+        self.time_system.pet_seed = self.context.pet_seed
         self.time_system.update_moon_phase(self.context.environment)
+        self.time_system.update_season(self.context.environment)
+        self.time_system.update_temperature(self.context.environment)
         self.time_system.game_minutes_per_second = 1 / 15
 
         self.last_frame_time = _ticks_ms()
@@ -149,7 +152,6 @@ class Game:
             self.scene_manager.update(dt)
 
             # ── draw ──────────────────────────────────────────────────
-            self.renderer.clear()
             self.scene_manager.draw()
             self.renderer.show()
 
@@ -166,6 +168,26 @@ class Game:
         sys.exit(0)
 
 
+def main():
+    game = None
+    try:
+        game = Game()
+        game.run()
+    except KeyboardInterrupt:
+        print("== Interrupted ==")
+    except Exception as e:
+        print(f"==! Error: {e}")
+        import traceback
+        traceback.print_exc()
+        if game is not None:
+            try:
+                game.context._write_to_flash()
+                print("[Crash] Context saved")
+            except Exception as save_err:
+                print(f"[Crash] Save failed: {save_err}")
+    finally:
+        pygame.quit()
+
+
 if __name__ == "__main__":
-    game = Game()
-    game.run()
+    main()

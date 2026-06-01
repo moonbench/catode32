@@ -22,7 +22,7 @@ BOARD_TYPE = "DESKTOP"
 DISPLAY_WIDTH  = 128
 DISPLAY_HEIGHT = 64
 DISPLAY_SCALE  = 6      # Each pixel becomes a 6x6 block → 768x384 window
-DISPLAY_COLOR  = (0, 230, 0)   # Pixel-on colour  (green, like a classic LCD)
+DISPLAY_COLOR  = (35, 165, 204)   # Pixel-on colour
 DISPLAY_BG     = (10, 10, 10)  # Pixel-off / background colour
 # Set True only if your physical OLED has SEG remap enabled and text appears
 # mirrored. For the desktop PC port this should be False.
