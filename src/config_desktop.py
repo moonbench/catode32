@@ -10,10 +10,10 @@ import os as _os
 
 IS_DESKTOP = True
 
-# Save file location — stored next to config_desktop.py so it's easy to find.
-# Change this to any path you prefer, e.g.:
-#   _os.path.expanduser("~/catode32_save.json")
-SAVE_PATH = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), 'save.json')
+# Save file location. When launched via run.py, CATODE32_SRC points to src/
+# so the save lands there regardless of which build directory is active.
+_src_dir  = _os.environ.get('CATODE32_SRC', _os.path.dirname(_os.path.abspath(__file__)))
+SAVE_PATH = _os.path.join(_src_dir, 'save.json')
 
 BOARD_TYPE = "DESKTOP"
 
