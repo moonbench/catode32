@@ -313,9 +313,17 @@ class SceneManager:
         if self.overlays.handle_input():
             return
 
+        # Suppress all global navigation while the adoption scene is active
+        _on_adoption = getattr(self.current_scene, 'SCENE_NAME', None) == 'adoption'
+
         # Open big menu on menu1 button
         if self.input.was_just_pressed('menu1'):
-            self._open_big_menu()
+            if not _on_adoption:
+                self._open_big_menu()
+            return
+
+        # Swallow menu2 during adoption so it can't be misused
+        if _on_adoption and self.input.was_just_pressed('menu2'):
             return
 
         if self.current_scene:
