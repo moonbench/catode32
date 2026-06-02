@@ -1,6 +1,7 @@
 """Vocalizing behavior - pet meows, yowls, or chirps with energy."""
 
 import random
+from lang import t
 from entities.behaviors.base import BaseBehavior
 from ui import draw_bubble
 
@@ -90,15 +91,15 @@ class VocalizingBehavior(BaseBehavior):
         if icon == 'hunger' and not ms.get('fed'):
             has_food = any(v > 0 for v in context.food_stock.values())
             if has_food:
-                return "Your pet is hungry!\nYou should feed them a meal or a snack."
+                return t("Your pet is hungry!\nYou should feed them a meal or a snack.")
             if not ms.get('store'):
-                return "Your pet is hungry but has no food!\nVisit the store to buy them something.\nPlay minigames to earn more coins."
+                return t("Your pet is hungry but has no food!\nVisit the store to buy them something.\nPlay minigames to earn more coins.")
         elif icon == 'bored' and not ms.get('played'):
-            return "Your pet is bored.\nYou should play with them."
+            return t("Your pet is bored.\nYou should play with them.")
         elif icon == 'lonely' and not ms.get('petted'):
-            return "Your pet is lonely.\nYou should play with them or give them some attention."
+            return t("Your pet is lonely.\nYou should play with them or give them some attention.")
         if not ms.get('groomed') and context.cleanliness < 45:
-            return "Your pet is unkempt.\nYou should groom them to help them stay clean."
+            return t("Your pet is unkempt.\nYou should groom them to help them stay clean.")
         return None
 
     def start(self, on_complete=None):

@@ -14,6 +14,7 @@ Handshake messages are delivered by EspNowHandler.dispatch() via on_espnow_msg()
 """
 
 import time
+from lang import t
 from scene import Scene
 from menu import Menu, MenuItem
 
@@ -120,21 +121,21 @@ class SocialScene(Scene):
     def draw(self):
         r = self.renderer
         if self._state == _ST_BROWSING:
-            r.draw_text('Social', 0, 0)
+            r.draw_text(t('Social'), 0, 0)
             nearby_list = list(self._nearby.items())
             if not nearby_list:
-                r.draw_text('No cats nearby...', 0, 18)
+                r.draw_text(t('No cats nearby...'), 0, 18)
             else:
                 for i, (mac, data) in enumerate(nearby_list):
                     prefix = '>' if i == self._selected else ' '
                     r.draw_text((prefix + data['n'])[:21], 0, 16 + i * 9)
-            r.draw_text('A=invite  B=back', 0, 56)
+            r.draw_text(t('A=invite  B=back'), 0, 56)
 
         elif self._state == _ST_INVITING:
-            r.draw_text('Inviting...', 0, 0)
+            r.draw_text(t('Inviting...'), 0, 0)
             r.draw_text((self._invite_name or '?')[:21], 0, 16)
-            r.draw_text('Waiting...', 0, 32)
-            r.draw_text('B=cancel', 0, 56)
+            r.draw_text(t('Waiting...'), 0, 32)
+            r.draw_text(t('B=cancel'), 0, 56)
 
         elif self._state == _ST_INVITED:
             self._confirm_menu.draw()
@@ -142,9 +143,9 @@ class SocialScene(Scene):
         elif self._state == _ST_VISITING:
             visit = self.context.visit
             name = visit['peer_name'] if visit else '?'
-            r.draw_text('Playing with:', 0, 8)
+            r.draw_text(t('Playing with:'), 0, 8)
             r.draw_text(name[:21], 0, 20)
-            r.draw_text('B=leave', 0, 56)
+            r.draw_text(t('B=leave'), 0, 56)
 
     # ------------------------------------------------------------------
     # Input
@@ -235,7 +236,7 @@ class SocialScene(Scene):
 
     def _show_invite_confirm(self, name):
         """Open the reusable Menu confirmation dialog for an incoming invite."""
-        msg = (name + ' wants to play!')[:36]
+        msg = (name + t(' wants to play!'))[:36]
         item = MenuItem('', confirm=msg, action='accept')
         self._confirm_menu.open([item])
         self._confirm_menu.pending_confirmation = item

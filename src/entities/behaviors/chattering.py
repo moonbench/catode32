@@ -1,5 +1,6 @@
 """Chattering behavior - excited jaw-clicking at prey through the window."""
 
+from lang import t
 from entities.behaviors.base import BaseBehavior
 
 
@@ -71,4 +72,4 @@ class ChatteringBehavior(BaseBehavior):
         for i in range(3):
             age = (self._phase_timer - i * 0.3) % cycle
             if age < on_duration:
-                renderer.draw_text("ek", int(base_x), int(base_y - i * 9))
+                renderer.draw_text(t("ek"), int(base_x), int(base_y - i * 9))

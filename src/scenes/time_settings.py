@@ -1,3 +1,4 @@
+from lang import t
 from scene import Scene
 from settings import Settings, SettingItem
 
@@ -12,7 +13,7 @@ class TimeSettingsScene(Scene):
     def enter(self):
         items = [
             SettingItem(
-                "Speed", "time_speed",
+                t("Speed"), "time_speed",
                 min_val=0.5,
                 max_val=20.0,
                 step=0.5,

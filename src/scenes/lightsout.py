@@ -3,6 +3,7 @@ Lights Out minigame - toggle all lights off
 Press a cell to toggle it and its orthogonal neighbours. Goal: all cells off.
 """
 import random
+from lang import t
 from scene import Scene
 from entities.character import CharacterEntity
 from menu import Menu, MenuItem
@@ -139,14 +140,14 @@ class LightsOutScene(Scene):
 
     def _build_options_items(self):
         size_items = [
-            MenuItem("4x4 Easy",   action='size_4'),
-            MenuItem("5x5 Normal", action='size_5'),
-            MenuItem("6x6 Hard",   action='size_6'),
+            MenuItem(t("4x4 Easy"),   action='size_4'),
+            MenuItem(t("5x5 Normal"), action='size_5'),
+            MenuItem(t("6x6 Hard"),   action='size_6'),
         ]
         return [
-            MenuItem("Retry",      action='retry'),
-            MenuItem("New Board",  action='new_board'),
-            MenuItem("Grid Size",  submenu=size_items),
+            MenuItem(t("Retry"),      action='retry'),
+            MenuItem(t("New Board"),  action='new_board'),
+            MenuItem(t("Grid Size"),  submenu=size_items),
         ]
 
     def _handle_menu_action(self, action):
@@ -202,7 +203,7 @@ class LightsOutScene(Scene):
                 self.state = STATE_WIN
                 self.win_timer = 0.0
                 self.win_popup.set_text(
-                    "All off!\n\nMoves: " + str(self.move_count),
+                    t("All off!") + "\n\n" + t("Moves: {n}").format(n=self.move_count),
                     wrap=False, center=True
                 )
                 self.character.set_pose("sitting.side.happy")
@@ -266,4 +267,4 @@ class LightsOutScene(Scene):
     def _draw_sidebar(self, r):
         # Move counter and par above the character
         r.draw_text(str(self.move_count), 92, 2)
-        r.draw_text("Par:" + str(self.par), 82, 12)
+        r.draw_text(t("Par:") + str(self.par), 82, 12)

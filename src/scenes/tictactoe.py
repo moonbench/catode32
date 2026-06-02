@@ -3,6 +3,7 @@ TicTacToe scene - Play tic-tac-toe against the pet
 """
 import random
 import config
+from lang import t
 from scene import Scene
 from assets.minigame_assets import PAW_LARGE1, PAW_MED, PAW_SMALL1
 from entities.character import CharacterEntity
@@ -361,26 +362,26 @@ class TicTacToeScene(Scene):
     def _draw_score(self):
         """Draw score in the top-right area"""
         score_x = 62
-        self.renderer.draw_text("You", score_x, 4)
+        self.renderer.draw_text(t("You"), score_x, 4)
         self.renderer.draw_text(self._fmt_score(self.player_score), score_x, 12)
-        self.renderer.draw_text("Pet", score_x + 28, 4)
+        self.renderer.draw_text(t("Pet"), score_x + 28, 4)
         self.renderer.draw_text(self._fmt_score(self.pet_score), score_x + 28, 12)
 
     def _draw_state_message(self):
         """Draw end game messages"""
         if self.state == self.STATE_PLAYER_WIN:
-            self.result_popup.set_text("You Win!\nA: New Game", wrap=False, center=True)
+            self.result_popup.set_text(t("You Win!") + "\n" + t("A: New Game"), wrap=False, center=True)
             self.result_popup.draw(show_scroll_indicators=False)
         elif self.state == self.STATE_PET_WIN:
-            self.result_popup.set_text("You Lose!\nA: New Game", wrap=False, center=True)
+            self.result_popup.set_text(t("You Lose!") + "\n" + t("A: New Game"), wrap=False, center=True)
             self.result_popup.draw(show_scroll_indicators=False)
         elif self.state == self.STATE_DRAW:
             if self.draw_winner == self.PLAYER:
-                msg = "Draw!\nYou had the\nlongest row\nA: New Game"
+                msg = t("Draw!") + "\n" + t("You had the\nlongest row") + "\n" + t("A: New Game")
             elif self.draw_winner == self.PET:
-                msg = "Draw!\nPet had the\nlongest row\nA: New Game"
+                msg = t("Draw!") + "\n" + t("Pet had the\nlongest row") + "\n" + t("A: New Game")
             else:
-                msg = "Draw!\nA: New Game"
+                msg = t("Draw!") + "\n" + t("A: New Game")
             self.result_popup.set_text(msg, wrap=False, center=True)
             self.result_popup.draw(show_scroll_indicators=False)
         elif self.state == self.STATE_PET_TURN:

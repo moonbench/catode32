@@ -1,5 +1,6 @@
 """pet_info.py - Rich scrollable pet biography page."""
 
+from lang import t
 from scene import Scene
 from ui_keyboard import OnScreenKeyboard
 from assets.icons import UP_ICON, DOWN_ICON
@@ -8,34 +9,52 @@ from assets.icons import UP_ICON, DOWN_ICON
 _PORTRAIT_EXCLUDE = frozenset(('costume_sitting', 'sitting_back'))
 
 _TRAIT_NAMES        = ('courage', 'loyalty', 'mischievousness', 'curiosity', 'sociability')
-_TEMPERAMENT_LABELS = ('Bold', 'Loyal', 'Mischievous', 'Curious', 'Sociable')
+_TEMPERAMENT_LABELS = (t('Bold'), t('Loyal'), t('Mischievous'), t('Curious'), t('Sociable'))
 
 _VISIBLE  = 8   # 8 × 8 px = 64 px full screen height
 _FULL_CPL = 14  # chars per full-width line; leaves room for scroll arrows
 
-_DISPLAY_NAME_OVERRIDES = {'ball': 'Yarn Ball'}
+_DISPLAY_NAME_OVERRIDES = {'ball': t('Yarn Ball')}
+
+_TRANSLATED_NAMES = {
+    'cod': t('Cod'), 'haddock': t('Haddock'), 'trout': t('Trout'),
+    'shrimp': t('Shrimp'), 'herring': t('Herring'), 'turkey': t('Turkey'),
+    'tuna': t('Tuna'), 'salmon': t('Salmon'), 'chicken': t('Chicken'),
+    'liver': t('Liver'), 'beef': t('Beef'), 'lamb': t('Lamb'),
+    'carrots': t('Carrots'), 'pumpkin': t('Pumpkin'),
+    'treats': t('Treats'), 'bytes': t('Bytes'), 'eggs': t('Eggs'),
+    'nuggets': t('Nuggets'), 'milk': t('Milk'), 'sticks': t('Sticks'),
+    'puree': t('Puree'), 'kibble': t('Kibble'),
+    'string': t('String'), 'feather': t('Feather'), 'mouse': t('Mouse'),
+    'ball': t('Yarn Ball'), 'yarn': t('Yarn'), 'laser': t('Laser'),
+    'living_room': t('Living Room'), 'bedroom': t('Bedroom'),
+    'kitchen': t('Kitchen'), 'outside': t('Outside'),
+    'treehouse': t('Treehouse'),
+    'sunny': t('sunny'), 'rainy': t('rainy'),
+    'snowy': t('snowy'), 'overcast': t('cloudy'),
+}
 
 # (stat_key, low_threshold, sentence_template)
 # {s} = She/He  {h} = her/his
 _MOOD_CHECKS = (
-    ('health',          35, "{s}'s not feeling {h} best."),
-    ('fullness',        30, "{s}'s feeling hungry."),
-    ('energy',          30, "{s}'s feeling tired."),
-    ('comfort',         30, "{s} seems uncomfortable."),
-    ('cleanliness',     25, "{s}'s feeling grubby."),
-    ('fitness',         20, "{s}'s feeling sluggish."),
-    ('focus',           25, "{s}'s feeling scattered."),
-    ('intelligence',    20, "{s}'s understimulated."),
-    ('curiosity',       25, "{s}'s feeling bored."),
-    ('playfulness',     30, "{s}'s not feeling playful."),
-    ('affection',       25, "{s} wants more attention."),
-    ('fulfillment',     25, "{s}'s feeling unfulfilled."),
-    ('serenity',        25, "{s} seems restless."),
-    ('sociability',     20, "{s}'s been withdrawn."),
-    ('courage',         20, "{s}'s been timid lately."),
-    ('loyalty',         20, "{s} seems detached."),
-    ('mischievousness', 20, "{s}'s been very subdued."),
-    ('maturity',        20, "{s}'s been impulsive."),
+    ('health',          35, t("{s}'s not feeling {h} best.")),
+    ('fullness',        30, t("{s}'s feeling hungry.")),
+    ('energy',          30, t("{s}'s feeling tired.")),
+    ('comfort',         30, t("{s} seems uncomfortable.")),
+    ('cleanliness',     25, t("{s}'s feeling grubby.")),
+    ('fitness',         20, t("{s}'s feeling sluggish.")),
+    ('focus',           25, t("{s}'s feeling scattered.")),
+    ('intelligence',    20, t("{s}'s understimulated.")),
+    ('curiosity',       25, t("{s}'s feeling bored.")),
+    ('playfulness',     30, t("{s}'s not feeling playful.")),
+    ('affection',       25, t("{s} wants more attention.")),
+    ('fulfillment',     25, t("{s}'s feeling unfulfilled.")),
+    ('serenity',        25, t("{s} seems restless.")),
+    ('sociability',     20, t("{s}'s been withdrawn.")),
+    ('courage',         20, t("{s}'s been timid lately.")),
+    ('loyalty',         20, t("{s} seems detached.")),
+    ('mischievousness', 20, t("{s}'s been very subdued.")),
+    ('maturity',        20, t("{s}'s been impulsive.")),
 )
 
 
@@ -174,19 +193,19 @@ class PetInfoScene(Scene):
 
         # Pronouns
         gender   = getattr(ctx, 'pet_gender', 'queen')
-        she      = 'He'  if gender == 'tom' else 'She'
-        she_l    = 'he'  if gender == 'tom' else 'she'
-        her      = 'his' if gender == 'tom' else 'her'
-        Her      = 'His' if gender == 'tom' else 'Her'
-        g_noun   = 'tom' if gender == 'tom' else 'queen'
+        she      = t('He')  if gender == 'tom' else t('She')
+        she_l    = she.lower()
+        Her      = t('His') if gender == 'tom' else t('Her')
+        her      = Her.lower()
+        g_noun   = t('tom') if gender == 'tom' else t('queen')
 
         # Intro paragraph 1: floated beside headshot
         name   = ctx.pet_name or '?'
         days   = ctx.environment.get('day_number', 0)
         sign   = getattr(ctx, 'star_sign', None) or '?'
         temper = self._temperament()
-        intro1 = name + ' is a ' + str(days) + ' day old ' + g_noun + '.'
-        intro2 = she + ' is a ' + temper.lower() + ' ' + sign.lower() + '.'
+        intro1 = t('{name} is a {days} day old {gnoun}.').format(name=name, days=days, gnoun=g_noun)
+        intro2 = t('{she} is a {temper} {sign}.').format(she=she, temper=temper.lower(), sign=sign.lower())
         intro1_lines = self._wrap_intro(intro1, narrow_cpl, _FULL_CPL, self._narrow_lines)
         intro2_lines = self._wrap(intro2, _FULL_CPL)
 
@@ -204,20 +223,18 @@ class PetInfoScene(Scene):
             body.extend(self._wrap(text, _FULL_CPL))
             body.append('')
 
-        _add(Her + ' favorite meal is ' + meal +
-             ', and ' + her + ' favorite snack is ' + snack + '.')
-        _add(she + ' loves to hang out in the ' + room +
-             ', and ' + she_l + ' really enjoys ' + weather + ' days.')
-        _add('Of all the toys, ' + she_l + ' loves to play with the ' + toy + ' the most.')
+        _add(t('{Her} favorite meal is {meal}, and {her} favorite snack is {snack}.').format(Her=Her, meal=meal, her=her, snack=snack))
+        _add(t('{She} loves to hang out in the {room}, and {she_l} really enjoys {weather} days.').format(She=she, room=room, she_l=she_l, weather=weather))
+        _add(t('Of all the toys, {she_l} loves to play with the {toy} the most.').format(she_l=she_l, toy=toy))
 
         # Sickness
         sickness = getattr(ctx, 'sickness', 0.0)
         if sickness >= 7.0:
-            _add(she + ' feels very sick.')
+            _add(t('{she} feels very sick.').format(she=she))
         elif sickness >= 3.0:
-            _add(she + ' feels pretty sick.')
+            _add(t('{she} feels pretty sick.').format(she=she))
         elif sickness > 0.0:
-            _add(she + ' feels a little sick.')
+            _add(t('{she} feels a little sick.').format(she=she))
 
         # Mood sentences: one per low stat; fallback to "feeling great"
         mood = []
@@ -229,7 +246,7 @@ class PetInfoScene(Scene):
                     mood.append('')
                 mood.extend(self._wrap(sentence, _FULL_CPL))
         if not mood:
-            mood = self._wrap("It seems like " + she_l + "'s feeling pretty great at the moment!", _FULL_CPL)
+            mood = self._wrap(t("It seems like {she_l}'s feeling pretty great at the moment!").format(she_l=she_l), _FULL_CPL)
         body.extend(mood)
         body.append('')
 
@@ -244,18 +261,18 @@ class PetInfoScene(Scene):
                 if v > dominant:
                     dominant = v
             if dominant >= 4:
-                _add(she + ' wishes ' + she_l + ' had more variety in ' + her + ' meals.')
+                _add(t('{she} wishes {she_l} had more variety in {her} meals.').format(she=she, she_l=she_l, her=her))
 
         # Familiar wifi location
         if getattr(ctx, 'in_familiar_location', False):
-            _add(she + ' feels at home here.')
+            _add(t('{she} feels at home here.').format(she=she))
 
         # Strip trailing blanks, then add a blank spacer before "Change Name"
         while body and body[-1] == '':
             body.pop()
         body.append('')
         body.append('')
-        body.append('Change Name')
+        body.append(t('Change Name'))
 
         self._lines      = intro1_lines + [''] + intro2_lines + [''] + body
         self._max_scroll = max(0, len(self._lines) - _VISIBLE)
@@ -333,13 +350,15 @@ class PetInfoScene(Scene):
 
     def _temperament(self):
         ctx  = self.context
-        vals = [getattr(ctx, t, 50) for t in _TRAIT_NAMES]
+        vals = [getattr(ctx, k, 50) for k in _TRAIT_NAMES]
         return _TEMPERAMENT_LABELS[vals.index(max(vals))]
 
     @staticmethod
     def _display_name(key):
         if not key:
             return '?'
+        if key in _TRANSLATED_NAMES:
+            return _TRANSLATED_NAMES[key]
         if key in _DISPLAY_NAME_OVERRIDES:
             return _DISPLAY_NAME_OVERRIDES[key]
         s = key.replace('_', ' ')

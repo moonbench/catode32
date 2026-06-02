@@ -1,4 +1,5 @@
 import gc
+from lang import t
 from scene import Scene
 from ui import Scrollbar
 
@@ -47,7 +48,7 @@ class DebugEspnowScene(Scene):
             self.wlan.active(True)
 
             self.own_mac = self.wlan.config('mac')
-            self.lines.append("Own MAC (STA):")
+            self.lines.append(t("Own MAC (STA):"))
             self.lines.append(f" {self._fmt_mac(self.own_mac)}")
             self.lines.append("")
 
@@ -57,11 +58,11 @@ class DebugEspnowScene(Scene):
             # Add broadcast peer so we can send without knowing the other device's MAC
             try:
                 self.e.add_peer(self.BROADCAST_MAC)
-                self.lines.append("Broadcast peer added")
+                self.lines.append(t("Broadcast peer added"))
             except Exception as ex:
                 self.lines.append(f"Peer err: {ex}")
 
-            self.lines.append("A=send  B=back")
+            self.lines.append(t("A=send  B=back"))
             self.lines.append("")
         except Exception as ex:
             self.lines = [f"Start err: {ex}"]
@@ -84,7 +85,7 @@ class DebugEspnowScene(Scene):
 
     def _send_ping(self):
         if not self.e:
-            self.lines.append("Not active")
+            self.lines.append(t("Not active"))
             return
         try:
             self.send_count += 1

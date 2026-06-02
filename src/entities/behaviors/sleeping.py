@@ -2,6 +2,7 @@
 
 import math
 import random
+from lang import t
 from entities.behaviors.base import BaseBehavior, serenity_wellbeing_factor
 
 
@@ -227,5 +228,5 @@ class SleepingBehavior(BaseBehavior):
             x = int(base_x + i * z_spacing_x)
             y = int(base_y + i * z_spacing_y + wave_offset)
 
-            renderer.draw_text("z", x, y)
+            renderer.draw_text(t("z"), x, y)
 

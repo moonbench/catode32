@@ -1,3 +1,4 @@
+from lang import t
 from scene import Scene
 from weather_system import WeatherSystem
 from temperature_system import get_temperature
@@ -27,13 +28,13 @@ _VIS_COLS = 128 // _COL_W           # = 4 full columns visible
 
 def _fmt_hour(h):
     if h == 0:
-        return "12A"
+        return t("12A")
     elif h < 12:
-        return "%dA" % h
+        return t("{h}A").format(h=h)
     elif h == 12:
-        return "12P"
+        return t("12P")
     else:
-        return "%dP" % (h - 12)
+        return t("{h}P").format(h=(h - 12))
 
 
 def _fmt_temp(t):

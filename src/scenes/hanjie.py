@@ -13,6 +13,7 @@ Layout (128x64 screen):
 Row clues omit spaces between digits (all single-digit since max = COLS).
 """
 import random
+from lang import t
 from scene import Scene
 from entities.character import CharacterEntity
 from ui import Popup
@@ -271,7 +272,7 @@ class HanjieScene(Scene):
         best_str = _format_time(best)
 
         self.win_popup.set_text(
-            "Well done!\nTime: " + time_str + "\nBest: " + best_str,
+            t("Well done!") + "\n" + t("Time: {v}").format(v=time_str) + "\n" + t("Best: {v}").format(v=best_str),
             wrap=False, center=True)
 
         if self.character:

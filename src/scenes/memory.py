@@ -3,6 +3,7 @@ Memory minigame - find matching pairs. Board grows over rounds:
   round 1: 9x6, round 2: 10x7, round 3+: 11x8
 """
 import random
+from lang import t
 from scene import Scene
 from entities.character import CharacterEntity
 from ui import Popup
@@ -253,9 +254,10 @@ class MemoryScene(Scene):
                     if best < 0 or self.score < best:
                         self.context.memory_best_score = self.score
                         best = self.score
-                    best_line = ("Best: " + str(best)) if best >= 0 else ""
+                    best_line = t("Best: {n}").format(n=best) if best >= 0 else ""
+                    rating = (t("Incredible!") if self.score < 50 else t("Amazing!") if self.score < 100 else t("Impressive!") if self.score < 150 else t("Well done!") if self.score < 250 else t("Not bad!") if self.score < 500 else t("Phwew!"))
                     self.win_popup.set_text(
-                        ("Incredible!" if self.score < 50 else "Amazing!" if self.score < 100 else "Impressive!" if self.score < 150 else "Well done!" if self.score < 250 else "Not bad!" if self.score < 500 else "Phwew!") + "\n\nScore: " + str(self.score) + "\n" + best_line,
+                        rating + t("\n\nScore: {n}").format(n=self.score) + "\n" + best_line,
                         wrap=False, center=True)
                     self.state = STATE_WIN
                     self.win_timer = 0.0

@@ -1,5 +1,6 @@
 """Debug scene for testing plant and pot sprite rendering."""
 
+from lang import t
 from scene import Scene
 from menu import Menu, MenuItem
 from assets.plants import PLANT_SPRITES, POT_SPRITES
@@ -150,8 +151,8 @@ class DebugPlantsScene(Scene):
             for i, pt in enumerate(_PLANT_TYPES)
         ]
         return [
-            MenuItem("Pot type",   icon=TREES_ICON, submenu=pot_items),
-            MenuItem("Plant type", icon=TREES_ICON, submenu=plant_items),
+            MenuItem(t("Pot type"),   icon=TREES_ICON, submenu=pot_items),
+            MenuItem(t("Plant type"), icon=TREES_ICON, submenu=plant_items),
         ]
 
     def _handle_menu_action(self, action):

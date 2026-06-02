@@ -2,6 +2,7 @@
 
 import math
 import random
+from lang import t
 from entities.behaviors.base import BaseBehavior, serenity_wellbeing_factor
 
 
@@ -186,5 +187,5 @@ class NappingBehavior(BaseBehavior):
         base_y = char_y - 28
         wave_offset = math.sin(self._phase_timer * 2.5) * 2
 
-        renderer.draw_text("z", int(base_x), int(base_y + wave_offset))
+        renderer.draw_text(t("z"), int(base_x), int(base_y + wave_offset))
 

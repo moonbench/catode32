@@ -409,6 +409,46 @@ This script:
 
 Use this when you want the pet to run standalone without a laptop connection.
 
+## Localisation
+
+All player-visible strings are marked with `t("...")` in the source code. At build time, `tools/translate.py` walks the source tree, replaces every `t(...)` call with the translated string literal, and strips the `from lang import t` import lines. The compiled `.mpy` files contain only baked string values. No translation table is loaded at runtime, so there is zero memory or performance overhead on the device.
+
+Translation lookup order per string: **language file → English fallback → key itself**. This means a partial translation file is valid; any untranslated key silently falls back to English.
+
+### Available languages
+
+| Code | Language |
+|------|----------|
+| `en` | English (default) |
+| `nl` | Dutch |
+| `it` | Italian |
+| `es` | Spanish |
+| `fr` | French |
+| `de` | German |
+
+### Building with a language
+
+Pass `--lang <code>` to `dev.sh`, `upload.sh` or `run.py`:
+
+```bash
+# Run in desktop
+python run.py --lang es
+
+# Test on device
+./dev.sh --lang fr
+
+# Upload to device
+./upload.sh --lang de
+```
+
+The default is `en` if `--lang` is omitted.
+
+### Adding a new language
+
+1. Create `tools/translations/<code>.json`
+2. Copy any keys from `en.json` whose values you want to translate, and replace the values with the translated text. Keys you omit fall back to English automatically.
+3. Run `./dev.sh --lang <code>` or `./upload.sh --lang <code>` to build with the new language.
+
 ## Running the Game
 
 After uploading, the game starts automatically on power-up or reset.

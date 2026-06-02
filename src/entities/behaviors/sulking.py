@@ -1,6 +1,7 @@
 """Sulking behavior - pet withdraws and broods after pacing doesn't help."""
 
 import random
+from lang import t
 from entities.behaviors.base import BaseBehavior
 from ui import draw_bubble
 
@@ -83,13 +84,13 @@ class SulkingBehavior(BaseBehavior):
         if cause == 'hunger' and not ms.get('fed'):
             has_food = any(v > 0 for v in context.food_stock.values())
             if has_food:
-                return "Your pet is hungry!\nYou should feed them a meal or a snack."
+                return t("Your pet is hungry!\nYou should feed them a meal or a snack.")
             if not ms.get('store'):
-                return "Your pet is hungry but has no food!\nVisit the store to buy them something.\nPlay minigames to earn more coins."
+                return t("Your pet is hungry but has no food!\nVisit the store to buy them something.\nPlay minigames to earn more coins.")
         elif cause == 'bored' and not ms.get('played'):
-            return "Your pet is bored.\nYou should play with them."
+            return t("Your pet is bored.\nYou should play with them.")
         elif cause == 'lonely' and not ms.get('petted'):
-            return "Your pet is lonely.\nYou should play with them or give them some attention."
+            return t("Your pet is lonely.\nYou should play with them or give them some attention.")
         return None
 
     def _pick_sulk_pose(self):

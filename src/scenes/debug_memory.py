@@ -1,6 +1,7 @@
 import gc
 import sys
 import micropython
+from lang import t
 from scene import Scene
 from ui import Scrollbar
 
@@ -54,11 +55,11 @@ class DebugMemoryScene(Scene):
         total = free + alloc
         largest = self._largest_free_block()
 
-        self.lines.append("Memory:")
-        self.lines.append(f" Free: {free}")
-        self.lines.append(f" Largest: {largest}")
-        self.lines.append(f" Used: {alloc}")
-        self.lines.append(f" Total: {total}")
+        self.lines.append(t("Memory:"))
+        self.lines.append(t(" Free: {v}").format(v=free))
+        self.lines.append(t(" Largest: {v}").format(v=largest))
+        self.lines.append(t(" Used: {v}").format(v=alloc))
+        self.lines.append(t(" Total: {v}").format(v=total))
         self.lines.append("")
         print("Memory:")
         print(f" Free: {free}")
@@ -69,7 +70,7 @@ class DebugMemoryScene(Scene):
         # micropython.mem_info(1)
 
         # List loaded modules
-        self.lines.append("Modules loaded:")
+        self.lines.append(t("Modules loaded:"))
         print("Modules loaded:")
         modules = sorted(sys.modules.keys())
         for mod in modules:

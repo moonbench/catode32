@@ -5,6 +5,7 @@ Combat: cat swipe attack, slime enemies.
 """
 import random
 import struct
+from lang import t
 from scene import Scene
 from sprite_transform import mirror_sprite_h
 from assets.platformer_terrain import (
@@ -1228,7 +1229,7 @@ class PlatformerScene(Scene):
         r = self.renderer
         mins = int(self._level_time) // 60
         secs = int(self._level_time) % 60
-        r.draw_text(f"Level {self._level_num} - {mins}:{secs:02d}", 0, 1)
+        r.draw_text(t("Level {n} - {time}").format(n=self._level_num, time=f"{mins}:{secs:02d}"), 0, 1)
 
         # Fixed icon column width (widest icon is 18px); text always starts at TEXT_X
         ICON_W  = 18
@@ -1243,7 +1244,7 @@ class PlatformerScene(Scene):
                     and self._slimes_killed == self._total_slimes
                     and self._level_coins_collected == self._total_coins)
         if flawless:
-            r.draw_text("Flawless!", 128 - 9 * 8, text_y)
+            r.draw_text(t("Flawless!"), 128 - 9 * 8, text_y)
 
         # Slime icon — slimes killed row (draw_sprite_obj handles fill + outline)
         sh = PLATFORMER_SLIME_IDLE["height"]
@@ -1260,7 +1261,7 @@ class PlatformerScene(Scene):
 
     def _draw_level_banner(self):
         prog = min(1.0, self._banner_timer / LEVEL_BANNER_DUR)
-        text = f"Level {self._level_num}"
+        text = t("Level {n}").format(n=self._level_num)
         tw = len(text) * 8
         bx = (128 - tw) // 2
         by = 20 - int(prog * LEVEL_BANNER_RISE)

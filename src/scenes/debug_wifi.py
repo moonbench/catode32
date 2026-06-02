@@ -1,6 +1,7 @@
 import gc
 import sys
 import config
+from lang import t
 from scene import Scene
 from ui import Scrollbar
 
@@ -29,17 +30,17 @@ class DebugWifiScene(Scene):
     def enter(self):
         self.scroll_offset = 0
         if config.WIFI_ENABLED:
-            self.lines = ["Scanning WiFi..."]
+            self.lines = [t("Scanning WiFi...")]
             self._scan_countdown = 0.1  # seconds before scan fires
         else:
-            self.lines = ["WiFi disabled.", "Set WIFI_ENABLED=True", "in config.py to use."]
+            self.lines = [t("WiFi disabled."), "Set WIFI_ENABLED=True", "in config.py to use."]
             self._scan_countdown = None
 
     def exit(self):
         pass
 
     def _scan(self):
-        self.lines = ["Scanning WiFi..."]
+        self.lines = [t("Scanning WiFi...")]
         ctx = self.context
         try:
             import wifi_tracker
@@ -68,7 +69,7 @@ class DebugWifiScene(Scene):
         lines = []
 
         # --- Familiar ---
-        lines.append("Home? %s" % loc)
+        lines.append(t("Home? {v}").format(v=loc))
         lines.append("")
         lines.append("Familiar:%d/%d" % (len(fam), 16))
         if fam:

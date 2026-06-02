@@ -11,9 +11,18 @@ echo "=== Virtual Pet Upload Script ==="
 echo ""
 
 # Configuration
-DEVICE_PORT="${1:-}"  # Optional: pass port as first argument
+LANG="en"
+DEVICE_PORT=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --lang) LANG="$2"; shift 2 ;;
+        *)      DEVICE_PORT="$1"; shift ;;
+    esac
+done
+
 SRC_DIR="src"
 BUILD_DIR="build"
+TRANSLATED_DIR="$BUILD_DIR/translated-$LANG"
 
 # Color codes for output
 GREEN='\033[0;32m'
@@ -48,13 +57,18 @@ mp() {
     fi
 }
 
-echo -e "${YELLOW}Step 1: Compiling .py to .mpy...${NC}"
-echo "  (skipping src/assets/ — frozen into firmware, not needed on filesystem)"
+echo -e "${YELLOW}Step 1: Translating source (lang=$LANG)...${NC}"
 rm -rf "$BUILD_DIR"
+python3 tools/translate.py --lang "$LANG" "$SRC_DIR" "$TRANSLATED_DIR"
+echo -e "${GREEN}✓ Translation complete${NC}"
+
+echo ""
+echo -e "${YELLOW}Step 2: Compiling .py to .mpy...${NC}"
+echo "  (skipping assets/ — frozen into firmware, not needed on filesystem)"
 mkdir -p "$BUILD_DIR"
 
 while read -r pyfile; do
-    REL_PATH="${pyfile#$SRC_DIR/}"
+    REL_PATH="${pyfile#$TRANSLATED_DIR/}"
     MPY_PATH="$BUILD_DIR/${REL_PATH%.py}.mpy"
     mkdir -p "$(dirname "$MPY_PATH")"
     echo -n "  Compiling $REL_PATH..."
@@ -66,7 +80,7 @@ while read -r pyfile; do
         echo -e "${RED}Compilation failed. Fix the errors above and try again.${NC}"
         exit 1
     fi
-done < <(find "$SRC_DIR" -name "*.py" -not -path "$SRC_DIR/assets/*")
+done < <(find "$TRANSLATED_DIR" -name "*.py" -not -path "$TRANSLATED_DIR/assets/*")
 echo -e "${GREEN}✓ Compilation complete${NC}"
 
 echo ""
@@ -78,7 +92,7 @@ for txt in levels/level_*.txt; do
 done
 
 echo ""
-echo "Step 2: Checking connection..."
+echo "Step 3: Checking connection..."
 if mp fs ls / > /dev/null 2>&1; then
     echo -e "${GREEN}✓ Connected to device${NC}"
 else
@@ -96,12 +110,12 @@ mp fs rm /boot.py 2>/dev/null || true
 echo "  (boot.py removed - will be restored at end)"
 
 echo ""
-echo "Step 3: Installing dependencies..."
+echo "Step 4: Installing dependencies..."
 mp mip install ssd1306
 echo -e "${GREEN}✓ SSD1306 library installed${NC}"
 
 echo ""
-echo -e "${YELLOW}Step 4: Cleaning ALL files from device...${NC}"
+echo -e "${YELLOW}Step 5: Cleaning ALL files from device...${NC}"
 echo "  (keeping boot.py and lib/ directory for safety)"
 
 # Function to recursively delete files and directories
@@ -134,7 +148,7 @@ clean_device
 echo -e "${GREEN}✓ Device cleaned${NC}"
 
 echo ""
-echo "Step 5: Uploading compiled files..."
+echo "Step 6: Uploading compiled files..."
 # Count files for progress
 TOTAL_FILES=$(find $BUILD_DIR -type f \( -name "*.mpy" -o -name "*.bin" \) | wc -l)
 CURRENT=0
@@ -158,7 +172,7 @@ find $BUILD_DIR -type f \( -name "*.mpy" -o -name "*.bin" \) | while read -r fil
 done
 
 echo ""
-echo "Step 6: Verifying upload..."
+echo "Step 7: Verifying upload..."
 echo "Root files:"
 mp fs ls /
 echo ""
@@ -168,12 +182,12 @@ if mp fs ls /scenes > /dev/null 2>&1; then
 fi
 
 echo ""
-echo "Step 7: Uploading boot.py..."
+echo "Step 8: Uploading boot.py..."
 mp fs cp boot.py :boot.py
 echo -e "${GREEN}✓ boot.py uploaded${NC}"
 
 echo ""
-echo "Step 8: Restarting device..."
+echo "Step 9: Restarting device..."
 mp reset
 echo -e "${GREEN}✓ Device restarted${NC}"
 

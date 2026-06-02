@@ -4,6 +4,7 @@ Water flows automatically; arrange pieces ahead of the flow to win.
 """
 import random
 import framebuf as _fb
+from lang import t
 from scene import Scene
 from assets.minigame_assets import (
     PIPE_STRAIGHT, PIPE_CORNER, PIPE_FAT,
@@ -351,7 +352,7 @@ class PipeScene(Scene):
     def _set_broken(self):
         self.state     = STATE_BROKEN
         self.end_timer = 0.0
-        self.result_popup.set_text("Burst!\n\nA: New Game", wrap=False, center=True)
+        self.result_popup.set_text(t("Burst!") + "\n\n" + t("A: New Game"), wrap=False, center=True)
 
     def _set_win(self):
         self.cell_filled[self.flow_row * TOTAL_COLS + self.flow_col] = 1
@@ -359,7 +360,7 @@ class PipeScene(Scene):
         self.state = STATE_WIN
         self.end_timer = 0.0
         self._session_wins += 1
-        self.result_popup.set_text(f"Connected!\nWins: {self._session_wins}\nA: New Game", wrap=False, center=True)
+        self.result_popup.set_text(t("Connected!") + "\n" + t("Wins: {n}").format(n=self._session_wins) + "\n" + t("A: New Game"), wrap=False, center=True)
 
     # -------------------------------------------------------------------------
     # Input
@@ -382,7 +383,7 @@ class PipeScene(Scene):
 
         if self.input.was_just_pressed('menu2'):
             self.menu_active = True
-            self.options_menu.open([MenuItem("New Board", action='new_board')])
+            self.options_menu.open([MenuItem(t("New Board"), action='new_board')])
             return None
 
         # Cursor movement (always available)

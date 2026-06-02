@@ -1,3 +1,4 @@
+from lang import t
 from scene import Scene
 from settings import Settings, SettingItem
 
@@ -13,38 +14,38 @@ class EnvironmentSettingsScene(Scene):
         env = getattr(self.context, 'environment', {})
         items = [
             SettingItem(
-                "Day", "day_number",
+                t("Day"), "day_number",
                 min_val=0, max_val=9999999, step=1,
                 value=env.get('day_number', 0)
             ),
             SettingItem(
-                "Hour", "time_hours",
+                t("Hour"), "time_hours",
                 min_val=0, max_val=23, step=1,
                 value=env.get('time_hours', 12)
             ),
             SettingItem(
-                "Min", "time_minutes",
+                t("Min"), "time_minutes",
                 min_val=0, max_val=55, step=5,
                 value=env.get('time_minutes', 0)
             ),
             SettingItem(
-                "Season", "season",
+                t("Season"), "season",
                 options=["Spring", "Summer", "Fall", "Winter"],
                 value=env.get('season', "Summer")
             ),
             SettingItem(
-                "Moon", "moon_phase",
+                t("Moon"), "moon_phase",
                 options=["New", "Wax Cres", "1st Qtr", "Wax Gib",
                          "Full", "Wan Gib", "3rd Qtr", "Wan Cres"],
                 value=env.get('moon_phase', "Full")
             ),
             SettingItem(
-                "Weather", "weather",
+                t("Weather"), "weather",
                 options=["Clear", "Cloudy", "Overcast", "Rain", "Storm", "Snow", "Windy"],
                 value=env.get('weather', "Clear")
             ),
             SettingItem(
-                "Temp", "temperature",
+                t("Temp"), "temperature",
                 min_val=-20, max_val=50, step=1,
                 value=int(env.get('temperature', 20))
             ),

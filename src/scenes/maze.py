@@ -5,6 +5,7 @@ import random
 import math
 import framebuf
 import config
+from lang import t
 from scene import Scene
 from assets.minigame_character import SITCAT1
 from assets.items import FISH1
@@ -503,7 +504,7 @@ class MazeScene(Scene):
 
     def draw_win_message(self):
         """Draw win screen overlay"""
-        self.win_popup.set_text("Found it!", wrap=False, center=True)
+        self.win_popup.set_text(t("Found it!"), wrap=False, center=True)
         self.win_popup.draw(show_scroll_indicators=False)
 
     def handle_input(self):

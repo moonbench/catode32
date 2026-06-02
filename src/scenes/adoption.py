@@ -8,6 +8,7 @@ States:
   MOMENT  - adoption moment: cat walks in, shows love bubble, fades to inside
 """
 
+from lang import t
 from scene import Scene
 from ui import draw_bubble, Popup
 from ui_keyboard import OnScreenKeyboard
@@ -28,11 +29,11 @@ _STAR_SIGNS = (
 )
 
 _WEATHER_ADJ = {
-    'sunny': 'sunny', 'rainy': 'rainy',
-    'snowy': 'snowy', 'overcast': 'cloudy',
+    'sunny': t('sunny'), 'rainy': t('rainy'),
+    'snowy': t('snowy'), 'overcast': t('cloudy'),
 }
 
-_TEMPERAMENT_LABELS = ('Bold', 'Loyal', 'Mischievous', 'Curious', 'Sociable')
+_TEMPERAMENT_LABELS = (t('Bold'), t('Loyal'), t('Mischievous'), t('Curious'), t('Sociable'))
 
 _PORTRAIT_EXCLUDE = frozenset(('costume_sitting', 'sitting_back'))
 
@@ -228,7 +229,7 @@ class AdoptionScene(Scene):
         if self.input.was_just_pressed('b'):
             self._state = _GRID
         elif self.input.was_just_pressed('a'):
-            item = MenuItem('Adopt', action=('adopt',), confirm='Is this the cat you want to adopt?')
+            item = MenuItem(t('Adopt'), action=('adopt',), confirm=t('Is this the cat you want to adopt?'))
             self._menu.open([item])
             self._menu.pending_confirmation = item
             self._state = _CONFIRM
@@ -242,7 +243,7 @@ class AdoptionScene(Scene):
         result = self._menu.handle_input()
         if result == ('adopt',):
             cand = self._candidates[self._viewing]
-            self._kb.open('Name your cat', cand['name'])
+            self._kb.open(t('Name your cat'), cand['name'])
             self._state = _NAMING
         elif result is not None or not self._menu.pending_confirmation:
             self._state = _PROFILE
@@ -310,7 +311,7 @@ class AdoptionScene(Scene):
         r = self.renderer
 
         # Title
-        title = 'Adoptable Pets'
+        title = t('Adoptable Pets')
         r.draw_text(title, (128 - len(title) * 8) // 2, 0)
         # Cells
         pp = self._portrait_poses
@@ -356,23 +357,23 @@ class AdoptionScene(Scene):
         offs    = cand['offsets']
         seed    = cand['seed']
         gender     = favs['pet_gender']
-        possessive = 'His' if gender == 'tom' else 'Her'
+        possessive = t('His') if gender == 'tom' else t('Her')
         sign    = _STAR_SIGNS[seed % 12]
         dom     = offs.index(max(offs))
         temper  = _TEMPERAMENT_LABELS[dom]
-        weather = _WEATHER_ADJ.get(favs.get('fav_weather', ''), 'any')
+        weather = _WEATHER_ADJ.get(favs.get('fav_weather', ''), t('any'))
         def _fmt(key):
             return key.replace('_', ' ')
         meal  = _fmt(favs['fav_meal'])
         snack = _fmt(favs['fav_snack'])
         toy   = _fmt(favs['fav_toy'])
-        line1 = cand['name'] + ' is a ' + temper.lower() + ' ' + sign.lower() + ', who loves ' + weather + ' weather.'
-        line2 = possessive + ' favorite meal is ' + meal + '. ' + possessive + ' favorite snack is ' + snack + '. And ' + possessive.lower() + ' favorite toy is the ' + toy + '.'
+        line1 = t('{name} is a {temper} {sign}, who loves {weather} weather.').format(name=cand['name'], temper=temper.lower(), sign=sign.lower(), weather=weather)
+        line2 = t('{possessive} favorite meal is {meal}. {possessive} favorite snack is {snack}. And {possessive_lower} favorite toy is the {toy}.').format(possessive=possessive, meal=meal, snack=snack, possessive_lower=possessive.lower(), toy=toy)
         return line1 + '\n' + line2
 
     def _draw_profile(self):
         self._popup.draw()
-        self.renderer.draw_text('[A]Adopt [B]Back', 0, 56)
+        self.renderer.draw_text(t('[A]Adopt [B]Back'), 0, 56)
 
     # ------------------------------------------------------------------
     # Confirm

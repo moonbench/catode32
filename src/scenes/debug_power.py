@@ -1,4 +1,5 @@
 import machine
+from lang import t
 from scene import Scene
 from menu import Menu, MenuItem
 
@@ -12,9 +13,9 @@ class DebugPowerScene(Scene):
 
     def enter(self):
         self._menu.open([
-            MenuItem("Reboot",      action=('reboot',)),
-            MenuItem("Light Sleep", action=('light_sleep',)),
-            MenuItem("Deep Sleep",  action=('deep_sleep',)),
+            MenuItem(t("Reboot"),      action=('reboot',)),
+            MenuItem(t("Light Sleep"), action=('light_sleep',)),
+            MenuItem(t("Deep Sleep"),  action=('deep_sleep',)),
         ])
 
     def draw(self):

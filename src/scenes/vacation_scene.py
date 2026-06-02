@@ -14,6 +14,7 @@ Subclasses implement:
     on_update(dt)        update sky + character + environment
 """
 
+from lang import t
 from scenes.main_scene import MainScene
 from menu import MenuItem
 from assets.icons import HOUSE_ICON
@@ -103,10 +104,10 @@ class VacationScene(MainScene):
     def _build_menu_items(self):
         items = [i for i in super()._build_menu_items() if i.label != "Gardening"]
         items.insert(0, MenuItem(
-            "Go home",
+            t("Go home"),
             icon=HOUSE_ICON,
             action=("vacation_go_home",),
-            confirm="Ready to go home?",
+            confirm=t("Ready to go home?"),
         ))
         return items
 

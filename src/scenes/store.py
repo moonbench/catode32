@@ -1,5 +1,6 @@
 """Store scene - buy food and toys with coins."""
 
+from lang import t
 from scene import Scene
 from menu import Menu, MenuItem
 from ui import Popup
@@ -12,69 +13,69 @@ _FOOD_USES = 5
 
 # (display_name, food_stock_key, cost)
 _MEAL_ITEMS = (
-    ("Kibble",   "kibble",    5),
-    ("Cod",      "cod",       6),
-    ("Haddock",  "haddock",   7),
-    ("Trout",    "trout",     8),
-    ("Shrimp",   "shrimp",    9),
-    ("Herring",  "herring",  10),
-    ("Turkey",   "turkey",   10),
-    ("Tuna",     "tuna",     12),
-    ("Salmon",   "salmon",   12),
-    ("Chicken",  "chicken",  13),
-    ("Liver",    "liver",    14),
-    ("Beef",     "beef",     14),
-    ("Lamb",     "lamb",     15),
+    (t("Kibble"),   "kibble",    5),
+    (t("Cod"),      "cod",       6),
+    (t("Haddock"),  "haddock",   7),
+    (t("Trout"),    "trout",     8),
+    (t("Shrimp"),   "shrimp",    9),
+    (t("Herring"),  "herring",  10),
+    (t("Turkey"),   "turkey",   10),
+    (t("Tuna"),     "tuna",     12),
+    (t("Salmon"),   "salmon",   12),
+    (t("Chicken"),  "chicken",  13),
+    (t("Liver"),    "liver",    14),
+    (t("Beef"),     "beef",     14),
+    (t("Lamb"),     "lamb",     15),
 )
 
 _SNACK_ITEMS = (
-    ("Carrots",    "carrots",     2),
-    ("Pumpkin",    "pumpkin",     2),
-    ("Treats",     "treats",      3),
-    ("Bytes",      "fish_bite",   4),
-    ("Eggs",       "eggs",        5),
-    ("Nuggets",    "nugget",      5),
-    ("Milk",       "milk",        6),
-    ("Sticks",     "chew_stick",  6),
-    ("Puree",      "puree",       8),
+    (t("Carrots"),    "carrots",     2),
+    (t("Pumpkin"),    "pumpkin",     2),
+    (t("Treats"),     "treats",      3),
+    (t("Bytes"),      "fish_bite",   4),
+    (t("Eggs"),       "eggs",        5),
+    (t("Nuggets"),    "nugget",      5),
+    (t("Milk"),       "milk",        6),
+    (t("Sticks"),     "chew_stick",  6),
+    (t("Puree"),      "puree",       8),
 )
 
 _TOY_DURABILITY = {'string': 28, 'feather': 28, 'ball': 42, 'mouse': 42, 'laser': 100, 'bubbles': 35}
 
 # (store_label, full_name, variant, cost)
 _TOY_ITEMS = (
-    ("String",  "String",         "string",  20),
-    ("Feather", "Feather",        "feather", 35),
-    ("Mouse",   "Mouse Toy",      "mouse",   40),
-    ("Yarn",    "Yarn Ball",      "ball",    50),
-    ("Bubbles", "Bubbles",        "bubbles", 45),
-    ("Laser",   "Laser Pointer",  "laser",   75),
+    (t("String"),  "String",         "string",  20),
+    (t("Feather"), "Feather",        "feather", 35),
+    (t("Mouse"),   "Mouse Toy",      "mouse",   40),
+    (t("Yarn"),    "Yarn Ball",      "ball",    50),
+    (t("Bubbles"), "Bubbles",        "bubbles", 45),
+    (t("Laser"),   "Laser Pointer",  "laser",   75),
 )
 
 # (display_name, full_name, inventory_key, cost)
 _POT_ITEMS = (
-    ("Small",   "Small pot",   "small",    15),
-    ("Medium",  "Medium pot",  "medium",   25),
-    ("Large",   "Large pot",   "large",    40),
-    ("Planter", "Planter box", "planter",  55),
+    (t("Small"),   t("Small pot"),   "small",    15),
+    (t("Medium"),  t("Medium pot"),  "medium",   25),
+    (t("Large"),   t("Large pot"),   "large",    40),
+    (t("Planter"), t("Planter box"), "planter",  55),
 )
 
 _SEEDS_PER_PACK = 3
 
 # (display_name, full_name, inventory_key, cost per pack)
 _SEED_ITEMS = (
-    ("Grass",   "Cat Grass",  "cat_grass",   4),
-    ("Freesia", "Freesia",    "freesia",    10),
-    ("Sun",     "Sunflower",  "sunflower",  12),
-    ("Rose",    "Rose",       "rose",       15),
+    (t("Grass"),   t("Cat Grass"),  "cat_grass",   4),
+    (t("Freesia"), t("Freesia"),    "freesia",    10),
+    (t("Sun"),     t("Sunflower"),  "sunflower",  12),
+    (t("Rose"),    t("Rose"),       "rose",       15),
 )
 
 # (display_name, full_name, scene_name, cost)
 _TRIP_ITEMS = (
-    ("Park",   "Park",      "vacation_park",     15),
-    ("Forest", "Forest",    "vacation_forest",   25),
-    ("Aqua.",  "Aquarium",  "vacation_aquarium", 50),
-    ("Beach",  "Beach",     "vacation_beach",    100),
+    (t("Park"),   t("Park"),      "vacation_park",     15),
+    (t("Forest"), t("Forest"),    "vacation_forest",   25),
+    (t("Aqua."),  t("Aquarium"),  "vacation_aquarium", 50),
+    (t("Beach"),  t("Beach"),     "vacation_beach",    100),
 )
 
 _FERTILIZER_COST = 25
@@ -82,14 +83,14 @@ _MEDICINE_COST = 50
 
 # (display_name, full_name, inventory_key, cost)
 _TOOL_ITEMS = (
-    ("Spade",  "Spade",        "spade",        40),
-    ("W. Can", "Watering Can", "watering_can", 50),
+    (t("Spade"),  t("Spade"),        "spade",        40),
+    (t("W. Can"), t("Watering Can"), "watering_can", 50),
 )
 
 # (display_name, stat_changes, cost, completion_msg)
 _SERVICE_ITEMS = (
-    ("Groom", {"cleanliness": 40, "sociability": 8, "courage": 6},   50,  "A luxurious spa day!"),
-    ("Train", {"maturity": 5, "sociability": 5, "intelligence": 8, "fitness": 6, "mischievousness": -8}, 100, "Professional training done!"),
+    (t("Groom"), {"cleanliness": 40, "sociability": 8, "courage": 6},   50,  t("A luxurious spa day!")),
+    (t("Train"), {"maturity": 5, "sociability": 5, "intelligence": 8, "fitness": 6, "mischievousness": -8}, 100, t("Professional training done!")),
 )
 
 # Width of the menu panel (left half of 128px screen)
@@ -138,9 +139,9 @@ class StoreScene(Scene):
         tool_items  = [self._tool_item(label, full, key, cost)
                        for label, full, key, cost in _TOOL_ITEMS]
         gardening_items = [
-            MenuItem("Pots",       submenu=pot_items),
-            MenuItem("Seeds",      submenu=seed_items),
-            MenuItem("Tools",      submenu=tool_items),
+            MenuItem(t("Pots"),       submenu=pot_items),
+            MenuItem(t("Seeds"),      submenu=seed_items),
+            MenuItem(t("Tools"),      submenu=tool_items),
             self._fertilizer_item(),
         ]
         service_items = [self._service_item(name, stats, cost, msg)
@@ -148,90 +149,93 @@ class StoreScene(Scene):
         trip_items = [self._trip_item(label, full, scene, cost)
                       for label, full, scene, cost in _TRIP_ITEMS]
         return [
-            MenuItem("Food",     submenu=food_items),
-            MenuItem("Snacks",   submenu=snack_items),
-            MenuItem("Toys",     submenu=toy_items),
-            MenuItem("Garden",   submenu=gardening_items),
-            MenuItem("Service",  submenu=service_items),
-            MenuItem("Trips",    submenu=trip_items),
+            MenuItem(t("Food"),     submenu=food_items),
+            MenuItem(t("Snacks"),   submenu=snack_items),
+            MenuItem(t("Toys"),     submenu=toy_items),
+            MenuItem(t("Garden"),   submenu=gardening_items),
+            MenuItem(t("Service"),  submenu=service_items),
+            MenuItem(t("Trips"),    submenu=trip_items),
             self._medicine_item(),
-            MenuItem("Exit",     action=("leave",)),
+            MenuItem(t("Exit"),     action=("leave",)),
         ]
 
     def _food_item(self, name, key, cost):
         label = f"{name}"
         if self.context.coins >= cost:
             return MenuItem(label, action=("buy_food", name, key, cost),
-                            confirm=f"{name}({_FOOD_USES}): {cost}c")
-        return MenuItem(label, action=("no_funds",), confirm="Can't afford!")
+                            confirm=t("{item}({uses}): {cost}c").format(item=name, uses=_FOOD_USES, cost=cost))
+        return MenuItem(label, action=("no_funds",), confirm=t("Can't afford!"))
 
     def _toy_item(self, label, full_name, variant, cost):
         toy = None
-        for t in self.context.inventory.get("toys", []):
-            if t["name"] == full_name:
-                toy = t
+        for existing_toy in self.context.inventory.get("toys", []):
+            if existing_toy["name"] == full_name:
+                toy = existing_toy
                 break
         if toy is not None:
             if toy.get("durability", 1) > 0:
                 return MenuItem(label + "*", action=("already_owned",),
-                                confirm="Already owned!")
+                                confirm=t("Already owned!"))
             if self.context.coins >= cost:
-                verb = "Refill" if variant == "bubbles" else "Replace"
+                if variant == "bubbles":
+                    confirm = t("Refill: {cost}c").format(cost=cost)
+                else:
+                    confirm = t("Replace: {cost}c").format(cost=cost)
                 return MenuItem(label + "!", action=("replace_toy", full_name, variant, cost),
-                                confirm=f"{verb}: {cost}c")
-            return MenuItem(label + "!", action=("no_funds",), confirm="Can't afford!")
+                                confirm=confirm)
+            return MenuItem(label + "!", action=("no_funds",), confirm=t("Can't afford!"))
         if self.context.coins >= cost:
             return MenuItem(label, action=("buy_toy", full_name, variant, cost),
-                            confirm=f"{label}: {cost}c")
-        return MenuItem(label, action=("no_funds",), confirm="Can't afford!")
+                            confirm=t("{item}: {cost}c").format(item=label, cost=cost))
+        return MenuItem(label, action=("no_funds",), confirm=t("Can't afford!"))
 
     def _pot_item(self, label, full, key, cost):
         if self.context.coins >= cost:
             return MenuItem(label, action=("buy_pot", full, key, cost),
-                            confirm=f"{full}: {cost}c")
-        return MenuItem(label, action=("no_funds",), confirm="Can't afford!")
+                            confirm=t("{item}: {cost}c").format(item=full, cost=cost))
+        return MenuItem(label, action=("no_funds",), confirm=t("Can't afford!"))
 
     def _seed_item(self, label, full, key, cost):
         if self.context.coins >= cost:
             return MenuItem(label, action=("buy_seeds", full, key, cost),
-                            confirm=f"{full}x{_SEEDS_PER_PACK}: {cost}c")
-        return MenuItem(label, action=("no_funds",), confirm="Can't afford!")
+                            confirm=t("{item}x{n}: {cost}c").format(item=full, n=_SEEDS_PER_PACK, cost=cost))
+        return MenuItem(label, action=("no_funds",), confirm=t("Can't afford!"))
 
     def _fertilizer_item(self):
         cost = _FERTILIZER_COST
         if self.context.coins >= cost:
-            return MenuItem("Fertilizer", action=("buy_fertilizer", cost),
-                            confirm=f"Fertilizer: {cost}c")
-        return MenuItem("Fertilizer", action=("no_funds",), confirm="Can't afford!")
+            return MenuItem(t("Fertilizer"), action=("buy_fertilizer", cost),
+                            confirm=t("Fertilizer: {cost}c").format(cost=cost))
+        return MenuItem(t("Fertilizer"), action=("no_funds",), confirm=t("Can't afford!"))
 
     def _service_item(self, name, stats, cost, msg):
         if self.context.coins >= cost:
             return MenuItem(name, action=("buy_service", name, stats, cost, msg),
-                            confirm=f"{name}: {cost}c")
-        return MenuItem(name, action=("no_funds",), confirm="Can't afford!")
+                            confirm=t("{item}: {cost}c").format(item=name, cost=cost))
+        return MenuItem(name, action=("no_funds",), confirm=t("Can't afford!"))
 
     def _trip_item(self, label, full, scene_name, cost):
         if self.context.coins >= cost:
             return MenuItem(label, action=("buy_trip", scene_name, cost),
-                            confirm=f"A trip to the {full.lower()}: {cost}c")
-        return MenuItem(label, action=("no_funds",), confirm="Can't afford!")
+                            confirm=t("A trip to the {dest}: {cost}c").format(dest=full.lower(), cost=cost))
+        return MenuItem(label, action=("no_funds",), confirm=t("Can't afford!"))
 
     def _medicine_item(self):
         cost = _MEDICINE_COST
         if self.context.coins >= cost:
-            return MenuItem("Meds.", action=("buy_medicine", cost),
-                            confirm=f"Medicine: {cost}c")
-        return MenuItem("Medicine", action=("no_funds",), confirm="Can't afford!")
+            return MenuItem(t("Meds."), action=("buy_medicine", cost),
+                            confirm=t("{item}: {cost}c").format(item=t("Medicine"), cost=cost))
+        return MenuItem(t("Medicine"), action=("no_funds",), confirm=t("Can't afford!"))
 
     def _tool_item(self, label, full, key, cost):
         owned = self.context.inventory['tools'].get(key, False)
         if owned:
             return MenuItem(label + "*", action=("already_owned",),
-                            confirm="Already owned!")
+                            confirm=t("Already owned!"))
         if self.context.coins >= cost:
             return MenuItem(label, action=("buy_tool", full, key, cost),
-                            confirm=f"{full}: {cost}c")
-        return MenuItem(label, action=("no_funds",), confirm="Can't afford!")
+                            confirm=t("{item}: {cost}c").format(item=full, cost=cost))
+        return MenuItem(label, action=("no_funds",), confirm=t("Can't afford!"))
 
     # ------------------------------------------------------------------
     # Update / draw / input
@@ -329,7 +333,7 @@ class StoreScene(Scene):
                 self.context.coins -= cost
                 self.context.food_stock[key] = self.context.food_stock.get(key, 0) + _FOOD_USES
                 print(f"[Store] Bought {key} for {cost}c (+{_FOOD_USES} uses)")
-                self._purchase_msg = f"{name} purchased!"
+                self._purchase_msg = t("{item} purchased!").format(item=name)
                 self._popup.set_text(self._purchase_msg, center=True)
             else:
                 self.menu.open(self._build_menu())
@@ -337,14 +341,14 @@ class StoreScene(Scene):
         elif kind == "buy_toy":
             _, name, variant, cost = action
             if self.context.coins >= cost:
-                owned = any(t["name"] == name for t in self.context.inventory.get("toys", []))
+                owned = any(toy["name"] == name for toy in self.context.inventory.get("toys", []))
                 if not owned:
                     self.context.coins -= cost
                     self.context.inventory.setdefault("toys", []).append(
                         {"name": name, "variant": variant, "durability": _TOY_DURABILITY.get(variant, 28)}
                     )
                     print(f"[Store] Bought toy {name} for {cost}c")
-                    self._purchase_msg = f"{name} purchased!"
+                    self._purchase_msg = t("{item} purchased!").format(item=name)
                     self._popup.set_text(self._purchase_msg, center=True)
                     return None
             self.menu.open(self._build_menu())
@@ -358,9 +362,9 @@ class StoreScene(Scene):
                         toy["durability"] = _TOY_DURABILITY.get(variant, 28)
                         print(f"[Store] Replaced toy {name} for {cost}c")
                         if variant == "bubbles":
-                            self._purchase_msg = "Bubbles refilled!"
+                            self._purchase_msg = t("{item} replaced!").format(item=t("Bubbles"))
                         else:
-                            self._purchase_msg = f"{name} replaced!"
+                            self._purchase_msg = t("{item} replaced!").format(item=name)
                         self._popup.set_text(self._purchase_msg, center=True)
                         return None
             self.menu.open(self._build_menu())
@@ -371,7 +375,7 @@ class StoreScene(Scene):
                 self.context.coins -= cost
                 self.context.inventory['pots'][key] = self.context.inventory['pots'].get(key, 0) + 1
                 print(f"[Store] Bought pot {key} for {cost}c")
-                self._purchase_msg = f"{full} bought!"
+                self._purchase_msg = t("{item} bought!").format(item=full)
                 self._popup.set_text(self._purchase_msg, center=True)
             else:
                 self.menu.open(self._build_menu())
@@ -382,7 +386,7 @@ class StoreScene(Scene):
                 self.context.coins -= cost
                 self.context.inventory['seeds'][key] = self.context.inventory['seeds'].get(key, 0) + _SEEDS_PER_PACK
                 print(f"[Store] Bought {key} seeds x{_SEEDS_PER_PACK} for {cost}c")
-                self._purchase_msg = f"{full} x{_SEEDS_PER_PACK}!"
+                self._purchase_msg = t("{item} x{n}!").format(item=full, n=_SEEDS_PER_PACK)
                 self._popup.set_text(self._purchase_msg, center=True)
             else:
                 self.menu.open(self._build_menu())
@@ -393,7 +397,7 @@ class StoreScene(Scene):
                 self.context.coins -= cost
                 self.context.inventory['tools'][key] = True
                 print(f"[Store] Bought tool {key} for {cost}c")
-                self._purchase_msg = f"{full} bought!"
+                self._purchase_msg = t("{item} bought!").format(item=full)
                 self._popup.set_text(self._purchase_msg, center=True)
             else:
                 self.menu.open(self._build_menu())
@@ -404,7 +408,7 @@ class StoreScene(Scene):
                 self.context.coins -= cost
                 self.context.inventory['fertilizer'] = self.context.inventory.get('fertilizer', 0) + 1
                 print(f"[Store] Bought fertilizer for {cost}c")
-                self._purchase_msg = "Fertilizer bought!"
+                self._purchase_msg = t("Fertilizer bought!")
                 self._popup.set_text(self._purchase_msg, center=True)
             else:
                 self.menu.open(self._build_menu())
@@ -435,7 +439,7 @@ class StoreScene(Scene):
                 self.context.coins -= cost
                 self.context.inventory['medicine'] = self.context.inventory.get('medicine', 0) + 1
                 print("[Store] Bought medicine for %dc" % cost)
-                self._purchase_msg = "Medicine purchased!"
+                self._purchase_msg = t("{item} purchased!").format(item=t("Medicine"))
                 self._popup.set_text(self._purchase_msg, center=True)
             else:
                 self.menu.open(self._build_menu())

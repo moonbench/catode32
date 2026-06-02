@@ -1,5 +1,6 @@
 import machine
 import neopixel
+from lang import t
 from scene import Scene
 from settings import Settings, SettingItem
 
@@ -32,10 +33,10 @@ class DebugLedScene(Scene):
 
     def enter(self):
         items = [
-            SettingItem("Toggle", "enabled", options=["ON", "OFF"], value="ON"),
-            SettingItem("R", "r", min_val=0, max_val=255, step=_STEP, value=255),
-            SettingItem("G", "g", min_val=0, max_val=255, step=_STEP, value=255),
-            SettingItem("B", "b", min_val=0, max_val=255, step=_STEP, value=255),
+            SettingItem(t("Toggle"), "enabled", options=["ON", "OFF"], value="ON"),
+            SettingItem(t("R"), "r", min_val=0, max_val=255, step=_STEP, value=255),
+            SettingItem(t("G"), "g", min_val=0, max_val=255, step=_STEP, value=255),
+            SettingItem(t("B"), "b", min_val=0, max_val=255, step=_STEP, value=255),
         ]
         self.settings.open(items, transition=False)
 

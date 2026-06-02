@@ -3,8 +3,17 @@
 
 set -e
 
+LANG="en"
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --lang) LANG="$2"; shift 2 ;;
+        *)      shift ;;
+    esac
+done
+
 SRC_DIR="src"
 BUILD_DIR="build"
+TRANSLATED_DIR="$BUILD_DIR/translated-$LANG"
 
 # Color codes
 GREEN='\033[0;32m'
@@ -24,18 +33,21 @@ if ! command -v mpremote &> /dev/null; then
     exit 1
 fi
 
-echo -e "${YELLOW}=== Compiling .py to .mpy ===${NC}"
-echo "  (skipping src/assets/ — frozen into firmware, not needed on filesystem)"
-
-# Clean and create build directory
+echo -e "${YELLOW}=== Translating source (lang=$LANG) ===${NC}"
 rm -rf "$BUILD_DIR"
+python3 tools/translate.py --lang "$LANG" "$SRC_DIR" "$TRANSLATED_DIR"
+echo -e "${GREEN}=== Translation complete ===${NC}"
+
+echo ""
+echo -e "${YELLOW}=== Compiling .py to .mpy ===${NC}"
+echo "  (skipping assets/ — frozen into firmware, not needed on filesystem)"
 mkdir -p "$BUILD_DIR"
 
 # Find all .py files and compile them (assets are frozen in firmware)
 FAILED=0
 while read -r pyfile; do
-    # Get relative path from src/
-    REL_PATH="${pyfile#$SRC_DIR/}"
+    # Get relative path from translated dir
+    REL_PATH="${pyfile#$TRANSLATED_DIR/}"
     # Change extension to .mpy
     MPY_PATH="$BUILD_DIR/${REL_PATH%.py}.mpy"
 
@@ -50,7 +62,7 @@ while read -r pyfile; do
         cat /tmp/mpy_cross_err
         FAILED=1
     fi
-done < <(find "$SRC_DIR" -name "*.py" -not -path "$SRC_DIR/assets/*")
+done < <(find "$TRANSLATED_DIR" -name "*.py" -not -path "$TRANSLATED_DIR/assets/*")
 
 if [ "$FAILED" -eq 1 ]; then
     echo -e "${RED}Compilation failed. Fix the errors above and try again.${NC}"
