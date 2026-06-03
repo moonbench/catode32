@@ -21,7 +21,7 @@ BOARD_TYPE = "DESKTOP"
 # Increase DISPLAY_SCALE to make the window larger (4 = 512x256 window)
 DISPLAY_WIDTH  = 128
 DISPLAY_HEIGHT = 64
-DISPLAY_SCALE  = 6      # Each pixel becomes a 6x6 block → 768x384 window
+DISPLAY_SCALE  = 8      # Each pixel becomes a 6x6 block → 768x384 window
 DISPLAY_COLOR  = (35, 165, 204)   # Pixel-on colour
 DISPLAY_BG     = (10, 10, 10)  # Pixel-off / background colour
 # Set True only if your physical OLED has SEG remap enabled and text appears
@@ -50,7 +50,7 @@ WIFI_ENABLED = False
 SHOW_DEBUG_MENUS = True
 
 # Software version
-VERSION = "0.4.0-desktop"
+VERSION = "0.9.0-desktop"
 
 # Game timing
 FPS            = 12

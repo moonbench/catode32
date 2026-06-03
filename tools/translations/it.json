@@ -408,5 +408,7 @@
   "Your pet is hungry but has no food!\nVisit the store to buy them something.\nPlay minigames to earn more coins.": "Il tuo animale ha fame ma non ha cibo!\nVisita il negozio per comprare qualcosa.\nGioca ai minigiochi per guadagnare monete.",
   "Your pet is bored.\nYou should play with them.": "Il tuo animale si annoia.\nDovresti giocare con lui.",
   "Your pet is lonely.\nYou should play with them or give them some attention.": "Il tuo animale e solo.\nGioca con lui o dagli attenzione.",
-  "Your pet is unkempt.\nYou should groom them to help them stay clean.": "Il tuo animale e trasandato.\nFagli la toeletta per tenerlo pulito."
+  "Your pet is unkempt.\nYou should groom them to help them stay clean.": "Il tuo animale e trasandato.\nFagli la toeletta per tenerlo pulito.",
+  "You need the Spade to plant seeds. Buy one at the store!": "Hai bisogno della Vanga per piantare semi. Comprarne una al negozio!",
+  "You need the Watering Can to water plants. Buy one at the store!": "Hai bisogno dell'Annaffiatoio per innaffiare. Comprarne uno al negozio!"
 }

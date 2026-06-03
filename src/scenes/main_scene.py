@@ -422,9 +422,8 @@ class MainScene(Scene):
             if inv['seeds'].get(key, 0) > 0
         ]
 
-        has_spade = inv.get('tools', {}).get('spade', False)
         in_ground_items = []
-        if has_spade and getattr(self, 'SCENE_NAME', None) == 'outside':
+        if getattr(self, 'SCENE_NAME', None) == 'outside':
             in_ground_items = [
                 MenuItem(f"{name} ({inv['seeds'].get(key, 0)})", icon=TREES_ICON,
                          action=("gardening_plant_ground", key))
@@ -529,28 +528,40 @@ class MainScene(Scene):
         elif action_type == "gardening_place_pot":
             self._placement.enter(action[1], self)
         elif action_type == "gardening_plant_seed":
-            seed_type = action[1]
-            def _on_pot_selected(plant, _st=seed_type):
-                plant_seed(self.context, plant['id'], _st)
-            found = self._plant_selection.enter(self, _on_pot_selected,
-                                                filter_fn=lambda p: p['stage'] == 'empty_pot')
-            if not found:
-                self._popup_msg = t("No empty pots in this location")
+            if not self.context.inventory.get('tools', {}).get('spade', False):
+                self._popup_msg = t("You need the Spade to plant seeds. Buy one at the store!")
                 self._popup.set_text(self._popup_msg, center=True)
+            else:
+                seed_type = action[1]
+                def _on_pot_selected(plant, _st=seed_type):
+                    plant_seed(self.context, plant['id'], _st)
+                found = self._plant_selection.enter(self, _on_pot_selected,
+                                                    filter_fn=lambda p: p['stage'] == 'empty_pot')
+                if not found:
+                    self._popup_msg = t("No empty pots in this location")
+                    self._popup.set_text(self._popup_msg, center=True)
         elif action_type == "gardening_plant_ground":
-            seed_type = action[1]
-            scene = self
-            def _on_ground_placed(layer, x, y_snap, _st=seed_type, _sc=scene):
-                plant_in_ground(_sc.context, _sc.SCENE_NAME, layer, x, y_snap, _st)
-                invalidate_plant_cache(_sc)
-            self._placement.enter('ground', self, on_confirm=_on_ground_placed)
+            if not self.context.inventory.get('tools', {}).get('spade', False):
+                self._popup_msg = t("You need the Spade to plant seeds. Buy one at the store!")
+                self._popup.set_text(self._popup_msg, center=True)
+            else:
+                seed_type = action[1]
+                scene = self
+                def _on_ground_placed(layer, x, y_snap, _st=seed_type, _sc=scene):
+                    plant_in_ground(_sc.context, _sc.SCENE_NAME, layer, x, y_snap, _st)
+                    invalidate_plant_cache(_sc)
+                self._placement.enter('ground', self, on_confirm=_on_ground_placed)
         elif action_type == "tend_water":
-            plant = get_plant_by_id(self.context, action[1])
-            if plant:
-                water_plant(plant)
-                _e = BurstEffect()
-                _e.trigger(count=4, spread_x=12, spread_y_min=-25, spread_y_max=5)
-                self._plant_bursts[plant['id']] = _e
+            if not self.context.inventory.get('tools', {}).get('watering_can', False):
+                self._popup_msg = t("You need the Watering Can to water plants. Buy one at the store!")
+                self._popup.set_text(self._popup_msg, center=True)
+            else:
+                plant = get_plant_by_id(self.context, action[1])
+                if plant:
+                    water_plant(plant)
+                    _e = BurstEffect()
+                    _e.trigger(count=4, spread_x=12, spread_y_min=-25, spread_y_max=5)
+                    self._plant_bursts[plant['id']] = _e
         elif action_type == "tend_fertilize":
             plant = get_plant_by_id(self.context, action[1])
             if plant:
