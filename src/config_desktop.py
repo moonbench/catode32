@@ -33,10 +33,10 @@ BTN_UP    = pygame.K_UP
 BTN_DOWN  = pygame.K_DOWN
 BTN_LEFT  = pygame.K_LEFT
 BTN_RIGHT = pygame.K_RIGHT
-BTN_A     = pygame.K_z
-BTN_B     = pygame.K_x
-BTN_MENU1 = pygame.K_a
-BTN_MENU2 = pygame.K_s
+BTN_A     = pygame.K_a
+BTN_B     = pygame.K_s
+BTN_MENU1 = pygame.K_q
+BTN_MENU2 = pygame.K_w
 
 # Dummy I2C values (not used on desktop, but some modules import these)
 I2C_SDA  = 0
