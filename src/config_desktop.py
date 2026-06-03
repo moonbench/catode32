@@ -1,12 +1,13 @@
 """
-config_desktop.py - Desktop/PC configuration for catode32
-Drop-in replacement for config.py when running on PC with pygame.
-Copy or symlink this as config.py to run on desktop.
+config_desktop.py - Desktop/PC configuration for catode32.
+Loaded by main_desktop.py and injected as the 'config' module.
+Imports base config then overrides desktop-specific values.
 """
 
 import pygame
-
 import os as _os
+
+from config import *
 
 IS_DESKTOP = True
 
@@ -17,18 +18,15 @@ SAVE_PATH = _os.path.join(_src_dir, 'save.json')
 
 BOARD_TYPE = "DESKTOP"
 
-# Display Configuration — matches original OLED resolution
-# Increase DISPLAY_SCALE to make the window larger (4 = 512x256 window)
-DISPLAY_WIDTH  = 128
-DISPLAY_HEIGHT = 64
-DISPLAY_SCALE  = 8      # Each pixel becomes a 6x6 block → 768x384 window
-DISPLAY_COLOR  = (35, 165, 204)   # Pixel-on colour
-DISPLAY_BG     = (10, 10, 10)  # Pixel-off / background colour
+# Desktop display extras — base DISPLAY_WIDTH/HEIGHT inherited from config
+DISPLAY_SCALE = 8             # Each pixel becomes an 8x8 block → 1024x512 window
+DISPLAY_COLOR = (35, 165, 204)
+DISPLAY_BG    = (10, 10, 10)
 # Set True only if your physical OLED has SEG remap enabled and text appears
 # mirrored. For the desktop PC port this should be False.
 DISPLAY_MIRROR_H = False
 
-# Key mappings  (pygame key constants)
+# Key mappings (pygame key constants) — override GPIO pin numbers from config
 BTN_UP    = pygame.K_UP
 BTN_DOWN  = pygame.K_DOWN
 BTN_LEFT  = pygame.K_LEFT
@@ -38,32 +36,11 @@ BTN_B     = pygame.K_s
 BTN_MENU1 = pygame.K_q
 BTN_MENU2 = pygame.K_w
 
-# Dummy I2C values (not used on desktop, but some modules import these)
-I2C_SDA  = 0
-I2C_SCL  = 0
-I2C_FREQ = 400000
-
 # WiFi / ESPNow features — disabled on desktop
 WIFI_ENABLED = False
 
-# Debug menus
-SHOW_DEBUG_MENUS = True
+# Sleep disabled on desktop
+SLEEP_MODE = None
 
-# Software version
-VERSION = "0.9.0-desktop"
-
-# Game timing
-FPS            = 12
-FRAME_TIME_MS  = 1000 // FPS
-
-# Transition settings
-TRANSITION_DURATION = 0.25
-
-# Panning
-PAN_SPEED = 4
-
-# Sleep / power saving — disable on desktop
-SLEEP_MODE        = None
-SLEEP_TIMEOUT_SEC = 900
-SLEEP_FPS         = 2
-SLEEP_FRAME_TIME_MS = 1000 // SLEEP_FPS
+# Append suffix to base version
+VERSION = VERSION + "-desktop"
