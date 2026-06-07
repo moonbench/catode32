@@ -381,7 +381,8 @@ class SceneManager:
         items.append(MenuItem(t("Store"), icon=STORE_ICON, action=('scene', 'store')))
 
         # Social / playdate
-        items.append(MenuItem(t("Social"), icon=CAT_ICON, action=('scene', 'social')))
+        if config.WIFI_ENABLED:
+            items.append(MenuItem(t("Social"), icon=CAT_ICON, action=('scene', 'social')))
 
         # Pet info
         items.append(MenuItem(t("Pet info"), icon=CAT_ICON, action=('scene', 'pet_info')))
