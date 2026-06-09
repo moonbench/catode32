@@ -404,8 +404,9 @@ class SceneManager:
             ]
             debug_items.append(MenuItem(t("Vacations"), icon=SUN_ICON, submenu=vacation_items))
             debug_items.append(MenuItem(t("Time Speed"), icon=WRENCH_ICON, action=('scene', 'time_settings')))
-            debug_items.append(MenuItem(t("Memory"), icon=WRENCH_ICON, action=('scene', 'debug_memory')))
-            debug_items.append(MenuItem(t("RGB LED"), icon=WRENCH_ICON, action=('scene', 'debug_led')))
+            if not config.IS_DESKTOP:
+                debug_items.append(MenuItem(t("Memory"), icon=WRENCH_ICON, action=('scene', 'debug_memory')))
+                debug_items.append(MenuItem(t("RGB LED"), icon=WRENCH_ICON, action=('scene', 'debug_led')))
             debug_items.append(MenuItem(t("Power"), icon=POWER_ICON, action=('scene', 'debug_power')))
 
             debug_items.append(MenuItem("Context", icon=WRENCH_ICON, action=('scene', 'debug_context')))
