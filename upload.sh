@@ -160,10 +160,15 @@ find $BUILD_DIR -type f \( -name "*.mpy" -o -name "*.bin" \) | while read -r fil
     REL_PATH="${file#$BUILD_DIR/}"
     echo -n "  [$CURRENT/$TOTAL_FILES] Uploading $REL_PATH..."
 
-    # Create directory if needed
+    # Create directory if needed (mpremote mkdir isn't recursive, so walk each component)
     DIR_PATH=$(dirname "/$REL_PATH")
     if [ "$DIR_PATH" != "/" ]; then
-        mp fs mkdir "$DIR_PATH" 2>/dev/null || true
+        ACCUM=""
+        IFS='/' read -ra PARTS <<< "${DIR_PATH#/}"
+        for part in "${PARTS[@]}"; do
+            ACCUM="$ACCUM/$part"
+            mp fs mkdir "$ACCUM" 2>/dev/null || true
+        done
     fi
 
     # Upload file
