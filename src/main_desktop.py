@@ -22,6 +22,14 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 import pygame
 pygame.init()
 
+# ── Screenshot support (optional, enabled via CATODE32_SCREENSHOT env var) ──
+_SCREENSHOT_ENABLED = os.environ.get('CATODE32_SCREENSHOT') == '1'
+_SCREENSHOT_FRAME   = 30          # capture after this many frames
+_SCREENSHOT_COUNTER = 0
+_SCREENSHOT_PATH    = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'screenshot.png'
+)
+
 # ── Swap in desktop versions before anything else imports the originals ──
 # We rename the desktop modules to the names the game expects.
 import config_desktop
@@ -96,6 +104,21 @@ from time_system import TimeSystem
 from splash import show_splash
 import config
 
+# ── Screenshot helper ──────────────────────────────────────────────────────
+def _save_screenshot(surface):
+    """Save the pygame surface as a PNG file."""
+    try:
+        from PIL import Image
+        # pygame surface -> raw RGB bytes -> PIL Image
+        raw = pygame.image.tostring(surface, 'RGB')
+        img = Image.frombytes('RGB', surface.get_size(), raw)
+        img.save(_SCREENSHOT_PATH)
+        print(f"==> Screenshot saved: {_SCREENSHOT_PATH}  "
+              f"({surface.get_width()}x{surface.get_height()})")
+    except Exception as e:
+        print(f"[Screenshot] Failed: {e}")
+
+
 # ── Game class (trimmed version of main.py — no ESP-Now, no deep sleep) ───
 
 class Game:
@@ -154,6 +177,16 @@ class Game:
             # ── draw ──────────────────────────────────────────────────
             self.scene_manager.draw()
             self.renderer.show()
+
+            # ── screenshot capture (CI only) ──────────────────────────
+            global _SCREENSHOT_COUNTER
+            if _SCREENSHOT_ENABLED:
+                _SCREENSHOT_COUNTER += 1
+                if _SCREENSHOT_COUNTER == _SCREENSHOT_FRAME:
+                    _save_screenshot(self.renderer.display._surface)
+                    if _SCREENSHOT_ENABLED:
+                        print("==> Screenshot captured, auto-quitting...")
+                        self._quit()
 
             self.last_frame_time = now
             clock.tick(config.FPS)

@@ -1,8 +1,8 @@
 name: Pull Request CI
 
 on:
-  pull_request:
-    branches: [ "main", "master" ]
+  push:
+    branches: '**'
 
 jobs:
   test-desktop:

@@ -17,6 +17,7 @@ import sys
 def main():
     parser = argparse.ArgumentParser(description='Run Catode32 desktop emulator.')
     parser.add_argument('--lang', default='en', help='Language code (default: en)')
+    parser.add_argument('--screenshot', action='store_true', help='Capture a screenshot after boot and save as screenshot.png')
     args = parser.parse_args()
 
     root    = os.path.dirname(os.path.abspath(__file__))
@@ -35,6 +36,8 @@ def main():
     env = os.environ.copy()
     env['CATODE32_SRC'] = src_dir
 
+    if args.screenshot:
+        env['CATODE32_SCREENSHOT'] = '1'
     os.execve(sys.executable, [sys.executable, main_script], env)
 
 
