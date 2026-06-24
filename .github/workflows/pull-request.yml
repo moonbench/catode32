@@ -25,7 +25,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pygame
+          pip install pygame pillow
 
       - name: Translate source (English)
         run: |
@@ -77,9 +77,23 @@ jobs:
           pygame.quit()
           PYEOF
 
-      - name: Headless game smoke test
+      - name: Headless game smoke test (with screenshot)
         shell: bash
         run: |
           export SDL_VIDEODRIVER=dummy
           export SDL_AUDIODRIVER=dummy
-          timeout 8 python run.py --lang en || true
+          python run.py --lang en --screenshot
+          # Verify screenshot was created
+          if [ -f build/desktop-en/screenshot.png ]; then
+            echo "Screenshot captured: $(file build/desktop-en/screenshot.png)"
+          else
+            echo "Warning: screenshot not found"
+          fi
+
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: game-screenshot
+          path: build/desktop-en/screenshot.png
+          if-no-files-found: warn
