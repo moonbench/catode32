@@ -324,7 +324,7 @@ The game can be run on your computer using pygame, which allows you to experimen
 From the `src/` directory:
 
 ```bash
-python main_desktop.py
+python run.py
 ```
 
 ### Controls
