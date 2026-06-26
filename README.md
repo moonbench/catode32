@@ -1,5 +1,7 @@
 # Catode32 - A virtual pet for your ESP32
 
+[![Dekstop](https://github.com/moonbench/catode32/actions/workflows/pull-request.yml/badge.svg)](https://github.com/moonbench/catode32/actions/workflows/pull-request.yml)
+
 ![catstars](https://github.com/user-attachments/assets/2ffc652a-f392-42e7-9a13-d7fb91f3770d)
 
 ![spookycat](https://github.com/user-attachments/assets/c1f8b6eb-b90c-46ad-b652-80093db97f83)
