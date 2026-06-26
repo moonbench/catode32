@@ -30,7 +30,8 @@ PORT="${3:-}"
 case "$BOARD" in
     esp32c6) MICROPY_BOARD="ESP32_GENERIC_C6" ;;
     esp32c3) MICROPY_BOARD="ESP32_GENERIC_C3" ;;
-    *) echo "Unknown board: $BOARD. Use esp32c6 or esp32c3."; exit 1 ;;
+    esp32s3) MICROPY_BOARD="ESP32_GENERIC_S3" ;;
+    *) echo "Unknown board: $BOARD. Use esp32c6, esp32s3 or esp32c3."; exit 1 ;;
 esac
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"

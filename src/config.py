@@ -6,7 +6,7 @@ config.py - Hardware configuration and game constants
 # BOARD SELECTION - Change this to match your ESP32 board
 # ============================================================================
 # Supported boards: "ESP32-C6", "ESP32-C3"
-BOARD_TYPE = "ESP32-C6"  # Change to "ESP32-C3" if using ESP32-C3 board
+BOARD_TYPE = "ESP32-C6"  # or select "ESP32-C3" or "ESP32-S3"
 
 # ============================================================================
 # Board-Specific Pin Configurations
@@ -42,13 +42,31 @@ _ESP32_C3_CONFIG = {
     'BTN_MENU2': 11,
 }
 
+# ESP32-S3 Pin Configuration (XIAO S3)
+_ESP32_S3_CONFIG = {
+    'I2C_SDA': 5,
+    'I2C_SCL': 6,
+    'BTN_UP':  1,
+    'BTN_DOWN': 2,
+    'BTN_LEFT': 3,
+    'BTN_RIGHT':4,
+    'BTN_A': 9,
+    'BTN_B': 0,
+    'BTN_MENU1': 8,
+    'BTN_MENU2': 7,
+}
+
+
+
 # Select configuration based on board type
 if BOARD_TYPE == "ESP32-C3":
     _CONFIG = _ESP32_C3_CONFIG
 elif BOARD_TYPE == "ESP32-C6":
     _CONFIG = _ESP32_C6_CONFIG
+elif BOARD_TYPE == "ESP32-S3":
+    _CONFIG = _ESP32_S3_CONFIG
 else:
-    raise ValueError(f"Unknown BOARD_TYPE: {BOARD_TYPE}. Supported: 'ESP32-C6', 'ESP32-C3'")
+    raise ValueError(f"Unknown BOARD_TYPE: {BOARD_TYPE}. Supported: 'ESP32-C6', 'ESP32-C3', 'ESP32-S3'")
 
 # Display Configuration
 DISPLAY_WIDTH = 128
@@ -68,7 +86,7 @@ BTN_MENU1 = _CONFIG['BTN_MENU1']
 BTN_MENU2 = _CONFIG['BTN_MENU2']
 
 # Free the raw config dicts — all values have been extracted above
-del _ESP32_C6_CONFIG, _ESP32_C3_CONFIG, _CONFIG
+del _ESP32_C6_CONFIG, _ESP32_C3_CONFIG, _ESP32_S3_CONFIG, _CONFIG
 
 # WiFi Features
 # Disable if wlan.scan() causes hard freezes on your firmware/board combination.
@@ -78,7 +96,7 @@ WIFI_ENABLED = True
 SHOW_DEBUG_MENUS = True
 
 # Software Version
-VERSION = "0.9.1"
+VERSION = "0.9.0"
 
 # Game Constants
 FPS = 12  # Target frames per second
