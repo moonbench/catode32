@@ -217,7 +217,7 @@ class StatsScene(Scene):
         if self.input.was_just_pressed('a'):
             stat = STATS_CONFIG[self.selected_index]
             value = int(getattr(self.context, stat["key"], 0))
-            self.popup.set_text(f"{stat["name"]}\n---- {value}% ----\n{stat["desc"]}")
+            self.popup.set_text(f"{stat['name']}\n---- {value}% ----\n{stat['desc']}")
             self.showing_detail = True
             return None
 
