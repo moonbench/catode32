@@ -82,6 +82,10 @@ const CAT_BED_X: i32 = 154;
 impl Scene for BedroomScene {
     fn enter(&mut self, ctx: &mut GameContext) {
         self.base.enter(ctx, SceneId::Bedroom, PLANT_SURFACES);
+        // Walkable strip stops well short of the world_width because the
+        // bed occupies the right side of the room.
+        ctx.scene_x_min = 10;
+        ctx.scene_x_max = 182;
         ctx.cat_bed_x = Some(CAT_BED_X);
         let bookshelf_y = 63 - BOOKSHELF.height as i32;
         self.base.environment.add_object(

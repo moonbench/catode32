@@ -587,8 +587,9 @@ impl LocationScene {
         self.scene_id = scene_id;
         self.plant_surfaces = plant_surfaces;
         self.sky.reseed_stars(ctx.pet_seed);
-        // TODO(scene_bounds): pull these from per-scene constants; today every
-        // scene shares the default character walkable strip.
+        // Default walkable strip. Scenes that need tighter bounds (e.g.
+        // treehouse's tree trunks, bedroom's bed) overwrite these after
+        // calling `base.enter`.
         ctx.scene_x_min = 10;
         ctx.scene_x_max = (self.environment.world_width - 10).max(10);
         self.character.reseed_anim();

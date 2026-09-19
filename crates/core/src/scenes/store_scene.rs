@@ -1,8 +1,3 @@
-// TODO: store currently surfaces messages like "Can't afford!" and "Already
-// owned!" as a post-action popup. A nicer UX would show the dynamic confirm
-// text BEFORE the action fires. Revisit when the menu system can hold
-// owned-string items.
-
 use core::fmt::Write as _;
 
 use embedded_graphics::prelude::{Point, Size};

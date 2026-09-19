@@ -339,9 +339,6 @@ struct SeedsData {
     #[serde(default)] sunflower: u8,
     #[serde(default)] rose: u8,
     #[serde(default)] freesia: u8,
-    // TODO(plants): Tulip has no plant type yet. Round-trip the count so old
-    // saves don't lose it.
-    #[serde(default)] tulip: u8,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -574,7 +571,6 @@ fn build(ctx: &GameContext) -> SaveData {
             sunflower: ctx.seeds[SeedKind::Sunflower as usize],
             rose: ctx.seeds[SeedKind::Rose as usize],
             freesia: ctx.seeds[SeedKind::Freesia as usize],
-            tulip: 0,
         },
         tools: ToolsData {
             watering_can: ctx.tools[ToolKind::WateringCan as usize],

@@ -780,11 +780,9 @@ impl SkyRenderer {
     }
 
     fn configure_clouds(&mut self, weather: Weather) {
-        let (min_count, _max_count, speed_mult) = weather_cloud_config(weather);
-        // TODO: pick a random count between min and max each enter. Using
-        // the lower bound for now keeps it deterministic until we have a
-        // per-scene PRNG.
-        let count = (min_count as usize).min(CLOUD_TEMPLATES.len());
+        let (min_count, max_count, speed_mult) = weather_cloud_config(weather);
+        let rolled = crate::rand::rand_range_u32(&mut self.rng, min_count as u32, max_count as u32);
+        let count = (rolled as usize).min(CLOUD_TEMPLATES.len());
         self.cloud_speed_mult = speed_mult;
         self.clouds.clear();
         let spacing = self.world_width / count.max(1) as i32;
@@ -908,8 +906,6 @@ impl SkyRenderer {
             .get(moon_phase as usize)
             .copied()
             .flatten();
-        // TODO: on "New" phase, draw a fill-only sprite to occlude stars.
-        let Some(frame_idx) = frame else { return };
 
         let mh = if hours_f >= MOON_RISE { hours_f } else { hours_f + 24.0 };
         let t = (mh - MOON_RISE) / (MOON_SET - MOON_RISE);
@@ -921,14 +917,35 @@ impl SkyRenderer {
             return;
         }
 
-        renderer.draw_sprite(
-            &MOON,
-            Point::new(screen_x, y),
-            SpriteOpts {
-                frame: frame_idx as usize,
-                ..Default::default()
-            },
-        );
+        let pos = Point::new(screen_x, y);
+        match frame {
+            Some(frame_idx) => renderer.draw_sprite(
+                &MOON,
+                pos,
+                SpriteOpts {
+                    frame: frame_idx as usize,
+                    ..Default::default()
+                },
+            ),
+            None => {
+                // New phase: the disc is invisible, but its silhouette still
+                // occludes the stars behind it. Draw the fill mask only.
+                if let Some(fill_frames) = MOON.fill_frames {
+                    renderer.draw_sprite_raw(
+                        fill_frames[0],
+                        MOON.width,
+                        MOON.height,
+                        pos,
+                        SpriteOpts {
+                            transparent: true,
+                            transparent_color: true,
+                            invert: true,
+                            ..Default::default()
+                        },
+                    );
+                }
+            }
+        }
     }
 
     fn draw_sun(&self, renderer: &mut Renderer, hours_f: f32, camera_offset: i32, temperature: f32) {

@@ -81,7 +81,6 @@ impl KitchenScene {
 impl Scene for KitchenScene {
     fn enter(&mut self, ctx: &mut GameContext) {
         self.base.enter(ctx, SceneId::Kitchen, PLANT_SURFACES);
-        // TODO: BOX_SMALL_1 and FOOD_BOWL items (as foreground sprites).
     }
 
     fn update(

@@ -1,7 +1,8 @@
 use embedded_graphics::prelude::{Point, Size};
 
 use crate::{
-    assets::furniture::BOOKSHELF,
+    assets::{furniture::BOOKSHELF, items::BOX_SMALL_1},
+    behavior::NextBehavior,
     clock::ClockWidget,
     context::GameContext,
     environment::Layer,
@@ -116,7 +117,30 @@ impl Scene for InsideScene {
             bookshelf_y,
             false,
         );
-        // TODO: BOX_SMALL_1 on top of the bookshelf.
+        let box_y = bookshelf_y - BOX_SMALL_1.height as i32;
+        self.base.environment.add_object(
+            Layer::Foreground,
+            &BOX_SMALL_1,
+            2,
+            box_y,
+            false,
+        );
+        if ctx.first_impressions {
+            ctx.first_impressions = false;
+            let mis = ctx.mischievousness - 50.0;
+            let cour = ctx.courage - 50.0;
+            let cur = ctx.curiosity - 50.0;
+            let next = if mis >= 5.0 && mis > cur && mis > cour {
+                NextBehavior::Zoomies
+            } else if cour <= -5.0 && cour <= mis && cour <= cur {
+                NextBehavior::Sulking
+            } else {
+                NextBehavior::Investigating
+            };
+            self.base
+                .behaviors
+                .trigger(next, ctx, &mut self.base.character);
+        }
     }
 
     fn update(
@@ -129,10 +153,6 @@ impl Scene for InsideScene {
             return Some(id);
         }
         self.clock.set_time(ctx.time_hours, ctx.time_minutes);
-        // TODO: weather-change detection so clouds/precipitation rebuild
-        //       (needed once weather affects the indoor sky).
-        // TODO: BOX_SMALL_1 on top of the bookshelf (foreground sprite).
-        // TODO: first-impression behavior trigger on first enter.
         None
     }
 

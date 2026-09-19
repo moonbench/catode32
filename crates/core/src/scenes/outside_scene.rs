@@ -16,8 +16,13 @@ use crate::{
     rand::{rand_bool, rand_range_f32, rand_range_u32},
     render::Renderer,
     scene::{Scene, SceneId},
-    time_system::Season,
+    time_system::{Season, Weather},
 };
+
+const MAX_RESPAWN_TIMERS: usize = 4;
+const JUMPER_RESPAWN_CHANCE: f32 = 0.6;
+const JUMPER_RESPAWN_MIN_S: f32 = 5.0;
+const JUMPER_RESPAWN_MAX_S: f32 = 90.0;
 
 const PLANT_SURFACES: &[PlantSurface] = &[
     PlantSurface { y_snap: 63, layer: PlantLayer::Foreground, x_min: 0, x_max: 0 },
@@ -92,7 +97,9 @@ const CRITTER_SPECS: &[CritterSpec] = &[
 pub struct OutsideScene {
     base: LocationScene,
     critters: Vec<Critter, MAX_CRITTERS>,
+    respawn_timers: Vec<(f32, &'static CritterSpec), MAX_RESPAWN_TIMERS>,
     rng: u32,
+    last_weather: Option<Weather>,
 }
 
 impl OutsideScene {
@@ -100,8 +107,16 @@ impl OutsideScene {
         Self {
             base: LocationScene::new(WORLD_WIDTH, Point::new(CHAR_WORLD_X, CHAR_WORLD_Y)),
             critters: Vec::new(),
+            respawn_timers: Vec::new(),
             rng: 1,
+            last_weather: None,
         }
+    }
+
+    fn find_jumper_spec(kind: JumperKind) -> Option<&'static CritterSpec> {
+        CRITTER_SPECS
+            .iter()
+            .find(|s| matches!(s.kind, CritterKind::Jumper(k) if k == kind))
     }
 
     fn draw_grass(&self, renderer: &mut Renderer) {
@@ -142,19 +157,64 @@ impl OutsideScene {
         }
     }
 
-    fn update_critters(&mut self, dt: f32) {
+    fn update_critters(&mut self, ctx: &GameContext, dt: f32) {
         for c in self.critters.iter_mut() {
             match c {
                 Critter::Flyer(f) => f.update(dt),
                 Critter::Jumper(j) => j.update(dt),
             }
         }
-        // TODO: respawn timers for despawned jumpers to schedule replacements
-        //       after a delay.
+
+        // Roll for a replacement on each despawned jumper before removing it.
+        let day = ctx.is_daytime();
+        let season = ctx.season;
+        for c in self.critters.iter() {
+            if let Critter::Jumper(j) = c {
+                if !j.despawned {
+                    continue;
+                }
+                let Some(spec) = Self::find_jumper_spec(j.kind) else {
+                    continue;
+                };
+                if !spec.seasons.contains(&season) {
+                    continue;
+                }
+                if spec.night_only == day {
+                    continue;
+                }
+                if !rand_bool(&mut self.rng, JUMPER_RESPAWN_CHANCE) {
+                    continue;
+                }
+                let delay = rand_range_f32(
+                    &mut self.rng,
+                    JUMPER_RESPAWN_MIN_S,
+                    JUMPER_RESPAWN_MAX_S,
+                );
+                let _ = self.respawn_timers.push((delay, spec));
+            }
+        }
         self.critters.retain(|c| match c {
             Critter::Jumper(j) => !j.despawned,
             _ => true,
         });
+
+        // Tick respawn timers and spawn replacements as they fire.
+        let mut i = 0;
+        while i < self.respawn_timers.len() {
+            self.respawn_timers[i].0 -= dt;
+            if self.respawn_timers[i].0 <= 0.0 {
+                let (_, spec) = self.respawn_timers.swap_remove(i);
+                if !ctx.is_daytime() == spec.night_only
+                    && spec.seasons.contains(&ctx.season)
+                    && !self.critters.is_full()
+                {
+                    let critter = make_critter(spec.kind, WORLD_WIDTH, &mut self.rng);
+                    let _ = self.critters.push(critter);
+                }
+            } else {
+                i += 1;
+            }
+        }
     }
 
     fn draw_critters(&self, renderer: &mut Renderer) {
@@ -193,11 +253,12 @@ impl Scene for OutsideScene {
         self.base.enter(ctx, SceneId::Outside, PLANT_SURFACES);
         // Seed the scene's RNG from the system clock so each entry rolls a fresh world.
         self.rng = (Instant::now().duration_since_epoch().as_micros() as u32).max(1);
+        self.respawn_timers.clear();
         self.spawn_critters(ctx);
+        self.last_weather = Some(ctx.weather);
         // Acquire the radio for passive ESP-NOW listening. Phase 4
         // will gate this on "not currently visiting" once visits exist.
         crate::espnow_manager::start_session(ctx);
-        // TODO: first-impression behavior trigger on first enter.
     }
 
     fn exit(&mut self, ctx: &mut GameContext) {
@@ -213,17 +274,18 @@ impl Scene for OutsideScene {
         if let Some(id) = self.base.update(ctx, buttons, dt) {
             return Some(id);
         }
-        self.update_critters(dt);
-        // TODO: weather-change detection so clouds/precipitation rebuild and
-        //       critters re-roll when the weather changes.
-        // TODO: meteor_shower_active flag was set by SkyRenderer in stage 3c.
-        //       It's now driven by WeatherSystem (ctx.meteor_shower_timer). Nothing scene-specific.
+        if self.last_weather != Some(ctx.weather) {
+            self.respawn_timers.clear();
+            self.spawn_critters(ctx);
+            self.last_weather = Some(ctx.weather);
+        }
+        self.update_critters(ctx, dt);
         None
     }
 
     fn tick_background(&mut self, ctx: &mut GameContext, dt: f32) {
         self.base.tick_background(ctx, dt);
-        self.update_critters(dt);
+        self.update_critters(ctx, dt);
     }
 
     fn mark_behavior_almost_done(&mut self, ctx: &mut GameContext) {

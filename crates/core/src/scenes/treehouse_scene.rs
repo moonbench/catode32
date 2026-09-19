@@ -88,6 +88,9 @@ const CAT_BED_X: i32 = 150;
 impl Scene for TreehouseScene {
     fn enter(&mut self, ctx: &mut GameContext) {
         self.base.enter(ctx, SceneId::Treehouse, PLANT_SURFACES);
+        // Walkable strip is inset from the tree-trunk frames.
+        ctx.scene_x_min = 20;
+        ctx.scene_x_max = 236;
         ctx.cat_bed_x = Some(CAT_BED_X);
         // Acquire the radio for passive ESP-NOW listening. Phase 4
         // will gate this on "not currently visiting" once visits exist.
@@ -108,7 +111,6 @@ impl Scene for TreehouseScene {
         if let Some(id) = self.base.update(ctx, buttons, dt) {
             return Some(id);
         }
-        // TODO: weather-change detection (re-enter scene on weather change).
         None
     }
 
