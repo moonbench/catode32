@@ -23,41 +23,17 @@ There a 18 different stats that help you understand the quality of your pet's li
 
 ![Stats](https://github.com/user-attachments/assets/5c1b3411-8439-4798-8d96-3da26b280524)
 
-The stats are:
-- Health
-- Fullness
-- Energy
-- Comfort
-- Cleanliness
-- Fitness
-- Focus
-- Intelligence
-- Curiosity
-- Playfulness
-- Affection
-- Fulfillment
-- Serenity
-- Sociability
-- Courage
-- Loyalty
-- Mischievousness
-- Maturity
-
 Read the [Pet Care](https://github.com/moonbench/catode32/wiki/Pet-Care) page for more information about these stats, and helpful information for maintaining them and caring for your pet.
 
 
 ### Pet Behavior
-Your pet will exhibit various behaviors over time, specifically you'll see them:
-`sleeping`, `napping`, `stretching`, `kneading`, `lounging`, `investigating`, `observing`, `chattering`, `zoomies`, `vocalizing`, `self_grooming`, `being_groomed`, `hunting`, `gift_bringing`, `pacing`, `sulking`, `mischief`, `hiding`, `training`, `playing`, `affection`, `attention`, `eating`, `startled`, `meandering`
+Your pet has an [advanced behavioral system](https://github.com/moonbench/catode32/wiki/Behaviors) with dozens of behaviors. The behaviors allow your pet to express themselves, explore, and communicate and interact with you.
 
-After finishing, each behavior transitions to a new behavior. The next behavior is selected based on the pets current needs, which behaviors have been exhibited recently, and a bit of randomness.
+By keeping an eye on their behavior you can better understand their needs and wants.
 
-![Behaviors](https://github.com/user-attachments/assets/97896a35-8ff2-4229-857f-e3466186c84a)
+<img width="1024" height="511" alt="screen10" src="https://github.com/user-attachments/assets/cf5b1dd1-07a4-4f92-9c9f-26fdc83e1a45" />
 
-
-By observing your pet's behaviors you can better understand your pet's needs. If they're sulking or vocalizing that they're bored then perhaps you should play with them or show them some affection. If they're looking a bit upset or vocalizing about food then try going to the kitchen to feed them.
-
-Often they'll be lounging around, napping, or just enjoying their environment.
+[Read more about understanding your pet's behaviors](https://github.com/moonbench/catode32/wiki/Behaviors).
 
 ### Minigames
 There are several minigames to keep both you and your pet occupied.
