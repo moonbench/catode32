@@ -8,7 +8,11 @@
 //! 2. Call `Game::tick()` to run one frame of game logic + drawing.
 //! 3. Blit the in-memory 128x64 framebuffer to the `SimulatorDisplay`.
 //! 4. `Window::update()` and sleep enough to land near 12 FPS.
+//!
+//! The lit-pixel and background colors can be overridden at launch with
+//! `--fg RRGGBB` / `--bg RRGGBB` (see `USAGE`).
 
+use std::process;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -37,11 +41,73 @@ const SCALE: u32 = 8;
 const FPS: u64 = 12;
 const FRAME_MS: u64 = 1000 / FPS;
 
-/// "Lit pixel" tint.
-const PIXEL_ON: Rgb888 = Rgb888::new(35, 165, 204);
-/// Background (a near-black charcoal, not pure 0,0,0 so the off pixels read
-/// as "screen, not void").
-const PIXEL_OFF: Rgb888 = Rgb888::new(10, 10, 10);
+/// Default "lit pixel" tint.
+const DEFAULT_FG: Rgb888 = Rgb888::new(35, 165, 204);
+/// Default background (a near-black charcoal, not pure 0,0,0 so the off
+/// pixels read as "screen, not void").
+const DEFAULT_BG: Rgb888 = Rgb888::new(10, 10, 10);
+
+const USAGE: &str = "\
+Usage: catode32-desktop [--fg RRGGBB] [--bg RRGGBB]
+
+Options:
+  --fg RRGGBB   Lit pixel color (default 23A5CC)
+  --bg RRGGBB   Background color (default 0A0A0A)
+  -h, --help    Print this help
+
+Colors are 6-digit hex, with or without a leading '#'.";
+
+/// Colors used to blit the 1-bit framebuffer to the window.
+struct Palette {
+    fg: Rgb888,
+    bg: Rgb888,
+}
+
+/// Parse `RRGGBB` or `#RRGGBB` (any case) into a color.
+fn parse_hex(s: &str) -> Option<Rgb888> {
+    let hex = s.strip_prefix('#').unwrap_or(s);
+    if hex.len() != 6 || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return None;
+    }
+    let channel = |i: usize| u8::from_str_radix(&hex[i..i + 2], 16).ok();
+    Some(Rgb888::new(channel(0)?, channel(2)?, channel(4)?))
+}
+
+/// Print an error plus usage to stderr and exit with status 2.
+fn usage_error(msg: &str) -> ! {
+    eprintln!("error: {msg}\n\n{USAGE}");
+    process::exit(2);
+}
+
+/// Read `--fg` / `--bg` overrides from the command line.
+fn parse_args() -> Palette {
+    let mut palette = Palette {
+        fg: DEFAULT_FG,
+        bg: DEFAULT_BG,
+    };
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        if arg == "-h" || arg == "--help" {
+            println!("{USAGE}");
+            process::exit(0);
+        }
+        let (flag, inline_value) = match arg.split_once('=') {
+            Some((flag, value)) => (flag.to_string(), Some(value.to_string())),
+            None => (arg, None),
+        };
+        let slot = match flag.as_str() {
+            "--fg" => &mut palette.fg,
+            "--bg" => &mut palette.bg,
+            _ => usage_error(&format!("unknown argument '{flag}'")),
+        };
+        let value = inline_value
+            .or_else(|| args.next())
+            .unwrap_or_else(|| usage_error(&format!("{flag} needs a color value")));
+        *slot = parse_hex(&value)
+            .unwrap_or_else(|| usage_error(&format!("invalid color '{value}' for {flag}")));
+    }
+    palette
+}
 
 /// Map an SDL keycode onto the firmware-side button index.
 /// Arrows for the d-pad, A=A, S=B, Q=MENU1, W=MENU2.
@@ -60,6 +126,10 @@ fn button_index(key: Keycode) -> Option<usize> {
 }
 
 fn main() {
+    // Before anything else, so `--help` / bad flags exit without touching
+    // the save file.
+    let palette = parse_args();
+
     storage::init();
 
     let renderer = Renderer::new();
@@ -138,7 +208,7 @@ fn main() {
             }
         }
 
-        blit(game.renderer(), &mut sim_display);
+        blit(game.renderer(), &mut sim_display, &palette);
         window.update(&sim_display);
 
         let elapsed = frame_start.elapsed();
@@ -149,20 +219,45 @@ fn main() {
     }
 }
 
-fn blit(renderer: &Renderer, target: &mut SimulatorDisplay<Rgb888>) {
+fn blit(renderer: &Renderer, target: &mut SimulatorDisplay<Rgb888>, palette: &Palette) {
     let fb = renderer.framebuffer();
     let invert = fb.invert();
+    let fg = palette.fg;
 
-    let _ = target.clear(PIXEL_OFF);
+    let _ = target.clear(palette.bg);
     let pixels = (0..HEIGHT as i32).flat_map(|y| {
         (0..WIDTH as i32).filter_map(move |x| {
             let lit = fb.pixel(x as usize, y as usize) ^ invert;
             if lit {
-                Some(Pixel(Point::new(x, y), PIXEL_ON))
+                Some(Pixel(Point::new(x, y), fg))
             } else {
                 None
             }
         })
     });
     let _ = target.draw_iter(pixels);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_hex_accepts_valid_colors() {
+        assert_eq!(parse_hex("23a5cc"), Some(Rgb888::new(35, 165, 204)));
+        assert_eq!(parse_hex("#23A5CC"), Some(Rgb888::new(35, 165, 204)));
+        assert_eq!(parse_hex("0a0A0a"), Some(Rgb888::new(10, 10, 10)));
+        assert_eq!(parse_hex("#ffffff"), Some(Rgb888::new(255, 255, 255)));
+    }
+
+    #[test]
+    fn parse_hex_rejects_invalid_colors() {
+        assert_eq!(parse_hex(""), None);
+        assert_eq!(parse_hex("#"), None);
+        assert_eq!(parse_hex("fff"), None);
+        assert_eq!(parse_hex("1234567"), None);
+        assert_eq!(parse_hex("zzzzzz"), None);
+        assert_eq!(parse_hex("##123456"), None);
+        assert_eq!(parse_hex("+12345"), None);
+    }
 }
