@@ -1,8 +1,12 @@
 #![no_std]
 #![no_main]
 
-use catode32_core::{board, espnow_manager::EspNowManager, game::Game, render::Renderer, storage};
-use esp_backtrace as _;
+mod panic;
+
+use catode32_core::{
+    board, espnow_manager::EspNowManager, game::Game, platform::watchdog, render::Renderer,
+    storage,
+};
 use esp_hal::{clock::CpuClock, main, timer::timg::TimerGroup};
 use esp_println::println;
 
@@ -19,6 +23,9 @@ fn main() -> ! {
 
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
+    // `init` disables every watchdog. Arm ours before anything that could
+    // hang (flash, display, radio scheduler); the game loop feeds it.
+    watchdog::start();
     let board = board::init(peripherals);
     storage::init(board.flash);
     let renderer = Renderer::new(board.i2c);

@@ -36,7 +36,9 @@ lang-nl = ["catode32-core/lang-nl"]
 [dependencies]
 catode32-core = { path = "../core", default-features = false }
 esp-hal = { version = "1.1.1", default-features = false, features = ["rt"] }
-esp-backtrace = { version = "0.19.0", default-features = false, features = ["panic-handler", "println"] }
+# Backtrace capture only; the panic handler lives in `src/panic.rs` so it can
+# record the panic to RTC RAM and reset.
+esp-backtrace = { version = "0.19.0", default-features = false, features = ["println"] }
 esp-println = { version = "0.17.0", default-features = false }
 esp-bootloader-esp-idf = { version = "0.5.0", default-features = false }
 esp-alloc = "0.10.0"

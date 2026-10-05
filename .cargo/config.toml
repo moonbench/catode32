@@ -5,12 +5,16 @@ target = "riscv32imac-unknown-none-elf"
 runner = "espflash flash --monitor"
 rustflags = [
   "-C", "link-arg=-Tlinkall.x",
+  # Lets esp-backtrace walk the stack for the panic record.
+  "-C", "force-frame-pointers",
 ]
 
 [target.riscv32imc-unknown-none-elf]
 runner = "espflash flash --monitor"
 rustflags = [
   "-C", "link-arg=-Tlinkall.x",
+  # Lets esp-backtrace walk the stack for the panic record.
+  "-C", "force-frame-pointers",
 ]
 
 [env]

@@ -56,6 +56,18 @@ mod firmware {
         EspNow, EspNowError, EspNowWifiInterface, PeerInfo, ReceivedData, BROADCAST_ADDRESS,
     };
 
+    /// Queue a frame without waiting for the driver's send-done callback.
+    ///
+    /// `EspNow::send` returns a `SendWaiter` whose `Drop` busy-waits, with no
+    /// timeout, for that callback. If the callback is ever lost the game loop
+    /// spins forever. We never read the send status, so forget the waiter.
+    /// The driver queues frames itself; the next send just re-arms the flag.
+    fn send_detached(inner: &mut EspNow<'static>, dst: &MacAddr, data: &[u8]) {
+        if let Ok(waiter) = inner.send(dst, data) {
+            core::mem::forget(waiter);
+        }
+    }
+
     pub struct EspNowManager {
         inner: Option<EspNow<'static>>,
         own_mac: Option<MacAddr>,
@@ -170,7 +182,7 @@ mod firmware {
             let Some(inner) = self.inner.as_mut() else {
                 return;
             };
-            let _ = inner.send(&BROADCAST_ADDRESS, data);
+            send_detached(inner, &BROADCAST_ADDRESS, data);
         }
 
         pub fn send_to(&mut self, mac: MacAddr, data: &[u8]) {
@@ -183,7 +195,7 @@ mod firmware {
             let Some(inner) = self.inner.as_mut() else {
                 return;
             };
-            let _ = inner.send(&mac, data);
+            send_detached(inner, &mac, data);
         }
 
         pub fn poll(&mut self) {

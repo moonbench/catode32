@@ -24,6 +24,7 @@
 //! mode.
 
 use crate::platform::time::{Duration, Instant};
+use crate::platform::watchdog;
 use crate::println;
 
 use crate::{
@@ -47,6 +48,8 @@ pub fn wait_buttons_stable_released_mask(
 ) {
     let mut released_since = Instant::now();
     loop {
+        // A held button can keep this spinning indefinitely.
+        watchdog::feed();
         let any_pressed = watch.iter().any(|&b| buttons.is_pressed(b));
         if any_pressed {
             released_since = Instant::now();
@@ -132,6 +135,7 @@ impl SleepManager {
 
         let mut last_tick = Instant::now();
         while !buttons.any_pressed() {
+            watchdog::feed();
             let elapsed_ms = last_tick.elapsed().as_millis();
             if elapsed_ms >= SLEEP_FRAME_TIME_MS {
                 last_tick = Instant::now();

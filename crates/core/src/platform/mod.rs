@@ -12,3 +12,4 @@ pub mod power;
 pub mod radio;
 pub mod rng;
 pub mod time;
+pub mod watchdog;

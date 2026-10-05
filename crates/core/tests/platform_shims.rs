@@ -51,3 +51,28 @@ fn rng_fills_buffer() {
     // Catastrophic failure mode: read() left every byte zero.
     assert!(buf.iter().any(|&b| b != 0));
 }
+
+/// One test for the whole crash record: it lives in a process-wide static,
+/// so separate tests would race.
+#[test]
+fn crash_record_round_trip() {
+    use catode32_core::platform::persist::{crash_take, crash_write, CRASH_MSG_MAX, CRASH_PCS_MAX};
+
+    assert!(crash_take().is_none());
+
+    crash_write("game.rs:42 boom", &[0x4200_1000, 0x4200_2000]);
+    let rec = crash_take().expect("record written");
+    assert_eq!(rec.msg.as_str(), "game.rs:42 boom");
+    assert_eq!(rec.pcs.as_slice(), &[0x4200_1000, 0x4200_2000]);
+    // Taking clears it.
+    assert!(crash_take().is_none());
+
+    // Overlong input truncates on a char boundary and drops extra PCs.
+    let long: std::string::String = "é".repeat(CRASH_MSG_MAX);
+    let pcs = [1u32; CRASH_PCS_MAX + 3];
+    crash_write(&long, &pcs);
+    let rec = crash_take().expect("record written");
+    assert!(rec.msg.len() <= CRASH_MSG_MAX);
+    assert!(rec.msg.chars().all(|c| c == 'é'));
+    assert_eq!(rec.pcs.len(), CRASH_PCS_MAX);
+}

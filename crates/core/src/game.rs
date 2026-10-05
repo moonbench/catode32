@@ -1,5 +1,5 @@
 use crate::platform::{
-    persist,
+    persist, watchdog,
     power::software_reset,
     radio::WIFI,
     rng::Rng,
@@ -85,6 +85,13 @@ impl Game {
         let (reset_label, brownout) = persist::reset_reason();
         println!("[Boot] Reset reason: {}", reset_label);
         context.last_reset_reason = reset_label;
+        context.last_crash = persist::crash_take();
+        if let Some(crash) = &context.last_crash {
+            println!("[Boot] Previous reset was a panic: {}", crash.msg);
+            for pc in crash.pcs.iter() {
+                println!("[Boot]   at 0x{:08x}", pc);
+            }
+        }
 
         let loaded = save::has_save() && save::load(&mut context);
 
@@ -229,6 +236,7 @@ impl Game {
     pub fn run(&mut self) -> ! {
         loop {
             let frame_start = Instant::now();
+            watchdog::feed();
             self.tick();
             let frame_used = frame_start.elapsed().as_millis();
             if frame_used < FRAME_TIME_MS {
@@ -446,6 +454,7 @@ impl Game {
         ];
         let ext1 = Ext1WakeupSource::new(&mut pins);
 
+        watchdog::stop();
         let mut rtc = Rtc::new(unsafe { LPWR::steal() });
         rtc.sleep_deep(&[&ext1]);
     }

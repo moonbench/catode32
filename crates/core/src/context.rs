@@ -610,6 +610,9 @@ pub struct GameContext {
     /// Hardware reset reason for this boot, for the debug wifi screen. Read
     /// from a chip register at boot; never saved.
     pub last_reset_reason: heapless::String<24>,
+    /// The panic that caused this boot's reset, if any. Taken from RTC RAM
+    /// at boot for the Power debug screen; never saved.
+    pub last_crash: Option<crate::platform::persist::CrashRecord>,
 
     /// ESP-NOW transport. The manager struct itself is always present;
     /// its inner driver handle is bound only while
@@ -773,6 +776,7 @@ impl GameContext {
             wifi_scan_requested: false,
             scan_started: false,
             last_reset_reason: heapless::String::new(),
+            last_crash: None,
             espnow: None,
             wifi: None,
             wifi_peripheral: None,
