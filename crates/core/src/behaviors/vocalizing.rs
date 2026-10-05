@@ -6,7 +6,7 @@ use crate::{
     behaviors::common,
     context::{GameContext, StatId},
     entities::character::Character,
-    rand,
+    println, rand,
     render::Renderer,
     time_system::Weather,
     ui::bubble::{self, BubbleIcon},
@@ -52,11 +52,14 @@ impl VocalizingBehavior {
             || ctx.fulfillment < NEED
             || ctx.affection < NEED
             || ctx.sociability < NEED;
+        // Outdoor weather / temperature complaint. Must mirror the
+        // complaint branch in `priority` so it can always fire.
         if common::is_outdoor(ctx.last_main_scene)
-            && matches!(
+            && (matches!(
                 ctx.weather,
                 Weather::Rain | Weather::Storm | Weather::Snow
-            )
+            ) || ctx.temperature < 2.0
+                || ctx.temperature > 30.0)
         {
             return true;
         }
@@ -140,7 +143,9 @@ impl Behavior for VocalizingBehavior {
         self.settle_duration = rand::rand_range_f32(&mut ctx.rng, 1.0, 3.0);
         self.pose_id = PoseId::SittingForwardNeutral;
 
-        ctx.pending_popup_icon = Some(pick_icon(ctx));
+        let icon = pick_icon(ctx);
+        print_reason(ctx, icon);
+        ctx.pending_popup_icon = Some(icon);
     }
 
     fn update(&mut self, ctx: &mut GameContext, _: &mut Character, dt: f32) -> BehaviorState {
@@ -243,3 +248,21 @@ fn pick_icon(ctx: &GameContext) -> &'static str {
     }
 }
 
+
+fn print_reason(ctx: &GameContext, icon: &'static str) {
+    match icon {
+        "home" => println!("[Vocalizing] Reason: home (wants to go home)"),
+        "cold" | "hot" | "wet" => println!(
+            "[Vocalizing] Reason: {} (temperature: {:.1}, weather: {:?})",
+            icon, ctx.temperature, ctx.weather
+        ),
+        "hunger" => println!("[Vocalizing] Reason: hunger (fullness: {:6.4})", ctx.fullness),
+        "discomfort" => println!("[Vocalizing] Reason: discomfort (comfort: {:6.4})", ctx.comfort),
+        "bored" => println!("[Vocalizing] Reason: bored (fulfillment: {:6.4})", ctx.fulfillment),
+        "lonely" => println!("[Vocalizing] Reason: lonely (affection: {:6.4})", ctx.affection),
+        _ => println!(
+            "[Vocalizing] Reason: {} (energy: {:6.4}, playfulness: {:6.4}, sociability: {:6.4})",
+            icon, ctx.energy, ctx.playfulness, ctx.sociability
+        ),
+    }
+}

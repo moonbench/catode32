@@ -192,6 +192,17 @@ pub fn pose_layout(pose: &Pose, pos: Point, mirror_h: bool) -> PoseLayout {
     }
 }
 
+/// Rows from the top of a head sprite down to the top of the skull. The ears
+/// occupy roughly this many rows above it on the head sprites.
+const HEAD_EAR_HEIGHT: i16 = 6;
+
+/// Screen y of the top of the cat's head (below the ear tips) for `pose`
+/// drawn at `pos`. Used to rest hand / brush sprites on the head.
+pub fn head_top_y(pose: &Pose, pos: Point, mirror_h: bool) -> i32 {
+    let layout = pose_layout(pose, pos, mirror_h);
+    (layout.head.1 + HEAD_EAR_HEIGHT) as i32
+}
+
 pub fn draw_pose(
     renderer: &mut Renderer,
     pose: &Pose,

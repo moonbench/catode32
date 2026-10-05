@@ -4,6 +4,7 @@ use micromath::F32Ext;
 use crate::{
     assets::{character::PoseId, items::HAIR_BRUSH},
     behavior::{Behavior, BehaviorId, BehaviorState, NextBehavior},
+    character::head_top_y,
     context::{GameContext, StatId},
     entities::character::Character,
     rand,
@@ -230,8 +231,10 @@ impl Behavior for BeingGroomedBehavior {
         let t = if raw <= 1.0 { raw } else { 2.0 - raw };
 
         let arc_span = 32.0_f32;
-        let base_height = 30.0_f32;
         let arc_lift = 6.0_f32;
+        // Bristles rest on the head at the bottom of the arc.
+        let head_top = head_top_y(self.pose_id.data(), char_screen, mirror_h);
+        let base_y = (head_top - HAIR_BRUSH.height as i32) as f32 - arc_lift;
 
         let offset = (arc_span * (t - 0.5)) as i32;
         let brush_x = if mirror_h {
@@ -239,8 +242,7 @@ impl Behavior for BeingGroomedBehavior {
         } else {
             char_screen.x - offset
         } - (HAIR_BRUSH.width as i32) / 2;
-        let brush_y = (char_screen.y as f32 - base_height
-            + arc_lift * (core::f32::consts::PI * t).sin()) as i32;
+        let brush_y = (base_y + arc_lift * (core::f32::consts::PI * t).sin()) as i32;
 
         renderer.draw_sprite(
             &HAIR_BRUSH,

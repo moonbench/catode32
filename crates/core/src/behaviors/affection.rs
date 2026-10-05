@@ -7,6 +7,7 @@ use crate::{
         items::{HAND, HAND_SCRATCH, HAND_SCRATCH_FPS},
     },
     behavior::{AffectionVariant, Behavior, BehaviorId, BehaviorState},
+    character::head_top_y,
     context::{GameContext, StatId},
     entities::character::Character,
     rand,
@@ -15,7 +16,6 @@ use crate::{
 };
 
 const REJECTION_STAT_MULTIPLIER: f32 = 0.5;
-const REJECTION_HAND_Y_OFFSET: i32 = 30;
 
 const SICK_POSES: &[PoseId] = &[PoseId::LayingSideSulking, PoseId::LayingSideSulking2];
 
@@ -208,11 +208,7 @@ impl Behavior for AffectionBehavior {
             );
         }
 
-        let hand_y_adjust = if self.rejecting || self.sick {
-            REJECTION_HAND_Y_OFFSET
-        } else {
-            0
-        };
+        let head_top = head_top_y(self.pose_id.data(), char_screen, mirror_h);
 
         match self.variant {
             AffectionVariant::Pets => {
@@ -221,8 +217,9 @@ impl Behavior for AffectionBehavior {
                 let t = if raw <= 1.0 { raw } else { 2.0 - raw };
 
                 let arc_span = 30.0_f32;
-                let base_height = (50 - hand_y_adjust) as f32;
                 let arc_lift = 5.0_f32;
+                // Palm rests on the head at the bottom of the arc.
+                let base_y = (head_top - HAND.height as i32) as f32 - arc_lift;
 
                 let offset = (arc_span * (t - 0.5)) as i32;
                 let hand_x = if mirror_h {
@@ -230,9 +227,8 @@ impl Behavior for AffectionBehavior {
                 } else {
                     char_screen.x - offset
                 } - (HAND.width as i32) / 2;
-                let hand_y = (char_screen.y as f32 - base_height
-                    + arc_lift * (core::f32::consts::PI * t).sin())
-                    as i32;
+                let hand_y =
+                    (base_y + arc_lift * (core::f32::consts::PI * t).sin()) as i32;
 
                 renderer.draw_sprite(
                     &HAND,
@@ -249,8 +245,11 @@ impl Behavior for AffectionBehavior {
                 let t = if raw <= 1.0 { raw } else { 2.0 - raw };
 
                 let jitter_span = 8.0_f32;
-                let base_height = (52 - hand_y_adjust) as f32;
                 let vertical_range = 4.0_f32;
+                // Fingertips dig a little into the fur at the bottom of each stroke.
+                let dig_in = 3;
+                let base_y = (head_top - HAND_SCRATCH.height as i32 + dig_in) as f32
+                    - vertical_range;
 
                 let offset = (jitter_span * (t - 0.5)) as i32;
                 let hand_x = if mirror_h {
@@ -258,8 +257,7 @@ impl Behavior for AffectionBehavior {
                 } else {
                     char_screen.x - offset
                 } - (HAND_SCRATCH.width as i32) / 2;
-                let hand_y =
-                    (char_screen.y as f32 - base_height + vertical_range * t) as i32;
+                let hand_y = (base_y + vertical_range * t) as i32;
 
                 let frame = (self.phase_timer * HAND_SCRATCH_FPS) as usize
                     % HAND_SCRATCH.frames.len();
