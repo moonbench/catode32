@@ -286,55 +286,12 @@ cargo run --release -- --port /dev/tty.usbmodem1234
 
 ## Desktop Emulator
 
-The game can be run on your computer, which allows you to experiment with it without needing to setup an ESP32. The desktop emulator lives in the `catode32-desktop` crate and uses SDL2 to render the same 128x64 framebuffer to a window.
+The game can be run on your desktop. That allows you to experiment and play with the project without needing to setup a real ESP32.
 
-### Requirements
+Read the [desktop version instructions](https://github.com/moonbench/catode32/wiki/Desktop-Version) for details on how to use the emulator.
 
-- SDL2
+[<img width="1024" height="538" alt="screen08" src="https://github.com/user-attachments/assets/bf33c3e3-28e9-4d1a-af36-4f4c7b349724" />](https://github.com/moonbench/catode32/wiki/Desktop-Version)
 
-On macOS:
-```bash
-brew install sdl2
-```
-
-On Debian/Ubuntu:
-```bash
-sudo apt install libsdl2-dev
-```
-
-### Running
-
-The workspace default target is `riscv32imac-unknown-none-elf` (for the firmware), so you need to pass `--target` with your host triple when building the desktop crate. Examples:
-
-Apple Silicon:
-```bash
-cargo run -p catode32-desktop --target aarch64-apple-darwin
-```
-
-Intel Mac:
-```bash
-cargo run -p catode32-desktop --target x86_64-apple-darwin
-```
-
-Linux:
-```bash
-cargo run -p catode32-desktop --target x86_64-unknown-linux-gnu
-```
-
-### Controls
-
-| Key | Action |
-|-----|--------|
-| Arrow keys | D-pad |
-| A | A |
-| S | B |
-| Q | Menu 1 |
-| W | Menu 2 |
-| Escape | Quit |
-
-### Save file
-
-The desktop save is stored at `./catode32-save.json` in the current working directory. It is separate from the device save, which lives on the ESP32's `nvs` flash partition.
 
 
 
