@@ -6,6 +6,8 @@ This is an advanced virtual pet with a detailed behavior and status system, mini
 
 And lots of cute art.
 
+Take a look [at the wiki](https://github.com/moonbench/catode32/wiki) for a lot more information about how to build the project, care for your pet, and use all the various systems.
+
 ## Pet Features
 - [Pet Care](#pet-care)
 - [Behaviors](#pet-behavior)
