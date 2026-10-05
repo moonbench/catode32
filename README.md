@@ -17,31 +17,33 @@
 - [Sickness](#sickness)
 
 ### Pet Care
-Your pet needs your help to have a healthy, fulfilling, affectionate life.
+Your pet [needs your help](https://github.com/moonbench/catode32/wiki/Pet-Care) to have a healthy, fulfilling, affectionate life.
 
-Your pet has 18 stats which change over time, and they change at different rates.
-| Tier | Stats | Change rate |
-|------|-------|-------------|
-| Rapid | health, fullness, energy, comfort, playfulness, focus | ~Daily |
-| Medium | fulfillment, cleanliness, intelligence, maturity, affection | ~Weekly |
-| Slow | fitness, serenity | ~Monthly |
-| Slowest | courage, loyalty, mischievousness, curiosity, sociability | Very slowly |
-
-All stats sit on a 0-100 scale. Health is never set directly; it's a weighted average of some of the other stats.
-
-To care for your pet, you'll want to:
-- keep them well fed with varied meals
-- give them affection (pets, scratches, kisses)
-- groom them from time to time
-- buy them toys and play with them regularly
-- gently train their behavior
-- play minigames with them
-- take them on trips
-- and keep their environment interesting with healthy plants
-
-Your pet will help communicate some of these needs through vocalizations. You can also go to the pet stats page to see them all at any time:
+There a 18 different stats that help you understand the quality of your pet's life. Your pet will help communicate some of these needs through vocalizations. You can also go to the pet stats screen in the game to see them all at any time:
 
 ![Stats](https://github.com/user-attachments/assets/5c1b3411-8439-4798-8d96-3da26b280524)
+
+The stats are:
+- Health
+- Fullness
+- Energy
+- Comfort
+- Cleanliness
+- Fitness
+- Focus
+- Intelligence
+- Curiosity
+- Playfulness
+- Affection
+- Fulfillment
+- Serenity
+- Sociability
+- Courage
+- Loyalty
+- Mischievousness
+- Maturity
+
+Read the [Pet Care](https://github.com/moonbench/catode32/wiki/Pet-Care) page for more information about these stats, and helpful information for maintaining them and caring for your pet.
 
 
 ### Pet Behavior
