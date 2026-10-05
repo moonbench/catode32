@@ -15,6 +15,30 @@ def serenity_wellbeing_factor(context):
     return score / 4.0
 
 
+def stat_rejection_chance(context, thresholds):
+    """Return 0.0–1.0 chance of rejection from stats below their thresholds.
+
+    Each stat under its threshold contributes a deficit of (threshold - val) / threshold;
+    deficits combine as independent chances.
+    """
+    complement = 1.0
+    for stat, threshold in thresholds.items():
+        val = getattr(context, stat, 100)
+        if val < threshold:
+            complement *= 1.0 - (threshold - val) / threshold
+    return 1.0 - complement
+
+
+def log_stat_rejection(name, context, thresholds, chance):
+    """Print which stats caused a rejection rolled from stat_rejection_chance."""
+    parts = []
+    for stat, threshold in thresholds.items():
+        val = getattr(context, stat, 100)
+        if val < threshold:
+            parts.append(f"{stat} {val:.0f}/{threshold} ({(threshold - val) / threshold:.2f})")
+    print(f"[{name}] refused (chance {chance:.2f}): {', '.join(parts)}")
+
+
 class BaseBehavior:
     """Abstract base class for all behaviors.
 

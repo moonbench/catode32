@@ -2,7 +2,7 @@
 
 import math
 import random
-from entities.behaviors.base import BaseBehavior
+from entities.behaviors.base import BaseBehavior, stat_rejection_chance, log_stat_rejection
 from assets.items import HAND, HAND_SCRATCH
 from ui import draw_bubble
 
@@ -108,13 +108,7 @@ class AffectionBehavior(BaseBehavior):
 
     @classmethod
     def _rejection_chance(cls, context):
-        complement = 1.0
-        for stat, threshold in cls._REJECTION_THRESHOLDS.items():
-            val = getattr(context, stat, 100)
-            if val < threshold:
-                deficit = (threshold - val) / threshold
-                complement *= (1.0 - deficit)
-        return 1.0 - complement
+        return stat_rejection_chance(context, cls._REJECTION_THRESHOLDS)
 
     def __init__(self, character):
         super().__init__(character)
@@ -156,7 +150,10 @@ class AffectionBehavior(BaseBehavior):
 
         context = self._character.context
         if context:
-            self._rejecting = random.random() < self._rejection_chance(context)
+            chance = self._rejection_chance(context)
+            self._rejecting = random.random() < chance
+            if self._rejecting:
+                log_stat_rejection("Affection", context, self._REJECTION_THRESHOLDS, chance)
             self._sick = getattr(context, 'sickness', 0.0) >= 2.0
         else:
             self._rejecting = False

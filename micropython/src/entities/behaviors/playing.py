@@ -2,7 +2,7 @@
 
 import math
 import random
-from entities.behaviors.base import BaseBehavior
+from entities.behaviors.base import BaseBehavior, stat_rejection_chance, log_stat_rejection
 from ui import draw_bubble
 from assets.items import YARN_BALL, MOUSE_TOY, HAND_SCRATCH, BUBBLE_WAND, BUBBLE1, BUBBLE2, BUBBLE_POP
 
@@ -150,13 +150,7 @@ class PlayingBehavior(BaseBehavior):
 
     @classmethod
     def _rejection_chance(cls, context):
-        complement = 1.0
-        for stat, threshold in cls._REJECTION_THRESHOLDS.items():
-            val = getattr(context, stat, 100)
-            if val < threshold:
-                deficit = (threshold - val) / threshold
-                complement *= (1.0 - deficit)
-        return 1.0 - complement
+        return stat_rejection_chance(context, cls._REJECTION_THRESHOLDS)
 
     def get_completion_bonus(self, context):
         if self._rejecting:
@@ -263,6 +257,8 @@ class PlayingBehavior(BaseBehavior):
         if context:
             chance = self._rejection_chance(context)
             self._rejecting = random.random() < chance
+            if self._rejecting:
+                log_stat_rejection("Playing", context, self._REJECTION_THRESHOLDS, chance)
         else:
             self._rejecting = False
 

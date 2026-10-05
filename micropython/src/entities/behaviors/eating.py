@@ -128,6 +128,9 @@ class EatingBehavior(BaseBehavior):
             is_snack = food_type in self.SNACK_TYPES
             chance = self._rejection_chance(food_type, context.fullness, is_snack)
             self._rejecting = random.random() < chance
+            if self._rejecting:
+                print(f"[Eating] refused {food_type} (chance {chance:.2f}): fullness {context.fullness:.0f}"
+                      f"{', snack' if is_snack else ''}")
         else:
             self._rejecting = False
 
