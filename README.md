@@ -246,6 +246,8 @@ Choose the wiring diagram for your board. Each button connects between GPIO pin 
 
 > **Note:** The ESP32-C3 configuration avoids strapping pins (GPIO2, GPIO8, GPIO9) to prevent boot issues.
 
+> **Warning:** The C3 build currently fails to compile and is untested on hardware. Deep sleep is C6-specific; see the `TODO(c3)` note on `enter_deep_sleep` in `crates/core/src/game.rs`.
+
 ## Installation
 
 The firmware is a single Rust binary. There is no separate filesystem or asset upload step. Everything (game logic, sprites, translation strings) is compiled into one image and flashed to the device.

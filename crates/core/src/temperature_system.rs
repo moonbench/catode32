@@ -11,6 +11,7 @@
 
 use core::f32::consts::PI;
 
+#[cfg(not(feature = "desktop"))]
 use micromath::F32Ext;
 
 use crate::time_system::Weather;

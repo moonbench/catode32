@@ -32,7 +32,7 @@ pub mod zoomies;
 use crate::{
     behavior::{Behavior, BehaviorId, NextBehavior},
     context::GameContext,
-    println, rand,
+    rand,
 };
 
 pub use affection::AffectionBehavior;
@@ -65,10 +65,10 @@ pub use training::TrainingBehavior;
 pub use vocalizing::VocalizingBehavior;
 pub use zoomies::ZoomiesBehavior;
 
-/// Enum-dispatched union of every concrete behavior implementation. Eight
-/// variants (Hearing, Playing, Eating, GiftBringing, Training, GoTo,
-/// Affection, Attention) carry construction payload from the matching
-/// `NextBehavior` variant; the rest construct with `::new()`.
+// Enum-dispatched union of every concrete behavior implementation. Eight
+// variants (Hearing, Playing, Eating, GiftBringing, Training, GoTo,
+// Affection, Attention) carry construction payload from the matching
+// `NextBehavior` variant; the rest construct with `::new()`.
 crate::dispatch_enum! {
     #[allow(dead_code)]
     pub enum ActiveBehavior from NextBehavior via from_next,

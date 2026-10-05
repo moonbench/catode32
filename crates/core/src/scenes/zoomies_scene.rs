@@ -4,6 +4,7 @@ use core::fmt::Write as _;
 
 use embedded_graphics::prelude::Point;
 use heapless::{String, Vec};
+#[cfg(not(feature = "desktop"))]
 use micromath::F32Ext;
 use crate::t;
 

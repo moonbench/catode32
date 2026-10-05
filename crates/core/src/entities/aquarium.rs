@@ -5,6 +5,7 @@
 use core::f32::consts::PI;
 
 use heapless::Vec;
+#[cfg(not(feature = "desktop"))]
 use micromath::F32Ext;
 
 use crate::{

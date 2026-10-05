@@ -3,7 +3,7 @@ use crate::{
     behavior::{BehaviorId, NextBehavior},
     context::{GameContext, StatId},
     entities::character::Character,
-    println, rand,
+    rand,
     scene::SceneId,
     time_system::Weather,
 };

@@ -1,6 +1,7 @@
 use embedded_graphics::prelude::Point;
 use crate::platform::time::Instant;
 use heapless::Vec;
+#[cfg(not(feature = "desktop"))]
 use micromath::F32Ext;
 
 use crate::{

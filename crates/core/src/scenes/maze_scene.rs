@@ -6,6 +6,7 @@
 
 use embedded_graphics::prelude::{Point, Size};
 use heapless::Vec;
+#[cfg(not(feature = "desktop"))]
 use micromath::F32Ext;
 use crate::t;
 

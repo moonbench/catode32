@@ -25,7 +25,6 @@
 
 use crate::platform::time::{Duration, Instant};
 use crate::platform::watchdog;
-use crate::println;
 
 use crate::{
     context::GameContext,

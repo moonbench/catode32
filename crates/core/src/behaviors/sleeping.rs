@@ -268,6 +268,7 @@ impl Behavior for SleepingBehavior {
         char_screen: Point,
         mirror_h: bool,
     ) {
+        #[cfg(not(feature = "desktop"))]
         use micromath::F32Ext;
         if self.phase != Phase::Sleeping {
             return;

@@ -267,6 +267,7 @@ impl Behavior for HuntingBehavior {
     }
 
     fn next(&self, ctx: &GameContext) -> Option<NextBehavior> {
+        #[cfg(not(feature = "desktop"))]
         use micromath::F32Ext;
         // Sigmoid centred at fullness=30 — at full belly the cat almost
         // always shares the catch instead of eating it.

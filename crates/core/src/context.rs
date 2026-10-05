@@ -931,7 +931,7 @@ impl GameContext {
     /// Stats near their ceiling resist further increases; stats near the floor
     /// resist further decreases.
     pub fn apply_stat_changes(&mut self, changes: &[(StatId, f32)]) {
-        use crate::println;
+        #[cfg(not(feature = "desktop"))]
         use micromath::F32Ext;
         const EXP: f32 = 0.7;
         let sickness = self.sickness;

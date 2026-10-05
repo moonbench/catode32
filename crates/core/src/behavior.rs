@@ -5,7 +5,6 @@ use crate::{
     behaviors::{auto_select, ActiveBehavior},
     context::{FoodItem, GameContext},
     entities::character::Character,
-    println,
     render::Renderer,
 };
 

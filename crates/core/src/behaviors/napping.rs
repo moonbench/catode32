@@ -257,6 +257,7 @@ impl Behavior for NappingBehavior {
         char_screen: Point,
         mirror_h: bool,
     ) {
+        #[cfg(not(feature = "desktop"))]
         use micromath::F32Ext;
         if self.phase != Phase::Napping {
             return;

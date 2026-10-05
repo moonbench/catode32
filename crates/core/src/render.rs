@@ -268,6 +268,7 @@ impl Renderer {
         angle_deg: f32,
         opts: SpriteOpts,
     ) {
+        #[cfg(not(feature = "desktop"))]
         use micromath::F32Ext;
         if angle_deg == 0.0 {
             self.draw_sprite_raw(data, width, height, pos, opts);

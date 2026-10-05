@@ -5,17 +5,16 @@ use crate::platform::{
     rng::Rng,
     time::{Duration, Instant},
 };
-use crate::println;
 
 use crate::{
     context::{GameContext, PowerAction},
     espnow_manager::EspNowManager,
-    input::{Button, Buttons},
+    input::Buttons,
     led::Led,
     render::Renderer,
     save,
     scene::{SceneId, SceneManager},
-    sleep_manager::{wait_buttons_stable_released_mask, SleepManager},
+    sleep_manager::SleepManager,
     time_system::TimeSystem,
     transition::{TransitionManager, TransitionStep},
     wifi_tracker,
@@ -23,8 +22,6 @@ use crate::{
 // Both the WiFi peripheral stash and the ESP-NOW manager live on
 // `GameContext`. The wifi controller itself only exists between
 // `radio::acquire` / `radio::release` calls.
-
-const DEEP_WAKE_BUTTONS: [Button; 4] = [Button::A, Button::B, Button::Menu1, Button::Menu2];
 
 /// Boots allowed to resume an interrupted scene change before giving up.
 const MAX_RESUME_ATTEMPTS: u8 = 2;
@@ -404,6 +401,15 @@ impl Game {
     ///
     /// Desktop builds have no deep-sleep equivalent; the simulator exits
     /// the process instead.
+    ///
+    /// TODO(c3): this is C6-only and breaks the C3 build (has done since the
+    /// core/firmware split). Needs hardware to verify:
+    /// * `Ext1WakeupSource` doesn't exist on the C3. Its GPIO deep-sleep wake
+    ///   is (likely) `RtcioWakeupSource`, and only GPIO0-5 can wake it.
+    /// * The pins below are the C6 mapping. On the C3, GPIO0-3 are the
+    ///   D-pad, A/B are GPIO4/5, and Menu1/Menu2 (GPIO10/11) can't wake the
+    ///   chip at all. Wake set probably becomes A/B only, chosen per board.
+    /// * Once it compiles, re-check C3 for warnings the error was hiding.
     #[cfg(not(feature = "desktop"))]
     fn enter_deep_sleep(&mut self) -> ! {
         use esp_hal::{
@@ -414,6 +420,11 @@ impl Game {
                 Rtc,
             },
         };
+
+        use crate::{input::Button, sleep_manager::wait_buttons_stable_released_mask};
+
+        const DEEP_WAKE_BUTTONS: [Button; 4] =
+            [Button::A, Button::B, Button::Menu1, Button::Menu2];
 
         println!("[Power] Entering deep sleep");
         self.renderer.clear();

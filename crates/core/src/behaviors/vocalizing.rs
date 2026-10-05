@@ -6,7 +6,7 @@ use crate::{
     behaviors::common,
     context::{GameContext, StatId},
     entities::character::Character,
-    println, rand,
+    rand,
     render::Renderer,
     time_system::Weather,
     ui::bubble::{self, BubbleIcon},

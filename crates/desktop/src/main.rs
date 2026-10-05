@@ -24,7 +24,7 @@ use catode32_core::{
 
 use embedded_graphics::{
     pixelcolor::Rgb888,
-    prelude::{DrawTarget, Point, RgbColor, Size},
+    prelude::{DrawTarget, Point, Size},
     Pixel,
 };
 use embedded_graphics_simulator::{

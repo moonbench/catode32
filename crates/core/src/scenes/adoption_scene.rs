@@ -7,7 +7,6 @@
 //!   Naming:  on-screen keyboard for naming the cat
 //!   Moment:  adoption moment, cat walks in, shows love bubble, fades to inside
 
-use core::fmt::Write;
 
 use embedded_graphics::prelude::{Point, Size};
 use heapless::{String, Vec};
@@ -600,7 +599,7 @@ fn wrap_and_draw_confirm(renderer: &mut Renderer, text: &str) {
     const LINE_BUF: usize = 24;
     let mut current: String<LINE_BUF> = String::new();
     let mut line_idx: i32 = 0;
-    let mut flush =
+    let flush =
         |line: &mut String<LINE_BUF>, line_idx: &mut i32, renderer: &mut Renderer| {
             if !line.is_empty() {
                 renderer.draw_text(line.as_str(), Point::new(8, 14 + *line_idx * 8));

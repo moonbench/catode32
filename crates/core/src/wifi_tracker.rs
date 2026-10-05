@@ -26,10 +26,11 @@
 //! and the release only decrements.
 
 use crate::platform::time::Duration;
-use crate::println;
 use heapless::Vec;
 
-use crate::context::{GameContext, WifiEntry, WIFI_FAMILIAR_MAX, WIFI_RECENT_MAX, WIFI_SSID_MAX};
+use crate::context::{GameContext, WIFI_SSID_MAX};
+#[cfg(not(feature = "desktop"))]
+use crate::context::{WifiEntry, WIFI_FAMILIAR_MAX, WIFI_RECENT_MAX};
 
 #[cfg(not(feature = "desktop"))]
 use crate::radio;
@@ -38,11 +39,14 @@ use crate::radio;
 pub const SCAN_INTERVAL: Duration = Duration::from_secs(60 * 60);
 
 /// How many APs to ask the driver for per scan.
+#[cfg(not(feature = "desktop"))]
 const SCAN_MAX_APS: usize = 20;
 
 /// Count subtracted from every unseen entry each scan.
+#[cfg(not(feature = "desktop"))]
 const DECAY_PER_SCAN: f32 = 0.25;
 /// Min count before a recent entry can be promoted.
+#[cfg(not(feature = "desktop"))]
 const PROMOTE_MIN: f32 = 5.0;
 
 /// Snapshot of the latest scan, surfaced to the debug scene so it can show
@@ -131,6 +135,7 @@ async fn perform_scan(
 
 /// Decay-and-promote algorithm. Public so the debug scene's "Scan" button
 /// (or a unit test, eventually) can drive it with a synthesized AP list.
+#[cfg(not(feature = "desktop"))]
 fn process(ctx: &mut GameContext, aps: &[ScanAp]) {
     // Decay unseen entries, then prune the ones that hit zero.
     for entry in ctx.wifi_familiar.iter_mut() {
@@ -212,6 +217,7 @@ fn process(ctx: &mut GameContext, aps: &[ScanAp]) {
         .any(|e| aps.iter().any(|ap| ap.bssid == e.bssid));
 }
 
+#[cfg(not(feature = "desktop"))]
 fn lowest_idx<const N: usize>(v: &Vec<WifiEntry, N>) -> Option<usize> {
     let mut best: Option<(usize, f32)> = None;
     for (i, e) in v.iter().enumerate() {

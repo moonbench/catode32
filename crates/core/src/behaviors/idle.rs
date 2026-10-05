@@ -4,7 +4,7 @@ use crate::{
     behaviors::common,
     context::{GameContext, StatId},
     entities::character::Character,
-    println, rand,
+    rand,
     scene::SceneId,
     time_system::Weather,
 };

@@ -13,7 +13,7 @@ use crate::{
     },
     context::{FavWeather, FoodItem, FoodKind, GameContext, MealEntry, ToyVariant, PET_NAME_MAX},
     input::{Button, Buttons},
-    pet_seed::{PetGender, StarSign, Temperament},
+    pet_seed::{PetGender, Temperament},
     render::{Renderer, SpriteOpts},
     scene::{Scene, SceneId},
     ui::keyboard::{Charset, OnScreenKeyboard},

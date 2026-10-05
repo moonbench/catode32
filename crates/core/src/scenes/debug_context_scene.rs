@@ -5,7 +5,6 @@
 use core::fmt::Write as _;
 
 use crate::platform::power::software_reset;
-use crate::println;
 use heapless::String;
 use crate::t;
 

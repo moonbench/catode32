@@ -51,7 +51,6 @@ pub struct InboxItem {
 #[cfg(not(feature = "desktop"))]
 mod firmware {
     use super::*;
-    use crate::println;
     use esp_radio::esp_now::{
         EspNow, EspNowError, EspNowWifiInterface, PeerInfo, ReceivedData, BROADCAST_ADDRESS,
     };

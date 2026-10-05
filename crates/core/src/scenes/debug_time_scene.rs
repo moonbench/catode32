@@ -1,3 +1,4 @@
+#[cfg(not(feature = "desktop"))]
 use micromath::F32Ext;
 use crate::t;
 

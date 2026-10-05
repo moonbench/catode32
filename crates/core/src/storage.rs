@@ -25,9 +25,11 @@
 //! whole-partition-minus-one-sector ceiling, writes always reuse a sector
 //! the prior record occupied.
 
+#[cfg(not(feature = "desktop"))]
 const MAGIC: [u8; 4] = *b"SAVE";
 const HEADER_LEN: usize = 16;
 const SECTOR_SIZE: usize = 4096;
+#[cfg(not(feature = "desktop"))]
 const WORD_SIZE: usize = 4;
 
 /// Cap on payload bytes per save. Sized so a save never consumes the entire
@@ -42,7 +44,6 @@ use esp_bootloader_esp_idf::partitions::{
     read_partition_table, DataPartitionSubType, PartitionType, PARTITION_TABLE_MAX_LEN,
 };
 use esp_hal::peripherals::FLASH;
-use crate::println;
 use esp_storage::FlashStorage;
 
 use super::{HEADER_LEN, MAGIC, MAX_PAYLOAD, SECTOR_SIZE, WORD_SIZE};
@@ -361,7 +362,6 @@ mod desktop {
     use std::io::Read;
     use std::path::Path;
 
-    use crate::println;
 
     const SAVE_PATH: &str = "./catode32-save.json";
 

@@ -84,6 +84,7 @@ impl Behavior for ChatteringBehavior {
     }
 
     fn draw(&self, renderer: &mut Renderer, _ctx: &GameContext, char_screen: Point, mirror_h: bool) {
+        #[cfg(not(feature = "desktop"))]
         use micromath::F32Ext;
         if self.phase != Phase::Chattering {
             return;

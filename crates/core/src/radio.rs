@@ -19,6 +19,7 @@
 //! `release` is a no-op. Code that handles the no-radio case (the
 //! "you've gone offline" branch) keeps working unchanged.
 
+#[cfg(feature = "desktop")]
 use crate::context::GameContext;
 
 #[cfg(not(feature = "desktop"))]
@@ -26,7 +27,6 @@ mod firmware {
     use esp_hal::peripherals::WIFI;
 
     use crate::context::GameContext;
-    use crate::println;
 
     /// Bring the radio up (or just bump the refcount). Returns `true` if
     /// the radio is usable on exit, `false` if init failed.

@@ -1262,6 +1262,7 @@ impl LocationScene {
         self.placement.draw(renderer, &self.environment);
         self.selection.draw(ctx, renderer, &self.environment);
         if let Some(flash) = self.heard_flash {
+            #[cfg(not(feature = "desktop"))]
             use micromath::F32Ext;
             // Sinusoidal bob using `sin(elapsed * 9.42) * 3`.
             let y_offset = ((flash.elapsed * 9.42).sin() * 3.0) as i32;

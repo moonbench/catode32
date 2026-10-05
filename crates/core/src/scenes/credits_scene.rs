@@ -17,7 +17,6 @@ use crate::{
     scene::{Scene, SceneId},
 };
 
-const CHAR_W: i32 = 6;
 const LINE_H: i32 = 10;
 /// 64 / LINE_H = 6 lines on screen at a time.
 const VISIBLE: usize = 6;
