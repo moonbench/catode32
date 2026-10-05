@@ -41,6 +41,9 @@ impl DebugWifiScene {
             let flag = if ctx.in_familiar_location { 'Y' } else { 'N' };
             let _ = write!(s, "Home? {}", flag);
         });
+        push_line(&mut self.lines, |s| {
+            let _ = write!(s, "Reset: {}", ctx.last_reset_reason);
+        });
         push_blank(&mut self.lines);
 
         push_line(&mut self.lines, |s| {

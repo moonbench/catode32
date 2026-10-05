@@ -7,6 +7,7 @@
 //! esp_println::...` directly. Go through these submodules so the desktop
 //! build doesn't break.
 
+pub mod persist;
 pub mod power;
 pub mod radio;
 pub mod rng;

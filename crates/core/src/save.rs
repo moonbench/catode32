@@ -29,8 +29,11 @@ use crate::{
 /// backwards-incompatible way.
 const SCHEMA_VERSION: u8 = 0;
 
-/// Save interval used by `save_if_needed`.
-const SAVE_INTERVAL: Duration = Duration::from_secs(59 * 60);
+/// Save interval used by `save_if_needed`. Deliberately longer than
+/// `wifi_tracker::SCAN_INTERVAL`: each scan is preceded by a save, so while
+/// scans keep running this fallback never fires and the device writes about
+/// once per scan interval rather than twice.
+const SAVE_INTERVAL: Duration = Duration::from_secs(75 * 60);
 
 /// Max size of the JSON payload. Sized to `storage::MAX_PAYLOAD`, which
 /// covers a maxed-out save (80 plants, full inventory) with room to spare.
@@ -439,6 +442,8 @@ struct SaveData {
     #[serde(default)] least_fav_location: Option<SStr>,
     #[serde(default)] wifi_familiar: Vec<WifiEntryData, WIFI_FAMILIAR_MAX>,
     #[serde(default)] wifi_recent: Vec<WifiEntryData, WIFI_RECENT_MAX>,
+    /// True when this save was written immediately before a wifi scan.
+    #[serde(default)] scan_started: bool,
     #[serde(default)] pet_name: Option<NameStr>,
     #[serde(default)] friends: StubMap,
     #[serde(default)] recent_meals: Vec<SStr, RECENT_HISTORY>,
@@ -596,6 +601,7 @@ fn build(ctx: &GameContext) -> SaveData {
         least_fav_location: ctx.least_fav_location.map(|s| sstr(fav_location_save_key(s))),
         wifi_familiar: build_wifi_list(&ctx.wifi_familiar),
         wifi_recent: build_wifi_list(&ctx.wifi_recent),
+        scan_started: ctx.scan_started,
         pet_name: if ctx.pet_name.is_empty() {
             None
         } else {
@@ -814,6 +820,7 @@ fn apply(data: &SaveData, ctx: &mut GameContext) {
     // (e.g. saves from before wifi was wired up).
     apply_wifi_list(&data.wifi_familiar, &mut ctx.wifi_familiar);
     apply_wifi_list(&data.wifi_recent, &mut ctx.wifi_recent);
+    ctx.scan_started = data.scan_started;
 
     ctx.first_impressions = false;
     ctx.recompute_health();

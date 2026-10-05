@@ -603,6 +603,13 @@ pub struct GameContext {
     /// next frame and drives a synchronous scan. Out-of-band from the
     /// hourly midpoint scan so the debug UI can force a fresh result.
     pub wifi_scan_requested: bool,
+    /// True only while writing the pre-scan save, so that save records
+    /// "a scan started at this save's moment". Loaded back on boot to defer
+    /// the first scan, since no clock survives a reset.
+    pub scan_started: bool,
+    /// Hardware reset reason for this boot, for the debug wifi screen. Read
+    /// from a chip register at boot; never saved.
+    pub last_reset_reason: heapless::String<24>,
 
     /// ESP-NOW transport. The manager struct itself is always present;
     /// its inner driver handle is bound only while
@@ -764,6 +771,8 @@ impl GameContext {
             wifi_familiar: Vec::new(),
             wifi_recent: Vec::new(),
             wifi_scan_requested: false,
+            scan_started: false,
+            last_reset_reason: heapless::String::new(),
             espnow: None,
             wifi: None,
             wifi_peripheral: None,

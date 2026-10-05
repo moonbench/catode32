@@ -6,6 +6,7 @@ use crate::{
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[repr(u8)]
 pub enum SceneId {
     Inside,
     Outside,
@@ -46,6 +47,75 @@ pub enum SceneId {
     VacationAquarium,
     VacationBeach,
 }
+
+impl SceneId {
+    /// Every variant in declaration order, so `ALL[id as usize] == id`.
+    const ALL: [SceneId; 38] = [
+        SceneId::Inside,
+        SceneId::Outside,
+        SceneId::Bedroom,
+        SceneId::Kitchen,
+        SceneId::Treehouse,
+        SceneId::Menu,
+        SceneId::PoseViewer,
+        SceneId::Stats,
+        SceneId::Forecast,
+        SceneId::Store,
+        SceneId::Adoption,
+        SceneId::PetInfo,
+        SceneId::Credits,
+        SceneId::DebugBehaviors,
+        SceneId::DebugEnv,
+        SceneId::DebugStats,
+        SceneId::DebugTime,
+        SceneId::DebugLed,
+        SceneId::DebugPlants,
+        SceneId::DebugPower,
+        SceneId::DebugContext,
+        SceneId::DebugWifi,
+        SceneId::DebugEspnow,
+        SceneId::Social,
+        SceneId::Zoomies,
+        SceneId::Breakout,
+        SceneId::Snake,
+        SceneId::Memory,
+        SceneId::Maze,
+        SceneId::Hanjie,
+        SceneId::TicTacToe,
+        SceneId::LightsOut,
+        SceneId::Pipes,
+        SceneId::Platformer,
+        SceneId::VacationPark,
+        SceneId::VacationForest,
+        SceneId::VacationAquarium,
+        SceneId::VacationBeach,
+    ];
+
+    pub fn to_u8(self) -> u8 {
+        self as u8
+    }
+
+    pub fn from_u8(v: u8) -> Option<SceneId> {
+        Self::ALL.get(v as usize).copied()
+    }
+
+    /// Whether a crash-resume intent may boot straight into this scene.
+    /// Adoption only runs without a save, Social needs a live ESP-NOW
+    /// session, and Menu is an overlay that is never swapped to.
+    pub fn resumable(self) -> bool {
+        !matches!(self, SceneId::Adoption | SceneId::Social | SceneId::Menu)
+    }
+}
+
+// Keep `ALL` in declaration order: a reordered entry fails the build. A
+// variant left out of `ALL` is merely never resumed.
+const _: () = {
+    let mut i = 0;
+    while i < SceneId::ALL.len() {
+        assert!(SceneId::ALL[i] as usize == i);
+        i += 1;
+    }
+};
 
 pub trait Scene {
     fn enter(&mut self, _ctx: &mut GameContext) {}

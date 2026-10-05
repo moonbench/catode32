@@ -1,4 +1,5 @@
 use crate::platform::{
+    persist,
     power::software_reset,
     radio::WIFI,
     rng::Rng,
@@ -24,6 +25,9 @@ use crate::{
 // `radio::acquire` / `radio::release` calls.
 
 const DEEP_WAKE_BUTTONS: [Button; 4] = [Button::A, Button::B, Button::Menu1, Button::Menu2];
+
+/// Boots allowed to resume an interrupted scene change before giving up.
+const MAX_RESUME_ATTEMPTS: u8 = 2;
 
 const FPS: u64 = 12;
 const FRAME_TIME_MS: u64 = 1000 / FPS;
@@ -56,6 +60,9 @@ pub struct Game {
     /// Promoted from a local in `run()` so `tick()` can compute dt across
     /// calls. Initialised lazily on the first tick.
     last_frame: Option<Instant>,
+    /// True when this boot resumed a scene from a crash-resume intent. The
+    /// intent is cleared after the first completed tick.
+    resumed_intent: bool,
 }
 
 impl Game {
@@ -75,12 +82,51 @@ impl Game {
         context.hw_rng = rng;
         context.espnow = Some(espnow);
         context.wifi_peripheral = Some(wifi_peripheral);
+        let (reset_label, brownout) = persist::reset_reason();
+        println!("[Boot] Reset reason: {}", reset_label);
+        context.last_reset_reason = reset_label;
+
         let loaded = save::has_save() && save::load(&mut context);
-        let start = if loaded {
-            SceneId::Inside
-        } else {
-            SceneId::Adoption
+
+        // Resume a scene change that a reset interrupted. Capped so a scene
+        // that crashes on entry gets at most MAX_RESUME_ATTEMPTS boots before
+        // we fall back to the normal start scene.
+        let mut resumed = false;
+        let start = match persist::intent_peek() {
+            Some((id, attempts)) if loaded && attempts < MAX_RESUME_ATTEMPTS => {
+                match SceneId::from_u8(id).filter(|s| s.resumable()) {
+                    Some(scene) => {
+                        println!("[Boot] Resuming {:?} (attempt {})", scene, attempts + 1);
+                        persist::intent_rearm(id, attempts + 1);
+                        resumed = true;
+                        scene
+                    }
+                    None => SceneId::Inside,
+                }
+            }
+            Some((id, attempts)) => {
+                println!("[Boot] Dropping intent {} after {} attempt(s)", id, attempts);
+                if loaded { SceneId::Inside } else { SceneId::Adoption }
+            }
+            None if loaded => SceneId::Inside,
+            None => SceneId::Adoption,
         };
+        if !resumed {
+            persist::intent_clear();
+        }
+
+        // No clock survives a reset, so a save written just before a scan
+        // means "the last scan was at this save's moment": wait a full
+        // interval. A brownout also defers, in case it hit during that save
+        // before the marker was committed.
+        let wifi_next_scan = if context.scan_started || brownout {
+            println!("[Boot] Deferring first wifi scan");
+            Some(Instant::now() + wifi_tracker::SCAN_INTERVAL)
+        } else {
+            None
+        };
+        context.scan_started = false;
+
         let scene_manager = SceneManager::new(&mut context, start);
         Self {
             renderer,
@@ -95,8 +141,9 @@ impl Game {
             deep_sleep_pending: false,
             just_woke: false,
             last_dt_ms: 0,
-            wifi_next_scan: None,
+            wifi_next_scan,
             last_frame: None,
+            resumed_intent: resumed,
         }
     }
 
@@ -135,9 +182,10 @@ impl Game {
         // explicitly asked for fresh data.
         if self.context.wifi_scan_requested {
             self.context.wifi_scan_requested = false;
-            if wifi_tracker::scan_now(&mut self.context).is_some() {
-                self.wifi_next_scan = Some(Instant::now() + wifi_tracker::SCAN_INTERVAL);
-            }
+            // No pre-scan save here: repeated debug presses would mean
+            // repeated flash writes. The hourly clock still restarts.
+            self.wifi_next_scan = Some(Instant::now() + wifi_tracker::SCAN_INTERVAL);
+            wifi_tracker::scan_now(&mut self.context);
         }
 
         self.draw();
@@ -163,6 +211,12 @@ impl Game {
         if self.just_woke {
             self.just_woke = false;
             self.last_frame = Some(Instant::now());
+        }
+
+        // A resumed scene survived a full frame, so the intent is done.
+        if self.resumed_intent {
+            self.resumed_intent = false;
+            persist::intent_clear();
         }
     }
 
@@ -213,8 +267,14 @@ impl Game {
                 // Triggered on any transition that's also swapping a scene
                 // (so menu-only transitions don't pay the cost).
                 if let Some(next) = self.pending_scene.take() {
+                    // Record the intent in RTC RAM (no flash write) so a
+                    // reset during the swap or the scan resumes into `next`.
+                    if next.resumable() {
+                        persist::intent_set(next.to_u8());
+                    }
                     self.scene_manager.swap_to(&mut self.context, next);
                     self.maybe_scan_wifi();
+                    persist::intent_clear();
                 }
                 if self.sleep_pending {
                     self.sleep_pending = false;
@@ -243,7 +303,8 @@ impl Game {
 
     /// Run a wifi scan if one is due. Called only from the transition
     /// midpoint so the ~1-3 s blocking scan is hidden behind a black screen.
-    /// `wifi_next_scan = None` means "scan immediately" (boot case).
+    /// `wifi_next_scan = None` means "scan immediately" (a boot whose save
+    /// was not taken right before a scan).
     fn maybe_scan_wifi(&mut self) {
         // No `ctx.wifi` check anymore: the controller doesn't exist at
         // rest. `scan_now` does its own acquire/release.
@@ -255,9 +316,20 @@ impl Game {
         if !due {
             return;
         }
-        if wifi_tracker::scan_now(&mut self.context).is_some() {
-            self.wifi_next_scan = Some(now + wifi_tracker::SCAN_INTERVAL);
-        }
+        // Push the next scan out before scanning, success or not, so a
+        // failing or resetting scan can't be retried on every swap.
+        self.wifi_next_scan = Some(now + wifi_tracker::SCAN_INTERVAL);
+
+        // The pre-scan save doubles as the hourly save (it restamps
+        // `last_save_time`, holding off `save_if_needed`). Its
+        // `scan_started` marker tells the next boot a scan just began.
+        // Nothing is written after the scan; results ride along with the
+        // next save.
+        self.context.scan_started = true;
+        save::save(&mut self.context);
+        self.context.scan_started = false;
+
+        wifi_tracker::scan_now(&mut self.context);
     }
 
     fn draw(&mut self) {

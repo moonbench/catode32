@@ -1,4 +1,7 @@
+use core::fmt::Write as _;
+
 use embedded_graphics::prelude::{Point, Size};
+use heapless::String;
 use crate::t;
 
 use crate::{
@@ -58,7 +61,13 @@ impl Scene for DebugPowerScene {
         None
     }
 
-    fn draw(&self, _ctx: &GameContext, renderer: &mut Renderer, _dt_ms: u64) {
+    fn draw(&self, ctx: &GameContext, renderer: &mut Renderer, _dt_ms: u64) {
+        // Below the three 16px rows. Shown on-device because brownouts only
+        // happen off USB, where there is no serial log to read.
+        let mut line: String<32> = String::new();
+        let _ = write!(line, "Reset: {}", ctx.last_reset_reason);
+        renderer.draw_text(line.as_str(), Point::new(2, ENTRIES.len() as i32 * ROW_HEIGHT + 4));
+
         for (i, entry) in ENTRIES.iter().enumerate() {
             let y = i as i32 * ROW_HEIGHT;
             let selected = i == self.selected;
