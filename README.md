@@ -293,8 +293,6 @@ Read the [desktop version instructions](https://github.com/moonbench/catode32/wi
 [<img width="1024" height="538" alt="screen08" src="https://github.com/user-attachments/assets/bf33c3e3-28e9-4d1a-af36-4f4c7b349724" />](https://github.com/moonbench/catode32/wiki/Desktop-Version)
 
 
-
-
 ## Development Workflow
 
 For the fastest iteration, run the game directly on the desktop. See the Desktop Emulator section above for the command that matches your machine (Apple Silicon, Intel Mac, or Linux). The desktop build uses the same `catode32-core` crate that the firmware uses, so most gameplay changes can be tested without touching hardware.
@@ -311,49 +309,17 @@ Debug builds work too and are faster to compile, but release builds are strongly
 
 [TODO] Add a rust version of the test_hardware script.
 
-## Localisation
+## Localization
 
-All player-visible strings are marked with the `t!("...")` macro in the source code. At build time, the `catode32-i18n-macros` crate rewrites each `t!` call into the translated string literal for the active language. The compiled binary contains only baked string values. No translation table is loaded at runtime, so there is zero memory or performance overhead on the device.
+The project supports several different languages. Specifically:
+- English
+- Dutch
+- Italian
+- Spanish
+- French
+- German
 
-Translation lookup order per string: **language file → English fallback → key itself**. This means a partial translation file is valid; any untranslated key silently falls back to English.
-
-### Available languages
-
-| Code | Language |
-|------|----------|
-| `en` | English (default) |
-| `nl` | Dutch |
-| `it` | Italian |
-| `es` | Spanish |
-| `fr` | French |
-| `de` | German |
-
-### Building with a language
-
-Language selection is done through Cargo features. Each language has a matching `lang-<code>` feature on both the firmware and desktop crates. English is the default.
-
-Firmware, C6, Spanish:
-```bash
-cargo run --release --no-default-features --features "c6 lang-es"
-```
-
-Firmware, C3, French:
-```bash
-cargo run --release --no-default-features --features "c3 lang-fr" --target riscv32imc-unknown-none-elf
-```
-
-Desktop, German (example on Apple Silicon):
-```bash
-cargo run -p catode32-desktop --no-default-features --features lang-de --target aarch64-apple-darwin
-```
-
-### Adding a new language
-
-1. Create `crates/i18n-macros/translations/<code>.json`
-2. Copy any keys from `en.json` whose values you want to translate, and replace the values with the translated text. Keys you omit fall back to English automatically.
-3. Add a matching `lang-<code>` feature to `crates/i18n-macros/Cargo.toml`, `crates/core/Cargo.toml`, `crates/firmware/Cargo.toml`, and `crates/desktop/Cargo.toml`, following the pattern used for the existing languages.
-4. Extend the language dispatch in `crates/i18n-macros/src/lib.rs` to recognise the new `lang-<code>` feature.
-5. Build with `--features lang-<code>` as shown above.
+Take a look at the [instructions for building with different languages](https://github.com/moonbench/catode32/wiki/International-Language-Support) for more details.
 
 ## Running the Game
 
