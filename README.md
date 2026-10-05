@@ -2,7 +2,10 @@
 
 ![catstars](https://github.com/user-attachments/assets/2ffc652a-f392-42e7-9a13-d7fb91f3770d)
 
-![spookycat](https://github.com/user-attachments/assets/c1f8b6eb-b90c-46ad-b652-80093db97f83)
+This is an advanced virtual pet with a detailed behavior and status system, minigames, multiple locations, dynamic weather, in-game store (with earned credits), wireless playdates, vacations, and lots of toys and food to keep your pet happy.
+
+And lots of cute art.
+
 ## Pet Features
 - [Pet Care](#pet-care)
 - [Behaviors](#pet-behavior)
@@ -19,7 +22,7 @@
 ### Pet Care
 Your pet [needs your help](https://github.com/moonbench/catode32/wiki/Pet-Care) to have a healthy, fulfilling, affectionate life.
 
-There a 18 different stats that help you understand the quality of your pet's life. Your pet will help communicate some of these needs through vocalizations. You can also go to the pet stats screen in the game to see them all at any time:
+There a 18 different stats that affect the quality of your pet's life. Your pet will help communicate some of these needs through vocalizations and behavior. You can also go to the pet stats screen in the game to see them all at any time:
 
 ![Stats](https://github.com/user-attachments/assets/5c1b3411-8439-4798-8d96-3da26b280524)
 
@@ -143,149 +146,24 @@ To care for a sick pet and nurture them back to health, make sure they're well f
 - **Menu button 1**: Global menu options (always the same)
 - **Menu button 2**: Contextual menu options (based on the current scene)
 
-
-
 ## Setup
+For information about the [hardware requirements](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#hardware-requirements), the [software requrements](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#software-requirements), or to learn how to [configure and wire](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#board-configuration) your ESP32, take a look at the wiki.
 
-### Hardware Requirements
+It also has detailed information for [installing code and flashing your device](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#installation).
 
-- **ESP32-C6 SuperMini** OR **ESP32-C3** development board
-- **SSD1306 OLED Display** (128x64, I2C)
-- **8 Push Buttons** for input
-
-### Software Requirements
-
-- Rust toolchain (install via [rustup](https://rustup.rs))
-- `espflash` (`cargo install espflash`)
-
-### Board Configuration
-
-The project supports both ESP32-C6 and ESP32-C3 boards. Board selection is done through Cargo features on the `catode32-firmware` crate. Exactly one of `c6` or `c3` must be active. C6 is the default.
-
-Build and flash for ESP32-C6:
-```bash
+Once everything is set up, flashing the device is as easy as running:
+```
 cargo run
 ```
 
-Build and flash for ESP32-C3:
-```bash
-cargo run --no-default-features --features c3 --target riscv32imc-unknown-none-elf
-```
-
-The two chips use different RISC-V variants, so the `--target` flag matters. C6 is `riscv32imac-unknown-none-elf` (with the A extension) and C3 is `riscv32imc-unknown-none-elf` (no A extension). The C6 target is set as the default in `.cargo/config.toml`, so you only need to pass `--target` when building for C3.
-
-### Wiring
-
-Choose the wiring diagram for your board. Each button connects between GPIO pin and GND (internal pull-ups enabled).
-
-#### ESP32-C6 Wiring
-
-**Display (I2C):**
-|Display Pin | ESP32-C6 Pin |
-|--------|----------|
-|VCC | 3V3 |
-|GND | GND |
-|SDA | GPIO4 |
-|SCL | GPIO7 |
-
-**Buttons:**
-| Button | GPIO Pin |
-|--------|----------|
-| UP     | GPIO14   |
-| DOWN   | GPIO18   |
-| LEFT   | GPIO20   |
-| RIGHT  | GPIO19   |
-| A      | GPIO1    |
-| B      | GPIO0    |
-| MENU1  | GPIO3    |
-| MENU2  | GPIO2    |
-
-#### ESP32-C3 Wiring
-
-**Display (I2C):**
-|Display Pin | ESP32-C3 Pin |
-|--------|----------|
-|VCC | 3V3 |
-|GND | GND |
-|SDA | GPIO6 |
-|SCL | GPIO7 |
-
-**Buttons:**
-| Button | GPIO Pin |
-|--------|----------|
-| UP     | GPIO0    |
-| DOWN   | GPIO1    |
-| LEFT   | GPIO2    |
-| RIGHT  | GPIO3    |
-| A      | GPIO4    |
-| B      | GPIO5    |
-| MENU1   | GPIO10  |
-| MENU2   | GPIO11  |
-
-> **Note:** The ESP32-C3 configuration avoids strapping pins (GPIO2, GPIO8, GPIO9) to prevent boot issues.
-
-> **Warning:** The C3 build currently fails to compile and is untested on hardware. Deep sleep is C6-specific; see the `TODO(c3)` note on `enter_deep_sleep` in `crates/core/src/game.rs`.
-
-## Installation
-
-The firmware is a single Rust binary. There is no separate filesystem or asset upload step. Everything (game logic, sprites, translation strings) is compiled into one image and flashed to the device.
-
-### 1. Set Up Build Tools (one-time)
-
-Install Rust via [rustup](https://rustup.rs) if you don't already have it. The `rust-toolchain.toml` in this repo pins the toolchain and installs the RISC-V targets automatically the first time you build.
-
-Install `espflash`, which builds, flashes, and monitors the device:
-```bash
-cargo install espflash
-```
-
-The `espflash` runner is already wired up in `.cargo/config.toml`, so `cargo run` on the firmware crate will flash and start a serial monitor.
-
-### 2. Build and Flash
-
-For ESP32-C6 (default):
-```bash
-cargo run --release
-```
-
-For ESP32-C3:
-```bash
-cargo run --release --no-default-features --features c3 --target riscv32imc-unknown-none-elf
-```
-
-`espflash` auto-detects the serial port. If you have more than one device connected, pass `--port` after a `--` separator:
-```bash
-cargo run --release -- --port /dev/tty.usbmodem1234
-```
-
-`cargo run` will build, flash, and drop you into the serial monitor. Press `Ctrl+C` to exit the monitor without resetting the device.
-
-
-
 ## Desktop Emulator
 
-The game can be run on your desktop. That allows you to experiment and play with the project without needing to setup a real ESP32.
+The game can also be run on your desktop. That allows you to experiment and play with the project without needing to setup a real ESP32.
 
 Read the [desktop version instructions](https://github.com/moonbench/catode32/wiki/Desktop-Version) for details on how to use the emulator.
 
 [<img width="1024" height="538" alt="screen08" src="https://github.com/user-attachments/assets/bf33c3e3-28e9-4d1a-af36-4f4c7b349724" />](https://github.com/moonbench/catode32/wiki/Desktop-Version)
 
-
-## Development Workflow
-
-For the fastest iteration, run the game directly on the desktop. See the Desktop Emulator section above for the command that matches your machine (Apple Silicon, Intel Mac, or Linux). The desktop build uses the same `catode32-core` crate that the firmware uses, so most gameplay changes can be tested without touching hardware.
-
-When you need to test on the device itself, use `cargo run` from the workspace root. It builds the firmware crate (the default workspace member), flashes it via `espflash`, and opens a serial monitor:
-
-```bash
-cargo run --release
-```
-
-Debug builds work too and are faster to compile, but release builds are strongly recommended for on-device testing because the binary is much smaller and the game runs closer to full speed.
-
-## Scripts
-
-[TODO] Add a rust version of the test_hardware script.
 
 ## Localization
 
@@ -315,8 +193,27 @@ To run the desktop emulator instead of flashing hardware, use the command from t
 cargo run -p catode32-desktop --target aarch64-apple-darwin
 ```
 
+## Development Workflow
+
+For the fastest iteration, run the game directly on the desktop. See the Desktop Emulator section above for the command that matches your machine (Apple Silicon, Intel Mac, or Linux). The desktop build uses the same `catode32-core` crate that the firmware uses, so most gameplay changes can be tested without touching hardware.
+
+When you need to test on the device itself, use `cargo run` from the workspace root. It builds the firmware crate (the default workspace member), flashes it via `espflash`, and opens a serial monitor:
+
+```bash
+cargo run --release
+```
+
+Debug builds work too and are faster to compile, but release builds are strongly recommended for on-device testing because the binary is much smaller and the game runs closer to full speed.
+
+## Scripts
+
+[TODO] Add a rust version of the test_hardware script.
+
+
 ## Contributing
 
 It's helpful to open an issue prior to making a PR to allow discussion on the changes.
 
 It's also helpful to keep PRs small and targeted.
+
+![spookycat](https://github.com/user-attachments/assets/c1f8b6eb-b90c-46ad-b652-80093db97f83)
