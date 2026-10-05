@@ -50,27 +50,13 @@ Playing these games provides different stat rewards for your pet, depending on t
 
 ### In-Game Store
 
+Spend coins at the [store](https://github.com/moonbench/catode32/wiki/Store) to buy toys, food, snacks, vacations, services, and medicine for your pet.
+
 ![In-game store](https://github.com/user-attachments/assets/0920c266-b360-4649-ad1e-e2566e161a54)
 
-You can earn coins through the minigames, and sometimes your pet will find a few coins randomly when they're in the mood to do a little hunting.
+You can earn coins through the [minigames](https://github.com/moonbench/catode32/wiki/Minigames), and sometimes your pet will find a few coins randomly when they're in the mood to do a little hunting.
 
-These coins can be spent at the in-game store to help you care for your pet.
-
-At the store you can buy:
-- Meals
-	- Kibble, Cod, Haddock, Trout, Shrimp, Herring, Turkey, Tuna, Salmon, Chicken, Liver, Beef, Lamb
-- Snacks
-	- Carrots, Pumpkin, Treats, Fish Bytes, Eggs, Nuggets, Milk, Chew Sticks, Puree 
-- Toys
-	- String, Feather, Yarn Ball, Laser Pointer
-- Gardening supplies
-	- Various sized pots, Seeds (Grass, Fresia, Sunflower, Roses), Spade, Watering Can, Fertilizer
-- Care Services
-	- Professional Grooming, Professional Training
-- Vacations
-	- Trip to the Park, Forest, Aquarium, Beach
-
-Your pet will appreciate variety in their meals and snacks, and they'll be enriched by exposure to new toys and locations. Adding plants to your pet's home, and keeping those plants healthy, will give a big boost to your pet's mood and life!
+Read more [detailed store information](https://github.com/moonbench/catode32/wiki/Store).
 
 ### Locations
 
