@@ -39,11 +39,12 @@ By keeping an eye on their behavior you can better understand their needs and wa
 [Read more about understanding your pet's behaviors](https://github.com/moonbench/catode32/wiki/Behaviors).
 
 ### Minigames
-There are several minigames to keep both you and your pet occupied.
+There are [several minigames](https://github.com/moonbench/catode32/wiki/Minigames) to keep both you and your pet occupied.
 
 Playing these games provides different stat rewards for your pet, depending on the game type. And they provide coins which you can spend at the in-game store to help care for your pet even better.
 
-The rewards for each game are related to the type of game itself. For example, puzzle games are likely to reward intelligence gains. Action games are more likely to provide fitness gains (and probably some energy losses!) Each game is a bit different, and the rewards are also scaled by how long you play and how successful you are in it. 
+<img width="1018" height="506" alt="screen11" src="https://github.com/user-attachments/assets/a95cc1b2-c8e3-464e-83fb-155b4e3998b7" />
+
 
 ### In-Game Store
 
