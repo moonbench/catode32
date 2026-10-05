@@ -130,6 +130,11 @@ const AUTO_SELECT_NAMES: &[BehaviorId] = &[
 ];
 
 pub fn auto_select(ctx: &mut GameContext) -> NextBehavior {
+    // Getting out of the rain beats everything else.
+    if let Some(next) = common::shelter_exit(ctx) {
+        return next;
+    }
+
     // Random meander gate, scaled by sickness.
     let meander_p = if ctx.sickness >= 8.0 {
         0.02

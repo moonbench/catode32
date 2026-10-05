@@ -143,6 +143,39 @@ pub fn is_outdoor(scene: SceneId) -> bool {
     SICK_OUTDOOR.iter().any(|s| *s == scene)
 }
 
+/// Caught outdoors in rain/snow/storm: very likely to head indoors right away.
+/// Ignores the low-energy gate (a tired cat still seeks shelter) and is
+/// guaranteed once the pet is already sick.
+pub fn shelter_exit(ctx: &mut GameContext) -> Option<NextBehavior> {
+    if ctx.on_vacation || !is_outdoor(ctx.last_main_scene) {
+        return None;
+    }
+    let p = match ctx.weather {
+        Weather::Storm => 0.9,
+        Weather::Rain | Weather::Snow => 0.7,
+        _ => return None,
+    };
+    let p = if ctx.sickness >= 2.0 { 1.0 } else { p };
+    let roll = rand::rand_f32(&mut ctx.rng);
+    println!("Shelter p={:.2} roll={:.3} ({:?})", p, roll, ctx.last_main_scene);
+    if roll > p {
+        return None;
+    }
+    // Treehouse only connects to Outside; from there the next roll goes Inside.
+    let dest = if ctx.last_main_scene == SceneId::Treehouse {
+        SceneId::Outside
+    } else {
+        SceneId::Inside
+    };
+    println!("\x1b[32mSeeking shelter -> {:?}\x1b[0m", dest);
+    Some(NextBehavior::GoTo(crate::behavior::GoToParams {
+        target_x: ctx.scene_x_min,
+        speed: 12.0,
+        pending_scene: Some(dest),
+        then: None,
+    }))
+}
+
 pub fn auto_select_scene_exit(ctx: &mut GameContext) -> Option<NextBehavior> {
     // Pet stays put on vacation. The player explicitly chooses "Go home".
     if ctx.on_vacation {

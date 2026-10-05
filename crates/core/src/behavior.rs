@@ -282,6 +282,8 @@ pub trait Behavior {
 pub struct BehaviorManager {
     current: ActiveBehavior,
     started: bool,
+    /// Sickness accrued from exposure/neglect but not yet applied to ctx.
+    sickness_pending: f32,
 }
 
 #[allow(dead_code)]
@@ -290,6 +292,7 @@ impl BehaviorManager {
         Self {
             current: ActiveBehavior::from_next(NextBehavior::Idle),
             started: false,
+            sickness_pending: 0.0,
         }
     }
 
@@ -305,9 +308,44 @@ impl BehaviorManager {
         if !self.started {
             self.start(ctx, character);
         }
+        self.accumulate_sickness(ctx, dt);
         let state = self.current.as_dyn_mut().update(ctx, character, dt);
         if state == BehaviorState::Completed {
             self.advance(ctx, character, true);
+        }
+    }
+
+    /// Accrue sickness over real time spent exposed to bad weather or neglect.
+    /// Rested time (sleeping / napping) doesn't count. Applied in small steps
+    /// so the log isn't spammed every frame.
+    fn accumulate_sickness(&mut self, ctx: &mut GameContext, dt: f32) {
+        use crate::time_system::Weather;
+        if matches!(self.current_id(), BehaviorId::Sleeping | BehaviorId::Napping) {
+            return;
+        }
+        let mut per_min = 0.0;
+        if crate::behaviors::common::is_outdoor(ctx.last_main_scene) {
+            per_min += match ctx.weather {
+                Weather::Storm => SICK_PER_MIN_STORM,
+                Weather::Rain | Weather::Snow => SICK_PER_MIN_RAIN,
+                _ => 0.0,
+            };
+        }
+        if ctx.fullness < 10.0 {
+            per_min += SICK_PER_MIN_NEGLECT;
+        }
+        if ctx.cleanliness < 15.0 {
+            per_min += SICK_PER_MIN_NEGLECT;
+        }
+        if per_min <= 0.0 {
+            return;
+        }
+        self.sickness_pending += per_min * dt / 60.0;
+        if self.sickness_pending >= SICK_APPLY_STEP {
+            let delta = self.sickness_pending;
+            self.sickness_pending = 0.0;
+            ctx.sickness = (ctx.sickness + delta).min(10.0);
+            println!("[Sickness] +{:.2} -> {:.2}", delta, ctx.sickness);
         }
     }
 
@@ -372,7 +410,15 @@ impl BehaviorManager {
     fn advance(&mut self, ctx: &mut GameContext, character: &mut Character, completed: bool) {
         let id = self.current.as_dyn().id();
         let progress = self.current.as_dyn().progress();
-        let chained = if completed {
+        // Caught outside in bad weather: head for shelter, overriding any chain.
+        let shelter = if completed && id != BehaviorId::GoTo && ctx.pending_scene.is_none() {
+            crate::behaviors::common::shelter_exit(ctx)
+        } else {
+            None
+        };
+        let chained = if shelter.is_some() {
+            shelter
+        } else if completed {
             self.current.as_dyn().next(ctx).filter(|n| {
                 let next_id = ActiveBehavior::from_next(n.clone()).as_dyn().id();
                 !crate::behaviors::common::sick_blocks(next_id, ctx)
@@ -383,7 +429,6 @@ impl BehaviorManager {
         self.current.as_dyn_mut().exit(ctx, completed);
         if completed {
             ctx.record_behavior(id);
-            apply_sickness_accumulation(ctx, id);
             self.current.as_dyn().apply_completion_bonus(ctx, progress);
         }
 
@@ -435,6 +480,13 @@ impl BehaviorManager {
     }
 }
 
+// Sickness gained per minute awake in each condition. Rates stack. An hour
+// outside in the rain is ~+2.4; a single sleep/nap recovers 1.0 (3.0 w/ medicine).
+const SICK_PER_MIN_STORM: f32 = 0.08;
+const SICK_PER_MIN_RAIN: f32 = 0.04;
+const SICK_PER_MIN_NEGLECT: f32 = 0.03;
+const SICK_APPLY_STEP: f32 = 0.05;
+
 // When a sleep-type behavior starts in a room with a cat bed and the cat is
 // not already near it, 60% of the time walk to the bed first and chain into
 // the original behavior on arrival.
@@ -466,36 +518,6 @@ fn maybe_redirect_to_bed(
         pending_scene: None,
         then: Some(then),
     })
-}
-
-fn apply_sickness_accumulation(ctx: &mut GameContext, completing: BehaviorId) {
-    use crate::scene::SceneId;
-    use crate::time_system::Weather;
-    if matches!(completing, BehaviorId::Sleeping | BehaviorId::Napping) {
-        return;
-    }
-    let outdoor = matches!(
-        ctx.last_main_scene,
-        SceneId::Outside | SceneId::Treehouse
-    );
-    let mut delta = 0.0;
-    if outdoor {
-        delta += match ctx.weather {
-            Weather::Storm => 0.5,
-            Weather::Rain | Weather::Snow => 0.25,
-            _ => 0.0,
-        };
-    }
-    if ctx.fullness < 10.0 {
-        delta += 0.25;
-    }
-    if ctx.cleanliness < 15.0 {
-        delta += 0.25;
-    }
-    if delta > 0.0 {
-        ctx.sickness = (ctx.sickness + delta).min(10.0);
-        println!("[Sickness] +{:.2} -> {:.2}", delta, ctx.sickness);
-    }
 }
 
 fn wake_greeting(ctx: &GameContext) -> Option<NextBehavior> {
