@@ -8,18 +8,28 @@ And lots of cute art.
 
 Take a look [at the wiki](https://github.com/moonbench/catode32/wiki) for a lot more information about how to build the project, care for your pet, and use all the various systems.
 
+---
+
+- [Pet Features](#pet-features)
+  - [Pet Care](#pet-care)
+  - [Behaviors](#pet-behavior)
+  - [Minigames](#minigames)
+  - [In-Game Store](#in-game-store)
+  - [Locations](#locations)
+  - [Weather](#weather)
+  - [Vacations](#vacations)
+  - [Gardening](#gardening)
+  - [Playdates](#playdates)
+  - [Home Comfort](#home-comfort)
+  - [Sickness](#sickness)
+- [Setup](#setup)
+- [Running the Game](#running-the-game)
+- [Controls](#controls)
+- [Desktop Emulator](#desktop-emulator)
+- [Localization](#localization)
+
+
 ## Pet Features
-- [Pet Care](#pet-care)
-- [Behaviors](#pet-behavior)
-- [Minigames](#minigames)
-- [In-Game Store](#in-game-store)
-- [Locations](#locations)
-- [Weather](#weather)
-- [Vacations](#vacations)
-- [Gardening](#gardening)
-- [Playdates](#playdates)
-- [Home Comfort](#home-comfort)
-- [Sickness](#sickness)
 
 ### Pet Care
 Your pet [needs your help](https://github.com/moonbench/catode32/wiki/Pet-Care) to have a healthy, fulfilling, affectionate life.
@@ -126,6 +136,21 @@ When they're sick, squiggely lines appear above their head and they will exhibit
 
 To care for a sick pet and nurture them back to health, make sure they're well fed and groomed, and let them sleep to recover, ideally in the bedroom. You can also buy medicine at the store. If you feed your pet medicine then they'll get a boost to their recovery the next time they rest. Extra medicine doesn't stack, so just give them one dose between naps.
 
+## Setup
+For information about the [hardware requirements](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#hardware-requirements), the [software requrements](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#software-requirements), or to learn how to [configure and wire](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#board-configuration) your ESP32, take a look at the wiki.
+
+It also has detailed information for [installing code and flashing your device](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#installation).
+
+## Running the Game
+
+Once everything is setup and the firmware is flashed, the game starts automatically on power-up or reset.
+
+To flash a fresh build and drop into the serial monitor:
+
+```bash
+cargo run --release
+```
+
 ## Controls
 
 - **D-pad**: Navigate / Move camera
@@ -134,15 +159,6 @@ To care for a sick pet and nurture them back to health, make sure they're well f
 - **Menu button 1**: Global menu options (always the same)
 - **Menu button 2**: Contextual menu options (based on the current scene)
 
-## Setup
-For information about the [hardware requirements](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#hardware-requirements), the [software requrements](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#software-requirements), or to learn how to [configure and wire](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#board-configuration) your ESP32, take a look at the wiki.
-
-It also has detailed information for [installing code and flashing your device](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#installation).
-
-Once everything is set up, flashing the device is as easy as running:
-```
-cargo run
-```
 
 ## Desktop Emulator
 
@@ -165,15 +181,6 @@ The project supports several different languages. Specifically:
 
 Take a look at the [instructions for building with different languages](https://github.com/moonbench/catode32/wiki/International-Language-Support) for more details.
 
-## Running the Game
-
-Once the firmware is flashed, the game starts automatically on power-up or reset.
-
-To flash a fresh build and drop into the serial monitor:
-
-```bash
-cargo run --release
-```
 
 To run the desktop emulator instead of flashing hardware, use the command from the Desktop Emulator section for your machine, for example:
 
