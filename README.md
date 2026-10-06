@@ -60,18 +60,19 @@ Read more [detailed store information](https://github.com/moonbench/catode32/wik
 
 ### Locations
 
-Within your pet's home there are a few different spaces for them to hang out. They are the:
+Within your pet's home there are a few different spaces for them to hang out.
+
 - Living room
 - Bedroom
 - Kitchen
 - Outside (Back yard)
 - Treehouse
 
-Some of these have special perks. For example, playing with your pet outside or in the living room provides more satisfaction than playing with them in the kitchen. Likewise, feeding them in the kitchen gives them a bit more satisfaction from food than feeding them in the bedroom. And going to the bedroom when the pet's energy is low will encourage them to sleep or nap earlier than they would otherwise (and they'll get a bigger energy and comfort boost for sleeping there too!) Lounging outside or in the treehouse or the living room will be a bit more serene for your pet than lounging in the kitchen, etc...
+Some of these have special perks too.
 
-You can choose to take your pet to a different location, and sometimes they'll decide to go to different locations on their own.
+There are also some vacation spots such as the park, forest, aquarium, and beach you can take your pet on trips to as well!
 
-Beyond those at-home locations, there are also some external locations such as the park, forest, aquarium, and beach which you can visit with your pet by taking vacations via the store.
+There's [more location information on the wiki](https://github.com/moonbench/catode32/wiki/Locations).
 
 ### Weather
 
@@ -85,17 +86,15 @@ And while you have a chance to see a shooting star or two each night, you might 
 
 ### Vacations
 
-![parkvacation](https://github.com/user-attachments/assets/647eb3cb-26e4-4be5-b6ac-8b1a32d0783b)
+![beachvacation](https://github.com/user-attachments/assets/05876563-14ce-4c40-b7ae-c9dc321d1562)
 
-If you save up some coins you can take your pet on different vacations. Each one will give some different rewards to your pet, like boosting their sense of fulfillment. But don't stay too long! If your pet starts to hint that they're overwhelmed and they want to go home then it's probably time to wrap up the trip.
+If you save up some coins you can take your pet on [vacations](https://github.com/moonbench/catode32/wiki/Vacations). 
 
 You can take them to:
 - The park
 - A forest
 - The aquarium
 - The beach
-
-![beachvacation](https://github.com/user-attachments/assets/05876563-14ce-4c40-b7ae-c9dc321d1562)
 
 ### Gardening
 
