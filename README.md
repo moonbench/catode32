@@ -46,7 +46,7 @@ Your pet has an [advanced behavioral system](https://github.com/moonbench/catode
 
 By keeping an eye on their behavior you can better understand their needs and wants.
 
-<img width="1024" height="511" alt="screen10" src="https://github.com/user-attachments/assets/cf5b1dd1-07a4-4f92-9c9f-26fdc83e1a45" />
+[<img width="1024" height="511" alt="screen10" src="https://github.com/user-attachments/assets/cf5b1dd1-07a4-4f92-9c9f-26fdc83e1a45" />](https://github.com/moonbench/catode32/wiki/Behaviors)
 
 [Read more about understanding your pet's behaviors](https://github.com/moonbench/catode32/wiki/Behaviors).
 
@@ -55,7 +55,7 @@ There are [several minigames](https://github.com/moonbench/catode32/wiki/Minigam
 
 Playing these games provides different stat rewards for your pet, depending on the game type. And they provide coins which you can spend at the in-game store to help care for your pet even better.
 
-<img width="1018" height="506" alt="screen11" src="https://github.com/user-attachments/assets/a95cc1b2-c8e3-464e-83fb-155b4e3998b7" />
+[<img width="1018" height="506" alt="screen11" src="https://github.com/user-attachments/assets/a95cc1b2-c8e3-464e-83fb-155b4e3998b7" />](https://github.com/moonbench/catode32/wiki/Minigames) 
 
 
 ### In-Game Store
@@ -86,13 +86,13 @@ There's [more location information on the wiki](https://github.com/moonbench/cat
 
 ### Weather
 
-There's a dynamic weather system that progresses over time. The weather can be one of: Clear, Cloudy, Overcast, Windy, Rain, Storm, or Snow. These transition from one to another in sensible ways (i.e., an overcast day might clear up or might start to rain.)
-
-From the Forecast page in the game you can see what the weather will likely be for the next few hours and days.
+There's a [dynamic weather system](https://github.com/moonbench/catode32/wiki/Weather) that progresses over time. 
 
 The weather has some effects on your pet. For example, you don't want to let them sit outside in the rain or their comfort will rapidly plummet!
 
-And while you have a chance to see a shooting star or two each night, you might see a forecast for a meteor shower with lots of them!
+[Read more about the weather system.](https://github.com/moonbench/catode32/wiki/Weather)
+
+[<img width="1016" height="505" alt="screen25" src="https://github.com/user-attachments/assets/be69b28d-5d39-42aa-9a11-c50049dc706f" />](https://github.com/moonbench/catode32/wiki/Weather)
 
 ### Vacations
 
@@ -108,33 +108,31 @@ You can take them to:
 
 ### Gardening
 
-Through the store you can buy different gardening related items, such as pots, seeds, tools, and fertilizer. Once you've bought some of those things you can then use the gardening menu to place pots around your different rooms, and you can then plant seeds in them (you can also plant seeds directly into the ground outside.)
+The game has a [gardening mechanic](https://github.com/moonbench/catode32/wiki/Gardening) where you can buy pots, seeds, tools, and fertilizer to add some plants to your pet's environment. 
 
-Once you have a plant started, you should keep them watered over time to keep them growing. And if you fertilize them as well you can really get them to thrive.
+[<img width="1016" height="505" alt="screen26" src="https://github.com/user-attachments/assets/e81a3a6c-96ea-4546-a538-446e9aa0fe3f" />](https://github.com/moonbench/catode32/wiki/Gardening)
 
 Having healthy plants around will give extra boosts to your pet's satisfaction.
 
 ### Playdates
 
-You can access the "Social" menu to let your cat go on playdates with other cats! If two Catode32 devices are near each other and both access the social menu, then they'll broadcast availability to each other and you can start a playdate.
+One really special thing you can do with your pet is let them go on [playdates](https://github.com/moonbench/catode32/wiki/Playdates) with other pets!
+
+If two Catode32 devices are near each other and both access the social menu, then you can start wireless a playdate.
 
 Both cats will appear on both devices, and the pets will interact and build social connections. Cats will start to remember friends they've spent a lot of time with.
 
-The devices will also activate their wireless features whenever the cats are in the outside or treehouse scenes, but in a more subtle way. The cats won't see each other directly, but if one vocalizes while outside then any nearby cats who are also outside in their own yards will hear it and they might chatter back.
-
 ### Home Comfort
 
-Periodically, your device will use wifi to get a sense of the world around it. It will just do a quick scan to see the names of nearby wireless networks and slowly build up a list of "familiar" ones. Once it has learned what networks you spend the most time around your cat will then feel more comfortable and safe around that location. If you travel to unfamiliar places your cat might be a bit more skittish and less comfortable until they spend some time getting familiar with that new space.
+Your pet's device will use WiFi to get a rough sense of the world around it. If it starts to see the same wireless networks frequently then it will feel [at home](https://github.com/moonbench/catode32/wiki/Feeling-%22At-Home%22) and will be more comfortable.
 
 The intent is that a pet left at home is calmer, sleeps better, and plays more freely, while a pet taken somewhere unfamiliar becomes more anxious and restless.
 
 ### Sickness
 
-Your pet can become ill if they aren't taken care of. For example, if you feed them too many snacks in a row, leave them outside in the rain/snow, or don't maintain their fullness and cleanliness, then your pet may become increasingly sick.
+Your pet can become [sick](https://github.com/moonbench/catode32/wiki/Sickness) if they aren't taken care of. For example, if you feed them too many snacks in a row, leave them outside in the rain/snow, or don't maintain their fullness and cleanliness, then your pet may become increasingly sick.
 
-When they're sick, squiggely lines appear above their head and they will exhibit fewer behaviors. If they're very sick then they might just want to sulk around and rest.
-
-To care for a sick pet and nurture them back to health, make sure they're well fed and groomed, and let them sleep to recover, ideally in the bedroom. You can also buy medicine at the store. If you feed your pet medicine then they'll get a boost to their recovery the next time they rest. Extra medicine doesn't stack, so just give them one dose between naps.
+Read more about [sickness](https://github.com/moonbench/catode32/wiki/Sickness) to learn more about helping them recover.
 
 ## Setup
 For information about the [hardware requirements](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#hardware-requirements), the [software requrements](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#software-requirements), or to learn how to [configure and wire](https://github.com/moonbench/catode32/wiki/Setting-Up-ESP32-Hardware#board-configuration) your ESP32, take a look at the wiki.
