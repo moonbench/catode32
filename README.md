@@ -10,6 +10,8 @@ Take a look [at the wiki](https://github.com/moonbench/catode32/wiki) for a lot 
 
 ---
 
+### Quick Highlights
+
 - [Pet Features](#pet-features)
   - [Pet Care](#pet-care)
   - [Behaviors](#pet-behavior)
@@ -178,13 +180,6 @@ The project supports several different languages. Specifically:
 - German
 
 Take a look at the [instructions for building with different languages](https://github.com/moonbench/catode32/wiki/International-Language-Support) for more details.
-
-
-To run the desktop emulator instead of flashing hardware, use the command from the Desktop Emulator section for your machine, for example:
-
-```bash
-cargo run -p catode32-desktop --target aarch64-apple-darwin
-```
 
 ## Development Workflow
 
