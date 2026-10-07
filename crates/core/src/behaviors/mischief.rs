@@ -201,7 +201,7 @@ impl Behavior for MischiefBehavior {
         common::bonus_add(&mut bonus, StatId::Focus, -1.0);
         common::bonus_add(&mut bonus, StatId::Playfulness, -0.25);
         common::bonus_add(&mut bonus, StatId::Maturity, -0.1);
-        common::bonus_add(&mut bonus, StatId::Sociability, -0.25);
+        common::bonus_add(&mut bonus, StatId::Sociability, -0.2);
         common::bonus_add(&mut bonus, StatId::Affection, -0.02);
         common::bonus_add(&mut bonus, StatId::Mischievousness, 0.03);
         common::bonus_add(&mut bonus, StatId::Loyalty, -0.1);

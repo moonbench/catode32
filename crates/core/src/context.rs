@@ -929,11 +929,13 @@ impl GameContext {
 
     /// Apply a batch of stat changes with asymptotic damping near 0 and 100.
     /// Stats near their ceiling resist further increases; stats near the floor
-    /// resist further decreases.
+    /// resist further decreases. Stats below 25 get a catch-up boost on gains.
     pub fn apply_stat_changes(&mut self, changes: &[(StatId, f32)]) {
         #[cfg(not(feature = "desktop"))]
         use micromath::F32Ext;
         const EXP: f32 = 0.7;
+        const CATCHUP_BELOW: f32 = 25.0;
+        const CATCHUP_MAX: f32 = 2.0;
         let sickness = self.sickness;
         for &(stat, delta) in changes {
             if delta == 0.0 {
@@ -944,6 +946,11 @@ impl GameContext {
             if d > 0.0 {
                 let room = ((100.0 - cur) / 100.0).max(0.0);
                 d *= room.powf(EXP);
+                // Catch-up: stats below CATCHUP_BELOW gain faster, up to
+                // (1 + CATCHUP_MAX)x at 0, fading to 1x at the threshold.
+                if cur < CATCHUP_BELOW {
+                    d *= 1.0 + CATCHUP_MAX * (CATCHUP_BELOW - cur) / CATCHUP_BELOW;
+                }
                 if stat.affected_by_sickness() {
                     if sickness >= 8.0 {
                         d *= 0.4;

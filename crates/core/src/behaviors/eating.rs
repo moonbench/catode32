@@ -222,6 +222,11 @@ impl Behavior for EatingBehavior {
             add_to(&mut bonus, StatId::Loyalty, loyalty);
         }
 
+        // Being fed by the owner is a small social interaction.
+        if !matches!(self.source, EatingSource::CaughtSnack) {
+            add_to(&mut bonus, StatId::Sociability, 0.1);
+        }
+
         ctx.record_meal(entry);
 
         // Snack streak adds sickness once you've eaten 4+ snacks in the

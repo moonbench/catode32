@@ -142,7 +142,7 @@ impl Behavior for LoungingBehavior {
         common::bonus_add(&mut bonus, StatId::Focus, -0.05);
         common::bonus_add(&mut bonus, StatId::Playfulness, -0.05);
         common::bonus_add(&mut bonus, StatId::Fulfillment, -0.02);
-        common::bonus_add(&mut bonus, StatId::Sociability, -0.025);
+        common::bonus_add(&mut bonus, StatId::Sociability, -0.02);
         common::bonus_add(&mut bonus, StatId::Intelligence, -0.005);
         common::bonus_add(&mut bonus, StatId::Maturity, 0.02);
         common::bonus_add(&mut bonus, StatId::Fitness, -0.015);
