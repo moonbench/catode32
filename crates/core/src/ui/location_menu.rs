@@ -664,9 +664,11 @@ fn build_tend_items(items: &mut Vec<Item, MAX_PAGE_ITEMS>, ctx: &GameContext, pl
         push_item(items, t!("Move"), None, None, Some(Page::GardeningMove), None);
     }
 
-    // Repot is available when at least one larger pot is in inventory (or, for
-    // small/young stages, any other pot).
-    if plant.pot != PotKind::Ground && repot_has_options(ctx, plant) {
+    // Repot is available for planted pots when a larger pot is in inventory.
+    if plant.pot != PotKind::Ground
+        && plant.stage != PlantStage::EmptyPot
+        && repot_has_options(ctx, plant)
+    {
         push_item(items, t!("Repot"), None, None, Some(Page::GardeningRepot), None);
     }
 
@@ -703,19 +705,15 @@ fn pot_rank(p: PotKind) -> i32 {
     }
 }
 
+/// Repot targets must be larger than the current pot and in inventory
+/// (mirrors `plant_system::repot_plant`).
+fn is_repot_target(ctx: &GameContext, plant: &Plant, pot: PotSize) -> bool {
+    pot_rank(PotKind::from_pot_size(pot)) > pot_rank(plant.pot) && ctx.pots[pot as usize] > 0
+}
+
 fn repot_has_options(ctx: &GameContext, plant: &Plant) -> bool {
-    let is_large = matches!(plant.stage, PlantStage::Mature | PlantStage::Thriving);
-    let cur_rank = pot_rank(plant.pot);
     for &pot in ALL_POTS {
-        let kind = PotKind::from_pot_size(pot);
-        if kind == plant.pot {
-            continue;
-        }
-        let target_rank = pot_rank(kind);
-        if target_rank < cur_rank && is_large {
-            continue;
-        }
-        if ctx.pots[pot as usize] > 0 {
+        if is_repot_target(ctx, plant, pot) {
             return true;
         }
     }
@@ -723,20 +721,11 @@ fn repot_has_options(ctx: &GameContext, plant: &Plant) -> bool {
 }
 
 fn build_repot_items(items: &mut Vec<Item, MAX_PAGE_ITEMS>, ctx: &GameContext, plant: &Plant) {
-    let is_large = matches!(plant.stage, PlantStage::Mature | PlantStage::Thriving);
-    let cur_rank = pot_rank(plant.pot);
     for &pot in ALL_POTS {
+        if !is_repot_target(ctx, plant, pot) {
+            continue;
+        }
         let kind = PotKind::from_pot_size(pot);
-        if kind == plant.pot {
-            continue;
-        }
-        let target_rank = pot_rank(kind);
-        if target_rank < cur_rank && is_large {
-            continue;
-        }
-        if ctx.pots[pot as usize] == 0 {
-            continue;
-        }
         push_item(
             items,
             pot_label(pot),
