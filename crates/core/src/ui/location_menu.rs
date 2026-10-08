@@ -69,6 +69,8 @@ pub enum GardeningAction {
     Water(u32),
     Fertilize(u32),
     Pluck(u32),
+    /// Pick up an empty pot and return it to inventory.
+    StowPot(u32),
     Repot(u32, PotKind),
     MoveHere(u32),
     MoveTo(u32, SceneId),
@@ -668,7 +670,19 @@ fn build_tend_items(items: &mut Vec<Item, MAX_PAGE_ITEMS>, ctx: &GameContext, pl
         push_item(items, t!("Repot"), None, None, Some(Page::GardeningRepot), None);
     }
 
-    let needs_confirm = plant.stage != PlantStage::EmptyPot && !plant.stage.is_dead();
+    if plant.stage == PlantStage::EmptyPot {
+        push_item(
+            items,
+            t!("Move to inventory"),
+            None,
+            Some(LocationAction::Gardening(GardeningAction::StowPot(plant.id))),
+            None,
+            None,
+        );
+        return;
+    }
+
+    let needs_confirm = !plant.stage.is_dead();
     push_item(
         items,
         t!("Pluck"),

@@ -13,7 +13,8 @@ use crate::{
 };
 
 /// Per-type thresholds (all in in-game hours). Time scale: 1 in-game hour =
-/// 1 real minute, so 1 real day = 1440 in-game hours.
+/// 15 real minutes, so 1 real day = 96 in-game hours. Targets: wilt after
+/// ~1-2 real days unwatered, advance a stage every ~2-5 real days.
 #[derive(Clone, Copy)]
 pub struct PlantTypeSpec {
     pub wilt: u32,
@@ -32,10 +33,10 @@ pub struct PlantTypeSpec {
 pub const fn spec_for(seed: SeedKind) -> PlantTypeSpec {
     match seed {
         SeedKind::CatGrass => PlantTypeSpec {
-            wilt: 1440,
-            death: 4320,
-            recover: 240,
-            stage_hours: [2880, 3600, 4320, 5040],
+            wilt: 96,
+            death: 288,
+            recover: 16,
+            stage_hours: [192, 240, 288, 336],
             water_rate: 0.5,
             dormant_in_winter: false,
             indoor_max: None,
@@ -43,10 +44,10 @@ pub const fn spec_for(seed: SeedKind) -> PlantTypeSpec {
             max_age_death_window: 0,
         },
         SeedKind::Freesia => PlantTypeSpec {
-            wilt: 1440,
-            death: 4320,
-            recover: 120,
-            stage_hours: [4320, 5040, 6480, 7200],
+            wilt: 96,
+            death: 288,
+            recover: 8,
+            stage_hours: [288, 336, 432, 480],
             water_rate: 0.75,
             dormant_in_winter: true,
             indoor_max: None,
@@ -54,10 +55,10 @@ pub const fn spec_for(seed: SeedKind) -> PlantTypeSpec {
             max_age_death_window: 0,
         },
         SeedKind::Rose => PlantTypeSpec {
-            wilt: 1440,
-            death: 4320,
-            recover: 120,
-            stage_hours: [5040, 6480, 7200, 7200],
+            wilt: 96,
+            death: 288,
+            recover: 8,
+            stage_hours: [336, 432, 480, 480],
             water_rate: 1.0,
             dormant_in_winter: false,
             indoor_max: None,
@@ -65,15 +66,15 @@ pub const fn spec_for(seed: SeedKind) -> PlantTypeSpec {
             max_age_death_window: 0,
         },
         SeedKind::Sunflower => PlantTypeSpec {
-            wilt: 2880,
-            death: 5760,
-            recover: 240,
-            stage_hours: [2880, 4320, 5760, 7200],
+            wilt: 192,
+            death: 384,
+            recover: 16,
+            stage_hours: [192, 288, 384, 480],
             water_rate: 1.0,
             dormant_in_winter: false,
             indoor_max: Some(PlantStage::Growing),
-            max_age_hours: 27360,
-            max_age_death_window: 2880,
+            max_age_hours: 1824,
+            max_age_death_window: 192,
         },
     }
 }
@@ -124,7 +125,7 @@ fn stage_from_index(i: usize) -> PlantStage {
 }
 
 // Fertilizer thresholds.
-const FERT_DECAY: f32 = 0.015;
+const FERT_DECAY: f32 = 0.225;
 const FERT_NO_MAX: f32 = 5.0;
 const FERT_LOW_MAX: f32 = 20.0;
 const FERT_OK_MAX: f32 = 120.0;
@@ -497,20 +498,47 @@ pub fn plant_in_ground(
     Some(id)
 }
 
-/// Remove a plant. Live plants (not dead, not ground) return their pot to
-/// inventory; dead plants are discarded.
-pub fn remove_plant(ctx: &mut GameContext, id: u32) -> bool {
-    if let Some(idx) = ctx.plants.iter().position(|p| p.id == id) {
-        let p = ctx.plants[idx];
-        if !p.stage.is_dead() && p.pot != PotKind::Ground {
-            if let Some(slot) = pot_slot(p.pot) {
-                ctx.pots[slot] = ctx.pots[slot].saturating_add(1);
-            }
-        }
+/// Pluck a plant. Ground plants are removed entirely; potted plants (live or
+/// dead) are cleared back to an empty pot left in place. Returns false if the
+/// plant isn't found or is already an empty pot.
+pub fn pluck_plant(ctx: &mut GameContext, id: u32) -> bool {
+    let Some(idx) = ctx.plants.iter().position(|p| p.id == id) else {
+        return false;
+    };
+    let plant = &mut ctx.plants[idx];
+    if plant.stage == PlantStage::EmptyPot {
+        return false;
+    }
+    if plant.pot == PotKind::Ground {
         ctx.plants.swap_remove(idx);
         return true;
     }
-    false
+    plant.seed = None;
+    plant.stage = PlantStage::EmptyPot;
+    plant.age_hours = 0;
+    plant.water_debt = 0.0;
+    plant.fertilizer = 0.0;
+    plant.planted_day = None;
+    plant.aged = false;
+    true
+}
+
+/// Pick up an empty pot from the scene and return it to inventory. Returns
+/// false if the plant isn't found or isn't an empty pot.
+pub fn stow_empty_pot(ctx: &mut GameContext, id: u32) -> bool {
+    let Some(idx) = ctx.plants.iter().position(|p| p.id == id) else {
+        return false;
+    };
+    let p = ctx.plants[idx];
+    if p.stage != PlantStage::EmptyPot {
+        return false;
+    }
+    let Some(slot) = pot_slot(p.pot) else {
+        return false;
+    };
+    ctx.pots[slot] = ctx.pots[slot].saturating_add(1);
+    ctx.plants.swap_remove(idx);
+    true
 }
 
 fn pot_slot(pot: PotKind) -> Option<usize> {
@@ -630,8 +658,8 @@ pub fn scene_plant_health_score(ctx: &GameContext, scene: SceneId) -> i32 {
 // Inspect helpers
 // ---------------------------------------------------------------------------
 
-use heapless::String;
 use crate::t;
+use heapless::String;
 
 pub const INSPECT_LINE_LEN: usize = 16;
 pub const INSPECT_MAX_LINES: usize = 5;

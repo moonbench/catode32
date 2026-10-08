@@ -16,8 +16,8 @@ use crate::{
     plant_renderer::draw_plants_layer,
     plant_system::{
         self, fertilize_plant, get_plant, get_plant_mut, move_plant, place_empty_pot,
-        plant_in_ground, plant_seed_into_pot, remove_plant, repot_plant, scene_plant_health_score,
-        tick_plants, water_plant, PlantLayer,
+        plant_in_ground, plant_seed_into_pot, pluck_plant, repot_plant, scene_plant_health_score,
+        stow_empty_pot, tick_plants, water_plant, PlantLayer,
     },
     render::Renderer,
     scene::SceneId,
@@ -1176,7 +1176,13 @@ impl LocationScene {
                 }
             }
             GardeningAction::Pluck(id) => {
-                remove_plant(ctx, id);
+                pluck_plant(ctx, id);
+                if self.in_tend_mode {
+                    self.reenter_tend_selection(ctx);
+                }
+            }
+            GardeningAction::StowPot(id) => {
+                stow_empty_pot(ctx, id);
                 if self.in_tend_mode {
                     self.reenter_tend_selection(ctx);
                 }

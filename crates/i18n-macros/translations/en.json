@@ -212,6 +212,7 @@
   "Environment": "Environment",
   "Poses": "Poses",
   "Pluck": "Pluck",
+  "Move to inventory": "Move to inventory",
   "Remove plant?": "Remove plant?",
   "To {loc}": "To {loc}",
   "To Inside": "To Inside",
