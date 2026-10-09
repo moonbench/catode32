@@ -1,6 +1,6 @@
 [package]
 name = "catode32-firmware"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2021"
 description = "ESP32 firmware binary for catode32"
 license = "MIT"
