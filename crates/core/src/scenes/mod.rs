@@ -14,6 +14,7 @@ pub mod debug_time_scene;
 pub mod debug_wifi_scene;
 pub mod forecast_scene;
 pub mod hanjie_scene;
+pub mod herding_scene;
 pub mod inside_scene;
 pub mod kitchen_scene;
 pub mod lightsout_scene;
@@ -56,6 +57,7 @@ use debug_time_scene::DebugTimeScene;
 use debug_wifi_scene::DebugWifiScene;
 use forecast_scene::ForecastScene;
 use hanjie_scene::HanjieScene;
+use herding_scene::HerdingScene;
 use inside_scene::InsideScene;
 use kitchen_scene::KitchenScene;
 use lightsout_scene::LightsOutScene;
@@ -116,6 +118,7 @@ crate::dispatch_enum! {
         TicTacToe(TicTacToeScene)                 = TicTacToeScene::new(),
         LightsOut(LightsOutScene)                 = LightsOutScene::new(),
         Pipes(PipesScene)                         = PipesScene::new(),
+        Herding(HerdingScene)                     = HerdingScene::new(),
         Platformer(PlatformerScene)               = PlatformerScene::new(),
         VacationPark(VacationParkScene)           = VacationParkScene::new(),
         VacationForest(VacationForestScene)       = VacationForestScene::new(),
