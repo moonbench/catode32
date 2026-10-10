@@ -402,23 +402,17 @@ impl Game {
     /// Desktop builds have no deep-sleep equivalent; the simulator exits
     /// the process instead.
     ///
-    /// TODO(c3): this is C6-only and breaks the C3 build (has done since the
-    /// core/firmware split). Needs hardware to verify:
-    /// * `Ext1WakeupSource` doesn't exist on the C3. Its GPIO deep-sleep wake
-    ///   is (likely) `RtcioWakeupSource`, and only GPIO0-5 can wake it.
-    /// * The pins below are the C6 mapping. On the C3, GPIO0-3 are the
-    ///   D-pad, A/B are GPIO4/5, and Menu1/Menu2 (GPIO10/11) can't wake the
-    ///   chip at all. Wake set probably becomes A/B only, chosen per board.
-    /// * Once it compiles, re-check C3 for warnings the error was hiding.
+    /// TODO(c3): the wake pins are the C6 mapping. Needs hardware to verify:
+    /// * On the C3 only GPIO0-5 can wake the chip. GPIO0-3 are the D-pad,
+    ///   A/B are GPIO4/5, and Menu1/Menu2 (GPIO10/11) can't wake it at all.
+    ///   Wake set probably becomes A/B only, chosen per board.
+    /// * Once the C3 build compiles, re-check it for warnings.
     #[cfg(not(feature = "desktop"))]
     fn enter_deep_sleep(&mut self) -> ! {
         use esp_hal::{
-            gpio::RtcPinWithResistors,
+            gpio::{Event, Input, InputConfig, Pull, WakeupConfig},
             peripherals::{GPIO0, GPIO1, GPIO2, GPIO3, LPWR},
-            rtc_cntl::{
-                sleep::{Ext1WakeupSource, WakeupLevel},
-                Rtc,
-            },
+            rtc_cntl::sleep::{LowPower, RtcSleepConfig},
         };
 
         use crate::{input::Button, sleep_manager::wait_buttons_stable_released_mask};
@@ -432,7 +426,7 @@ impl Game {
         self.renderer.power_off();
 
         // Wait for the wake-capable buttons to be released and stable,
-        // otherwise Ext1's level=Low trigger fires immediately on either
+        // otherwise the level=Low wake trigger fires immediately on either
         // the still-held press or its release bounce.
         wait_buttons_stable_released_mask(
             &self.buttons,
@@ -442,32 +436,24 @@ impl Game {
 
         // Safety: deep sleep is one-way; on wake the device boots from reset
         // and the old `Input` wrappers in `Buttons` will never be used again.
-        let mut g0 = unsafe { GPIO0::steal() };
-        let mut g1 = unsafe { GPIO1::steal() };
-        let mut g2 = unsafe { GPIO2::steal() };
-        let mut g3 = unsafe { GPIO3::steal() };
-
-        // The IO_MUX pull-ups configured at boot don't survive Ext1's
-        // `pad_hold` switch to RTC mode. Without an RTC-side pull-up the
-        // LP-IO pin floats and the level=Low trigger fires almost
-        // immediately. Enable them on the LP-IO peripheral now, before
-        // Ext1::apply runs and freezes the pad state.
-        g0.rtcio_pullup(true);
-        g1.rtcio_pullup(true);
-        g2.rtcio_pullup(true);
-        g3.rtcio_pullup(true);
-
-        let mut pins: [(&mut dyn RtcPinWithResistors, WakeupLevel); 4] = [
-            (&mut g0, WakeupLevel::Low),
-            (&mut g1, WakeupLevel::Low),
-            (&mut g2, WakeupLevel::Low),
-            (&mut g3, WakeupLevel::Low),
+        let input_config = InputConfig::default().with_pull(Pull::Up);
+        let mut pins = [
+            Input::new(unsafe { GPIO0::steal() }, input_config),
+            Input::new(unsafe { GPIO1::steal() }, input_config),
+            Input::new(unsafe { GPIO2::steal() }, input_config),
+            Input::new(unsafe { GPIO3::steal() }, input_config),
         ];
-        let ext1 = Ext1WakeupSource::new(&mut pins);
+
+        // Sleep entry copies these pull-ups onto the LP-IO pads before it
+        // holds them, so the level=Low trigger doesn't see a floating pin.
+        let wake_config = WakeupConfig::default().with_low_power_path(true);
+        for pin in &mut pins {
+            pin.listen(Event::LowLevel);
+            pin.apply_wakeup_config(&wake_config).unwrap();
+        }
 
         watchdog::stop();
-        let mut rtc = Rtc::new(unsafe { LPWR::steal() });
-        rtc.sleep_deep(&[&ext1]);
+        LowPower::new(unsafe { LPWR::steal() }).sleep_deep(RtcSleepConfig::deep());
     }
 
     #[cfg(feature = "desktop")]

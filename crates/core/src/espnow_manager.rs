@@ -61,14 +61,14 @@ mod firmware {
     /// timeout, for that callback. If the callback is ever lost the game loop
     /// spins forever. We never read the send status, so forget the waiter.
     /// The driver queues frames itself; the next send just re-arms the flag.
-    fn send_detached(inner: &mut EspNow<'static>, dst: &MacAddr, data: &[u8]) {
+    fn send_detached(inner: &mut EspNow, dst: &MacAddr, data: &[u8]) {
         if let Ok(waiter) = inner.send(dst, data) {
             core::mem::forget(waiter);
         }
     }
 
     pub struct EspNowManager {
-        inner: Option<EspNow<'static>>,
+        inner: Option<EspNow>,
         own_mac: Option<MacAddr>,
         inbox: Vec<InboxItem, INBOX_CAPACITY>,
         peers: Vec<MacAddr, MAX_UNICAST_PEERS>,
@@ -90,14 +90,14 @@ mod firmware {
             self.own_mac
         }
 
-        pub fn attach(&mut self, inner: EspNow<'static>, own_mac: MacAddr) {
+        pub fn attach(&mut self, inner: EspNow, own_mac: MacAddr) {
             self.inner = Some(inner);
             if self.own_mac.is_none() {
                 self.own_mac = Some(own_mac);
             }
         }
 
-        pub fn detach(&mut self) -> Option<EspNow<'static>> {
+        pub fn detach(&mut self) -> Option<EspNow> {
             self.active = false;
             self.inbox.clear();
             self.peers.clear();

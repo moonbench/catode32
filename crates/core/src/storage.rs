@@ -39,7 +39,6 @@ pub const MAX_PAYLOAD: usize = SECTOR_SIZE * 5 - HEADER_LEN;
 
 #[cfg(not(feature = "desktop"))]
 mod firmware {
-use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 use esp_bootloader_esp_idf::partitions::{
     read_partition_table, DataPartitionSubType, PartitionType, PARTITION_TABLE_MAX_LEN,
 };
@@ -108,7 +107,7 @@ fn sectors_for(payload_len: usize) -> usize {
 fn read_header(flash: &mut FlashStorage, part: PartitionInfo, sector: usize) -> Option<Record> {
     let mut buf = [0u8; HEADER_LEN];
     let addr = part.offset + (sector * SECTOR_SIZE) as u32;
-    if let Err(e) = flash.read(addr, &mut buf) {
+    if let Err(e) = flash.read_nor(addr, &mut buf) {
         println!("[Storage] Header read failed at sector {}: {:?}", sector, e);
         return None;
     }
@@ -148,7 +147,7 @@ pub fn has_save() -> bool {
 
 /// Read the latest save payload into `buf`, walking across sector boundaries.
 ///
-/// `esp-storage`'s default `NorFlash::read` requires the read length to be a
+/// `esp-storage`'s `FlashStorage::read_nor` requires the read length to be a
 /// multiple of WORD_SIZE (4 bytes). The on-disk payload is padded with 0xFF
 /// to that alignment by `write_chunk`, so we read into an aligned scratch
 /// region and copy the meaningful bytes out.
@@ -175,7 +174,7 @@ pub fn read_latest(buf: &mut [u8]) -> Option<usize> {
         let aligned_chunk = (chunk + WORD_SIZE - 1) & !(WORD_SIZE - 1);
         let aligned_chunk = aligned_chunk.min(space);
         let addr = part.offset + (sector_idx * SECTOR_SIZE + sector_offset) as u32;
-        if let Err(e) = flash.read(addr, &mut scratch[..aligned_chunk]) {
+        if let Err(e) = flash.read_nor(addr, &mut scratch[..aligned_chunk]) {
             println!(
                 "[Storage] Payload read failed at sector {} offset {}: {:?}",
                 sector_idx, sector_offset, e
@@ -194,7 +193,9 @@ pub fn read_latest(buf: &mut [u8]) -> Option<usize> {
 }
 
 /// Pad `chunk` up to the next 4-byte multiple with 0xFF (erased flash) and
-/// write it to flash. `NorFlash::write` requires word-aligned lengths.
+/// write it to flash. `write_nor` requires word-aligned lengths. (Plain
+/// `FlashStorage::write` is a read-modify-write that erases every sector it
+/// touches, which would break the header-last commit below.)
 fn write_chunk(
     flash: &mut FlashStorage,
     addr: u32,
@@ -203,13 +204,13 @@ fn write_chunk(
 ) -> bool {
     let padded = chunk.len().div_ceil(WORD_SIZE) * WORD_SIZE;
     if padded == chunk.len() {
-        flash.write(addr, chunk).is_ok()
+        flash.write_nor(addr, chunk).is_ok()
     } else {
         scratch[..chunk.len()].copy_from_slice(chunk);
         for b in &mut scratch[chunk.len()..padded] {
             *b = 0xFF;
         }
-        flash.write(addr, &scratch[..padded]).is_ok()
+        flash.write_nor(addr, &scratch[..padded]).is_ok()
     }
 }
 
@@ -313,7 +314,7 @@ pub fn write_next(payload: &[u8]) -> bool {
     header[4..8].copy_from_slice(&next_seq.to_le_bytes());
     header[8..12].copy_from_slice(&(payload.len() as u32).to_le_bytes());
     let start_addr = part.offset + (start * SECTOR_SIZE) as u32;
-    if let Err(e) = flash.write(start_addr, &header) {
+    if let Err(e) = flash.write_nor(start_addr, &header) {
         println!("[Storage] Header write failed: {:?}", e);
         return false;
     }
@@ -323,7 +324,7 @@ pub fn write_next(payload: &[u8]) -> bool {
     // (write-cache anomalies, partial erases, etc) so save errors surface
     // immediately rather than at next boot.
     let mut readback = [0u8; HEADER_LEN];
-    if let Err(e) = flash.read(start_addr, &mut readback) {
+    if let Err(e) = flash.read_nor(start_addr, &mut readback) {
         println!("[Storage] Header verify-read failed: {:?}", e);
         return false;
     }

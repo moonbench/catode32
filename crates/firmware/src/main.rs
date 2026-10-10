@@ -30,11 +30,11 @@ fn main() -> ! {
     storage::init(board.flash);
     let renderer = Renderer::new(board.i2c);
 
-    println!("catode32 v0.11.0 behavior framework");
+    println!("catode32 v0.12.0 behavior framework");
 
     // Start the preemptive scheduler. The radio stack drives its event loop
     // on a task scheduled by esp-rtos, so the scheduler must be running
-    // before `esp_radio::wifi::new`. Our main game loop runs on top of this
+    // before `WifiController::new`. Our main game loop runs on top of this
     // as the "main" task.
     let timg0 = TimerGroup::new(board.timg0);
     esp_rtos::start(timg0.timer0, board.sw_int0);

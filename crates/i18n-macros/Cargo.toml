@@ -1,6 +1,6 @@
 [package]
 name = "catode32-i18n-macros"
-version = "0.11.0"
+version = "0.12.0"
 edition = "2021"
 description = "Compile-time translation macros for catode32"
 license = "MIT"

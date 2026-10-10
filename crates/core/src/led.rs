@@ -1,5 +1,5 @@
 //! On-board WS2812 RGB LED (GPIO8, single pixel). Driven by the RMT
-//! peripheral via `esp-hal-smartled2`; writes are blocking and take well
+//! peripheral via `esp-hal-smartled`; writes are blocking and take well
 //! under a frame at 12 FPS.
 //!
 //! Desktop builds get a no-op `Led` so the existing `ctx.led.set(...)` /
@@ -13,12 +13,12 @@ mod firmware {
         time::Rate,
         Blocking,
     };
-    use esp_hal_smartled::{buffer_size, Ws2812SmartLeds};
+    use esp_hal_smartled::{buffer_size, color_order, RmtSmartLeds, WS2812_TIMING};
     use smart_leds::{SmartLedsWrite, RGB8};
 
     const LED_BUFFER: usize = buffer_size::<RGB8>(1);
 
-    type Strip = Ws2812SmartLeds<'static, LED_BUFFER, Blocking>;
+    type Strip = RmtSmartLeds<'static, LED_BUFFER, Blocking, RGB8, color_order::Grb>;
 
     pub struct Led {
         strip: Strip,
@@ -26,8 +26,9 @@ mod firmware {
 
     impl Led {
         pub fn new(rmt: RMT<'static>, pin: GPIO8<'static>) -> Self {
-            let rmt = Rmt::new(rmt, Rate::from_mhz(80)).unwrap();
-            let strip = Ws2812SmartLeds::new(rmt.channel0, pin).unwrap();
+            let freq = Rate::from_mhz(80);
+            let rmt = Rmt::new(rmt, freq).unwrap();
+            let strip = Strip::new(WS2812_TIMING, rmt.channel0, pin, freq).unwrap();
             Self { strip }
         }
 

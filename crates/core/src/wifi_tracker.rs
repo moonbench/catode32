@@ -20,7 +20,7 @@
 //!
 //! Power: the radio is fully off at rest. `scan_now` calls
 //! [`crate::radio::acquire`] to bring it up (which does a full
-//! `esp_radio::wifi::new`), runs the scan, and calls `release` to
+//! `WifiController::new`), runs the scan, and calls `release` to
 //! drop the controller and park the peripheral again. If ESP-NOW has
 //! an active session the refcount keeps the radio up through the scan
 //! and the release only decrements.

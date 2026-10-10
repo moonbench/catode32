@@ -1,13 +1,13 @@
 //! Refcounted lifecycle for the shared WiFi/ESP-NOW radio.
 //!
-//! esp-radio 0.18 does not expose a `WifiController::stop`. The only way
+//! esp-radio does not expose a `WifiController::stop`. The only way
 //! to truly power the WiFi MAC down is to drop the controller. This
 //! module owns that drop/recreate dance so the rest of the codebase can
 //! request the radio without thinking about it.
 //!
 //! At rest, the WiFi peripheral handle sits in `ctx.wifi_peripheral` and
 //! the radio is fully off. The first call to [`acquire`] consumes the
-//! peripheral via `esp_radio::wifi::new`, parks the new controller into
+//! peripheral via `WifiController::new`, parks the new controller into
 //! `ctx.wifi`, and binds the freshly-minted ESP-NOW handle onto
 //! `ctx.espnow`. Each subsequent caller just bumps the refcount.
 //! [`release`] decrements; on the last release the controller and
@@ -25,6 +25,7 @@ use crate::context::GameContext;
 #[cfg(not(feature = "desktop"))]
 mod firmware {
     use esp_hal::peripherals::WIFI;
+    use esp_radio::wifi::{Interface, WifiController};
 
     use crate::context::GameContext;
 
@@ -63,17 +64,17 @@ mod firmware {
             println!("[radio] no wifi peripheral available");
             return false;
         };
-        match esp_radio::wifi::new(peripheral, Default::default()) {
-            Ok((controller, interfaces)) => {
-                let mac = interfaces.station.mac_address();
-                ctx.wifi = Some(controller);
+        match WifiController::new(peripheral, Default::default()) {
+            Ok(controller) => {
+                let mac = Interface::station().mac_address();
                 if let Some(espnow) = ctx.espnow.as_mut() {
-                    espnow.attach(interfaces.esp_now, mac);
+                    espnow.attach(controller.esp_now(), mac);
                 }
+                ctx.wifi = Some(controller);
                 true
             }
             Err(e) => {
-                println!("[radio] wifi::new failed: {:?}", e);
+                println!("[radio] WifiController::new failed: {:?}", e);
                 ctx.wifi_peripheral = Some(unsafe { WIFI::steal() });
                 false
             }

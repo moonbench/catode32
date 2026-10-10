@@ -21,7 +21,7 @@ pub const TIMEOUT_SECS: u64 = 10;
 #[cfg(not(feature = "desktop"))]
 mod firmware {
     use esp_hal::{
-        peripherals::LPWR,
+        peripherals::RTC_TIMER,
         rtc_cntl::{Rtc, RwdtStage, RwdtStageAction},
         time::Duration,
     };
@@ -32,9 +32,9 @@ mod firmware {
     /// stealing the peripheral per call costs nothing and spares threading a
     /// handle through every loop that has to feed.
     fn rtc() -> Rtc<'static> {
-        // SAFETY: nothing else in the firmware holds LPWR long-term; deep
-        // sleep steals it the same way right before the chip powers down.
-        Rtc::new(unsafe { LPWR::steal() })
+        // SAFETY: nothing else in the firmware holds RTC_TIMER, and esp-hal's
+        // own sleep code steals it the same way.
+        Rtc::new(unsafe { RTC_TIMER::steal() })
     }
 
     /// Arm the watchdog. Call once at boot, after `esp_hal::init` (which

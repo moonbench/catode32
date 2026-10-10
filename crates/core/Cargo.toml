@@ -1,6 +1,6 @@
 [package]
 name = "catode32-core"
-version = "0.11.0"
+version = "0.12.0"
 edition = "2021"
 description = "Core game logic for catode32 — shared between firmware and desktop builds"
 license = "MIT"
@@ -12,7 +12,7 @@ c6 = [
     "dep:esp-println",
     "dep:esp-bootloader-esp-idf",
     "dep:esp-storage",
-    "dep:esp-hal-smartled2",
+    "dep:esp-hal-smartled",
     "dep:esp-radio",
     "dep:esp-rtos",
     "dep:embassy-futures",
@@ -20,7 +20,7 @@ c6 = [
     "esp-println/esp32c6",
     "esp-bootloader-esp-idf/esp32c6",
     "esp-storage/esp32c6",
-    "esp-hal-smartled2/esp32c6",
+    "esp-hal-smartled/esp32c6",
     "esp-radio/esp32c6",
     "esp-rtos/esp32c6",
 ]
@@ -29,7 +29,7 @@ c3 = [
     "dep:esp-println",
     "dep:esp-bootloader-esp-idf",
     "dep:esp-storage",
-    "dep:esp-hal-smartled2",
+    "dep:esp-hal-smartled",
     "dep:esp-radio",
     "dep:esp-rtos",
     "dep:embassy-futures",
@@ -37,7 +37,7 @@ c3 = [
     "esp-println/esp32c3",
     "esp-bootloader-esp-idf/esp32c3",
     "esp-storage/esp32c3",
-    "esp-hal-smartled2/esp32c3",
+    "esp-hal-smartled/esp32c3",
     "esp-radio/esp32c3",
     "esp-rtos/esp32c3",
 ]
@@ -53,16 +53,15 @@ lang-it = ["catode32-i18n-macros/lang-it"]
 lang-nl = ["catode32-i18n-macros/lang-nl"]
 
 [dependencies]
-esp-hal = { version = "1.1.1", default-features = false, features = ["rt"], optional = true }
-esp-println = { version = "0.17.0", default-features = false, features = ["auto"], optional = true }
-esp-bootloader-esp-idf = { version = "0.5.0", default-features = false, optional = true }
-esp-storage = { version = "0.9.0", default-features = false, optional = true }
-esp-hal-smartled2 = { version = "0.28.2", default-features = false, optional = true }
-esp-radio = { version = "0.18.0", default-features = false, features = ["wifi", "esp-now", "esp-alloc", "unstable"], optional = true }
-esp-rtos = { version = "0.3.0", default-features = false, features = ["esp-radio", "esp-alloc"], optional = true }
+esp-hal = { version = "1.2.2", default-features = false, features = ["rt"], optional = true }
+esp-println = { version = "0.18.0", default-features = false, features = ["auto"], optional = true }
+esp-bootloader-esp-idf = { version = "0.6.0", default-features = false, optional = true }
+esp-storage = { version = "0.10.0", default-features = false, optional = true }
+esp-hal-smartled = { version = "0.18.0", default-features = false, optional = true }
+esp-radio = { version = "=1.0.0-beta.1", default-features = false, features = ["wifi", "esp-now", "esp-alloc", "unstable"], optional = true }
+esp-rtos = { version = "0.4.0", default-features = false, features = ["esp-radio", "esp-alloc"], optional = true }
 embassy-futures = { version = "0.1", optional = true }
 
-embedded-storage = "0.3"
 ssd1306 = "0.10.0"
 embedded-graphics = "0.8.2"
 heapless = { version = "0.8", features = ["serde"] }
