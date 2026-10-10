@@ -50,6 +50,7 @@ static mut JSON_BUF: [u8; JSON_BUF_SIZE] = [0u8; JSON_BUF_SIZE];
 type SStr = String<24>;
 type StageStr = String<20>;
 type NameStr = String<PET_NAME_MAX>;
+type SudokatStr = String<81>;
 
 fn sstr(s: &str) -> SStr {
     let mut out = SStr::new();
@@ -471,6 +472,9 @@ struct SaveData {
     #[serde(default)] snake_high_score: i32,
     #[serde(default)] memory_best_score: i32,
     #[serde(default)] meowltiply_high_score: i32,
+    #[serde(default)] sudokat_givens: SudokatStr,
+    #[serde(default)] sudokat_entries: SudokatStr,
+    #[serde(default)] sudokat_difficulty: u8,
     #[serde(default)] time_speed: f32,
     #[serde(default)] coins: i32,
 }
@@ -641,6 +645,9 @@ fn build(ctx: &GameContext) -> SaveData {
         snake_high_score: ctx.snake_high_score,
         memory_best_score: ctx.memory_best_score,
         meowltiply_high_score: ctx.meowltiply_high_score,
+        sudokat_givens: build_sudokat_cells(&ctx.sudokat_givens),
+        sudokat_entries: build_sudokat_cells(&ctx.sudokat_entries),
+        sudokat_difficulty: ctx.sudokat_difficulty,
         time_speed: ctx.time_speed,
         coins: ctx.coins,
     }
@@ -670,6 +677,7 @@ fn apply(data: &SaveData, ctx: &mut GameContext) {
     ctx.snake_high_score = data.snake_high_score;
     ctx.memory_best_score = data.memory_best_score;
     ctx.meowltiply_high_score = data.meowltiply_high_score;
+    apply_sudokat(data, ctx);
     ctx.time_speed = data.time_speed;
     ctx.coins = data.coins;
 
@@ -855,6 +863,55 @@ fn apply_wifi_list<const N: usize>(
             count: e.count,
         });
     }
+}
+
+/// Sudokat cells as one digit per cell, or empty when there is no board.
+fn build_sudokat_cells(cells: &[u8; 81]) -> SudokatStr {
+    let mut out = SudokatStr::new();
+    if cells.iter().all(|&v| v == 0) {
+        return out;
+    }
+    for &v in cells {
+        let _ = out.push((b'0' + v.min(9)) as char);
+    }
+    out
+}
+
+fn parse_sudokat_cells(s: &str) -> Option<[u8; 81]> {
+    if s.len() != 81 {
+        return None;
+    }
+    let mut cells = [0u8; 81];
+    for (cell, b) in cells.iter_mut().zip(s.bytes()) {
+        if !b.is_ascii_digit() {
+            return None;
+        }
+        *cell = b - b'0';
+    }
+    Some(cells)
+}
+
+/// Restore the Sudokat board, dropping it if anything is malformed.
+fn apply_sudokat(data: &SaveData, ctx: &mut GameContext) {
+    ctx.sudokat_difficulty = data.sudokat_difficulty.min(2);
+    ctx.sudokat_givens = [0; 81];
+    ctx.sudokat_entries = [0; 81];
+    let Some(givens) = parse_sudokat_cells(&data.sudokat_givens) else {
+        return;
+    };
+    let entries = if data.sudokat_entries.is_empty() {
+        [0; 81]
+    } else {
+        match parse_sudokat_cells(&data.sudokat_entries) {
+            Some(e) => e,
+            None => return,
+        }
+    };
+    if givens.iter().zip(entries.iter()).any(|(&g, &e)| g != 0 && e != 0) {
+        return;
+    }
+    ctx.sudokat_givens = givens;
+    ctx.sudokat_entries = entries;
 }
 
 // ---------------------------------------------------------------------------

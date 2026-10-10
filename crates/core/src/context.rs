@@ -522,6 +522,12 @@ pub struct GameContext {
     pub snake_high_score: i32,
     pub memory_best_score: i32,
     pub meowltiply_high_score: i32,
+    /// Sudokat board in progress, row by row. 0 is blank. An entry is never
+    /// set where there is a given. All-zero givens means no board.
+    pub sudokat_givens: [u8; 81],
+    pub sudokat_entries: [u8; 81],
+    /// 0 Easy, 1 Normal, 2 Hard.
+    pub sudokat_difficulty: u8,
 
     // World/environment state, advanced by TimeSystem each frame.
     pub time_hours: u8,
@@ -734,6 +740,9 @@ impl GameContext {
             snake_high_score: 0,
             memory_best_score: -1,
             meowltiply_high_score: 0,
+            sudokat_givens: [0; 81],
+            sudokat_entries: [0; 81],
+            sudokat_difficulty: 0,
 
             time_hours: 12,
             time_minutes: 0,

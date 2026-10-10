@@ -31,6 +31,7 @@ pub mod snake_scene;
 pub mod social_scene;
 pub mod stats_scene;
 pub mod store_scene;
+pub mod sudokat_scene;
 pub mod tictactoe_scene;
 pub mod treehouse_scene;
 pub mod vacation_aquarium_scene;
@@ -75,6 +76,7 @@ use snake_scene::SnakeScene;
 use social_scene::SocialScene;
 use stats_scene::StatsScene;
 use store_scene::StoreScene;
+use sudokat_scene::SudokatScene;
 use tictactoe_scene::TicTacToeScene;
 use treehouse_scene::TreehouseScene;
 use vacation_aquarium_scene::VacationAquariumScene;
@@ -122,6 +124,7 @@ crate::dispatch_enum! {
         Pipes(PipesScene)                         = PipesScene::new(),
         Herding(HerdingScene)                     = HerdingScene::new(),
         Meowltiply(MeowltiplyScene)               = MeowltiplyScene::new(),
+        Sudokat(SudokatScene)                     = SudokatScene::new(),
         Platformer(PlatformerScene)               = PlatformerScene::new(),
         VacationPark(VacationParkScene)           = VacationParkScene::new(),
         VacationForest(VacationForestScene)       = VacationForestScene::new(),

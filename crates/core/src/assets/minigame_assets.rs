@@ -123,3 +123,14 @@ pub static PIPE_OUTLET_RIGHT: Sprite = Sprite {
     frames: PIPE_OUTLET_RIGHT_FRAMES,
     fill_frames: None,
 };
+
+const LOCK_FRAMES: &[&[u8]] = &[
+    b"\x38\x44\x44\xfe\xfe\xee\xee\xfe\xfe",
+];
+
+pub static LOCK: Sprite = Sprite {
+    width: 7,
+    height: 9,
+    frames: LOCK_FRAMES,
+    fill_frames: None,
+};
