@@ -17,5 +17,10 @@ rustflags = [
   "-C", "force-frame-pointers",
 ]
 
+# Desktop build on Windows: link the C runtime statically so the exe runs
+# without the Visual C++ Redistributable installed.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
 [env]
 ESP_LOG = "info"

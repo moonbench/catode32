@@ -20,6 +20,12 @@ catode32-core = { path = "../core", default-features = false, features = ["deskt
 embedded-graphics = "0.8.2"
 embedded-graphics-simulator = "0.7.0"
 
+# Windows: compile SDL2 from source and link it into the exe, so the build
+# needs no SDL2 download and the exe runs without SDL2.dll. Needs CMake.
+# Only adds features to the simulator's own sdl2 dependency.
+[target.'cfg(windows)'.dependencies]
+sdl2 = { version = "0.37", features = ["bundled", "static-link"] }
+
 [[bin]]
 name = "catode32-desktop"
 path = "src/main.rs"
