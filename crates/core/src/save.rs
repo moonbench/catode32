@@ -470,6 +470,7 @@ struct SaveData {
     #[serde(default)] maze_best_time: i32,
     #[serde(default)] snake_high_score: i32,
     #[serde(default)] memory_best_score: i32,
+    #[serde(default)] meowltiply_high_score: i32,
     #[serde(default)] time_speed: f32,
     #[serde(default)] coins: i32,
 }
@@ -639,6 +640,7 @@ fn build(ctx: &GameContext) -> SaveData {
         maze_best_time: ctx.maze_best_time,
         snake_high_score: ctx.snake_high_score,
         memory_best_score: ctx.memory_best_score,
+        meowltiply_high_score: ctx.meowltiply_high_score,
         time_speed: ctx.time_speed,
         coins: ctx.coins,
     }
@@ -667,6 +669,7 @@ fn apply(data: &SaveData, ctx: &mut GameContext) {
     ctx.maze_best_time = data.maze_best_time;
     ctx.snake_high_score = data.snake_high_score;
     ctx.memory_best_score = data.memory_best_score;
+    ctx.meowltiply_high_score = data.meowltiply_high_score;
     ctx.time_speed = data.time_speed;
     ctx.coins = data.coins;
 

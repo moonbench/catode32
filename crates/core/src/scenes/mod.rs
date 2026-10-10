@@ -20,6 +20,7 @@ pub mod kitchen_scene;
 pub mod lightsout_scene;
 pub mod maze_scene;
 pub mod memory_scene;
+pub mod meowltiply_scene;
 pub mod menu_scene;
 pub mod outside_scene;
 pub mod pet_info_scene;
@@ -63,6 +64,7 @@ use kitchen_scene::KitchenScene;
 use lightsout_scene::LightsOutScene;
 use maze_scene::MazeScene;
 use memory_scene::MemoryScene;
+use meowltiply_scene::MeowltiplyScene;
 use menu_scene::MenuScene;
 use outside_scene::OutsideScene;
 use pet_info_scene::PetInfoScene;
@@ -119,6 +121,7 @@ crate::dispatch_enum! {
         LightsOut(LightsOutScene)                 = LightsOutScene::new(),
         Pipes(PipesScene)                         = PipesScene::new(),
         Herding(HerdingScene)                     = HerdingScene::new(),
+        Meowltiply(MeowltiplyScene)               = MeowltiplyScene::new(),
         Platformer(PlatformerScene)               = PlatformerScene::new(),
         VacationPark(VacationParkScene)           = VacationParkScene::new(),
         VacationForest(VacationForestScene)       = VacationForestScene::new(),

@@ -1,5 +1,5 @@
 use embedded_graphics::{
-    mono_font::{iso_8859_1::FONT_6X10, MonoTextStyle},
+    mono_font::{iso_8859_1::{FONT_4X6, FONT_6X10}, MonoTextStyle},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::{Line, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle},
@@ -124,6 +124,20 @@ impl Renderer {
 
     pub fn draw_text_inverted(&mut self, text: &str, pos: Point) {
         let style = MonoTextStyle::new(&FONT_6X10, BinaryColor::Off);
+        Text::with_baseline(text, pos, style, Baseline::Top)
+            .draw(&mut self.display)
+            .unwrap();
+    }
+
+    pub fn draw_text_small(&mut self, text: &str, pos: Point) {
+        let style = MonoTextStyle::new(&FONT_4X6, BinaryColor::On);
+        Text::with_baseline(text, pos, style, Baseline::Top)
+            .draw(&mut self.display)
+            .unwrap();
+    }
+
+    pub fn draw_text_small_inverted(&mut self, text: &str, pos: Point) {
+        let style = MonoTextStyle::new(&FONT_4X6, BinaryColor::Off);
         Text::with_baseline(text, pos, style, Baseline::Top)
             .draw(&mut self.display)
             .unwrap();

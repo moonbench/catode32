@@ -31,6 +31,7 @@ const MINIGAMES: &[MenuItem<SceneId>] = &[
     MenuItem { label: t!("Lights Out"), icon: Some(icons::POWER),     submenu: None, action: Some(SceneId::LightsOut),  confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Pipes"),     icon: Some(icons::PLUMBING),   submenu: None, action: Some(SceneId::Pipes),      confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Herding"),   icon: Some(icons::HERDING),    submenu: None, action: Some(SceneId::Herding),    confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Meowltiply"), icon: Some(icons::MEOWLTIPLY), submenu: None, action: Some(SceneId::Meowltiply), confirm: None, confirm_on_vacation: END_VAC },
 ];
 
 const VACATIONS: &[MenuItem<SceneId>] = &[
