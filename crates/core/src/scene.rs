@@ -173,6 +173,11 @@ impl SceneManager {
         }
     }
 
+    /// The scene currently running underneath any menu overlay.
+    pub fn current_id(&self) -> SceneId {
+        self.current_id
+    }
+
     /// Tick the current scene and report any swap it requested.
     ///
     /// The swap is no longer applied inline. The caller (`Game`) defers it

@@ -9,6 +9,8 @@
 //! 3. Blit the in-memory 128x64 framebuffer to the `SimulatorDisplay`.
 //! 4. `Window::update()` and sleep enough to land near 12 FPS.
 //!
+//! ESC or closing the window saves the game, then quits.
+//!
 //! The lit-pixel and background colors can be overridden at launch with
 //! `--fg RRGGBB` / `--bg RRGGBB` (see `USAGE`).
 
@@ -217,6 +219,9 @@ fn main() {
             thread::sleep(target - elapsed);
         }
     }
+
+    // ESC or closing the window: save before exiting.
+    game.save();
 }
 
 fn blit(renderer: &Renderer, target: &mut SimulatorDisplay<Rgb888>, palette: &Palette) {

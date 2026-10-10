@@ -230,6 +230,16 @@ impl Game {
         &self.renderer
     }
 
+    /// Persist the current state, e.g. before the desktop simulator quits.
+    /// Skipped while the adoption scene is up, so quitting mid-adoption
+    /// doesn't write a nameless pet that would skip adoption next launch.
+    pub fn save(&mut self) -> bool {
+        if self.scene_manager.current_id() == SceneId::Adoption {
+            return false;
+        }
+        save::save(&mut self.context)
+    }
+
     pub fn run(&mut self) -> ! {
         loop {
             let frame_start = Instant::now();
