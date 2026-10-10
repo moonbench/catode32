@@ -24,3 +24,7 @@ rustflags = ["-C", "target-feature=+crt-static"]
 
 [env]
 ESP_LOG = "info"
+# The Windows desktop build compiles the SDL2 that ships with sdl2-sys (2.26)
+# using CMake. That SDL declares CMake 3.0 compatibility, which CMake 4 refuses
+# to configure unless this is set.
+CMAKE_POLICY_VERSION_MINIMUM = "3.5"
