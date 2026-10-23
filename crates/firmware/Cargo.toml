@@ -24,6 +24,14 @@ c3 = [
     "esp-bootloader-esp-idf/esp32c3",
     "esp-rtos/esp32c3",
 ]
+h2 = [
+    "catode32-core/h2",
+    "esp-hal/esp32h2",
+    "esp-backtrace/esp32h2",
+    "esp-println/esp32h2",
+    "esp-bootloader-esp-idf/esp32h2",
+    "esp-rtos/esp32h2",
+]
 
 # Language selection — pass-through to core. Exactly one should be active.
 lang-en = ["catode32-core/lang-en"]
@@ -42,4 +50,4 @@ esp-backtrace = { version = "0.20.0", default-features = false, features = ["pri
 esp-println = { version = "0.18.0", default-features = false }
 esp-bootloader-esp-idf = { version = "0.6.0", default-features = false }
 esp-alloc = "0.11.0"
-esp-rtos = { version = "0.4.0", default-features = false, features = ["esp-radio", "esp-alloc"] }
+esp-rtos = { version = "0.4.0", default-features = false, features = ["esp-alloc"] }

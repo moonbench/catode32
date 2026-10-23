@@ -19,7 +19,12 @@ fn main() -> ! {
     // the esp-rs maintainers recommend for scan-only wifi; it holds the
     // driver's permanent buffers plus transient per-scan AP lists with
     // comfortable headroom. Nothing else in this firmware allocates.
+    // The H2 build has no radio, so only the scheduler allocates and the
+    // freed RAM is left to the stack.
+    #[cfg(any(feature = "c3", feature = "c6"))]
     esp_alloc::heap_allocator!(size: 64 * 1024);
+    #[cfg(feature = "h2")]
+    esp_alloc::heap_allocator!(size: 16 * 1024);
 
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);

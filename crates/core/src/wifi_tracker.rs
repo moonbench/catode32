@@ -29,24 +29,24 @@ use crate::platform::time::Duration;
 use heapless::Vec;
 
 use crate::context::{GameContext, WIFI_SSID_MAX};
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 use crate::context::{WifiEntry, WIFI_FAMILIAR_MAX, WIFI_RECENT_MAX};
 
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 use crate::radio;
 
 /// Interval between hourly wifi scans, in real time.
 pub const SCAN_INTERVAL: Duration = Duration::from_secs(60 * 60);
 
 /// How many APs to ask the driver for per scan.
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 const SCAN_MAX_APS: usize = 20;
 
 /// Count subtracted from every unseen entry each scan.
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 const DECAY_PER_SCAN: f32 = 0.25;
 /// Min count before a recent entry can be promoted.
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 const PROMOTE_MIN: f32 = 5.0;
 
 /// Snapshot of the latest scan, surfaced to the debug scene so it can show
@@ -62,7 +62,7 @@ pub struct ScanAp {
 /// runs the scan, releases, and updates `wifi_familiar` /
 /// `wifi_recent` / `in_familiar_location`. On desktop there is no
 /// radio; the call returns `None` and leaves the state untouched.
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 pub fn scan_now(ctx: &mut GameContext) -> Option<Vec<ScanAp, 32>> {
     use embassy_futures::block_on;
 
@@ -93,12 +93,12 @@ pub fn scan_now(ctx: &mut GameContext) -> Option<Vec<ScanAp, 32>> {
     Some(aps)
 }
 
-#[cfg(feature = "desktop")]
+#[cfg(any(feature = "desktop", feature = "h2"))]
 pub fn scan_now(_ctx: &mut GameContext) -> Option<Vec<ScanAp, 32>> {
     None
 }
 
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 async fn perform_scan(
     controller: &mut esp_radio::wifi::WifiController<'static>,
 ) -> Result<Vec<ScanAp, 32>, esp_radio::wifi::WifiError> {
@@ -135,7 +135,7 @@ async fn perform_scan(
 
 /// Decay-and-promote algorithm. Public so the debug scene's "Scan" button
 /// (or a unit test, eventually) can drive it with a synthesized AP list.
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 fn process(ctx: &mut GameContext, aps: &[ScanAp]) {
     // Decay unseen entries, then prune the ones that hit zero.
     for entry in ctx.wifi_familiar.iter_mut() {
@@ -217,7 +217,7 @@ fn process(ctx: &mut GameContext, aps: &[ScanAp]) {
         .any(|e| aps.iter().any(|ap| ap.bssid == e.bssid));
 }
 
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 fn lowest_idx<const N: usize>(v: &Vec<WifiEntry, N>) -> Option<usize> {
     let mut best: Option<(usize, f32)> = None;
     for (i, e) in v.iter().enumerate() {

@@ -26,6 +26,10 @@ mod firmware {
 
     impl Led {
         pub fn new(rmt: RMT<'static>, pin: GPIO8<'static>) -> Self {
+            // The H2's RMT is clocked from the 32 MHz XTAL, not 80 MHz PLL.
+            #[cfg(feature = "h2")]
+            let freq = Rate::from_mhz(32);
+            #[cfg(not(feature = "h2"))]
             let freq = Rate::from_mhz(80);
             let rmt = Rmt::new(rmt, freq).unwrap();
             let strip = Strip::new(WS2812_TIMING, rmt.channel0, pin, freq).unwrap();

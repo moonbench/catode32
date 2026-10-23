@@ -5,12 +5,12 @@
 //! implementations on desktop, so the stubs here are only there to satisfy
 //! the type system; they're never touched at runtime.
 
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 pub use esp_hal::peripherals::WIFI;
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 pub use esp_radio::wifi::WifiController;
 
-#[cfg(feature = "desktop")]
+#[cfg(any(feature = "desktop", feature = "h2"))]
 mod desktop {
     use core::marker::PhantomData;
 
@@ -36,5 +36,5 @@ mod desktop {
     pub struct WifiController<'a>(PhantomData<&'a ()>);
 }
 
-#[cfg(feature = "desktop")]
+#[cfg(any(feature = "desktop", feature = "h2"))]
 pub use desktop::{WifiController, WIFI};

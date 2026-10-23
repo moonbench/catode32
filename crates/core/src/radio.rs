@@ -19,10 +19,10 @@
 //! `release` is a no-op. Code that handles the no-radio case (the
 //! "you've gone offline" branch) keeps working unchanged.
 
-#[cfg(feature = "desktop")]
+#[cfg(any(feature = "desktop", feature = "h2"))]
 use crate::context::GameContext;
 
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 mod firmware {
     use esp_hal::peripherals::WIFI;
     use esp_radio::wifi::{Interface, WifiController};
@@ -90,13 +90,13 @@ mod firmware {
     }
 }
 
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 pub use firmware::{acquire, release};
 
-#[cfg(feature = "desktop")]
+#[cfg(any(feature = "desktop", feature = "h2"))]
 pub fn acquire(_ctx: &mut GameContext) -> bool {
     false
 }
 
-#[cfg(feature = "desktop")]
+#[cfg(any(feature = "desktop", feature = "h2"))]
 pub fn release(_ctx: &mut GameContext) {}

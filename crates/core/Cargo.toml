@@ -16,12 +16,15 @@ c6 = [
     "dep:esp-radio",
     "dep:esp-rtos",
     "dep:embassy-futures",
+    "esp-radio/wifi",
+    "esp-radio/esp-now",
     "esp-hal/esp32c6",
     "esp-println/esp32c6",
     "esp-bootloader-esp-idf/esp32c6",
     "esp-storage/esp32c6",
     "esp-hal-smartled/esp32c6",
     "esp-radio/esp32c6",
+    "esp-rtos/esp-radio",
     "esp-rtos/esp32c6",
 ]
 c3 = [
@@ -33,13 +36,33 @@ c3 = [
     "dep:esp-radio",
     "dep:esp-rtos",
     "dep:embassy-futures",
+    "esp-radio/wifi",
+    "esp-radio/esp-now",
     "esp-hal/esp32c3",
     "esp-println/esp32c3",
     "esp-bootloader-esp-idf/esp32c3",
     "esp-storage/esp32c3",
     "esp-hal-smartled/esp32c3",
     "esp-radio/esp32c3",
+    "esp-rtos/esp-radio",
     "esp-rtos/esp32c3",
+]
+# ESP32-H2 has no WiFi/ESP-NOW, so it builds without esp-radio and uses the
+# same no-op radio path as the desktop build.
+h2 = [
+    "dep:esp-hal",
+    "dep:esp-println",
+    "dep:esp-bootloader-esp-idf",
+    "dep:esp-storage",
+    "dep:esp-hal-smartled",
+    "dep:esp-rtos",
+    "dep:embassy-futures",
+    "esp-hal/esp32h2",
+    "esp-println/esp32h2",
+    "esp-bootloader-esp-idf/esp32h2",
+    "esp-storage/esp32h2",
+    "esp-hal-smartled/esp32h2",
+    "esp-rtos/esp32h2",
 ]
 # Host-side build: skips esp-* deps, swaps platform modules for std-backed shims.
 desktop = []
@@ -58,8 +81,8 @@ esp-println = { version = "0.18.0", default-features = false, features = ["auto"
 esp-bootloader-esp-idf = { version = "0.6.0", default-features = false, optional = true }
 esp-storage = { version = "0.10.0", default-features = false, optional = true }
 esp-hal-smartled = { version = "0.18.0", default-features = false, optional = true }
-esp-radio = { version = "=1.0.0-beta.1", default-features = false, features = ["wifi", "esp-now", "esp-alloc", "unstable"], optional = true }
-esp-rtos = { version = "0.4.0", default-features = false, features = ["esp-radio", "esp-alloc"], optional = true }
+esp-radio = { version = "=1.0.0-beta.1", default-features = false, features = ["esp-alloc", "unstable"], optional = true }
+esp-rtos = { version = "0.4.0", default-features = false, features = ["esp-alloc"], optional = true }
 embassy-futures = { version = "0.1", optional = true }
 
 ssd1306 = "0.10.0"

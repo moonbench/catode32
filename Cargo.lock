@@ -910,6 +910,7 @@ dependencies = [
  "esp-metadata-generated",
  "esp32c3 0.33.0",
  "esp32c6 0.24.0",
+ "esp32h2",
 ]
 
 [[package]]
@@ -949,6 +950,7 @@ dependencies = [
  "esp-sync",
  "esp32c3 0.33.0",
  "esp32c6 0.24.0",
+ "esp32h2",
 ]
 
 [[package]]

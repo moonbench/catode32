@@ -51,6 +51,8 @@ pub mod scene;
 pub mod scenes;
 pub mod sky;
 pub mod sleep_manager;
+#[cfg(not(feature = "desktop"))]
+pub mod sleep_pins;
 pub mod storage;
 pub mod temperature_system;
 pub mod time_system;

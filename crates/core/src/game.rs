@@ -411,31 +411,22 @@ impl Game {
         }
     }
 
-    /// One-way deep sleep. Wakes the device only on a falling edge on
-    /// GPIO0/1/2/3 (A/B/Menu1/Menu2 buttons). Direction buttons live on
-    /// GPIO14/18/19/20, outside the C6's LP-IO domain, so they cannot
-    /// serve as wake sources. The device resets on wake.
+    /// One-way deep sleep. The device resets on wake. Which buttons can wake
+    /// it depends on the chip; see [`crate::sleep_pins`].
     ///
     /// Desktop builds have no deep-sleep equivalent; the simulator exits
     /// the process instead.
-    ///
-    /// TODO(c3): the wake pins are the C6 mapping. Needs hardware to verify:
-    /// * On the C3 only GPIO0-5 can wake the chip. GPIO0-3 are the D-pad,
-    ///   A/B are GPIO4/5, and Menu1/Menu2 (GPIO10/11) can't wake it at all.
-    ///   Wake set probably becomes A/B only, chosen per board.
-    /// * Once the C3 build compiles, re-check it for warnings.
     #[cfg(not(feature = "desktop"))]
     fn enter_deep_sleep(&mut self) -> ! {
         use esp_hal::{
-            gpio::{Event, Input, InputConfig, Pull, WakeupConfig},
-            peripherals::{GPIO0, GPIO1, GPIO2, GPIO3, LPWR},
+            peripherals::LPWR,
             rtc_cntl::sleep::{LowPower, RtcSleepConfig},
         };
 
-        use crate::{input::Button, sleep_manager::wait_buttons_stable_released_mask};
-
-        const DEEP_WAKE_BUTTONS: [Button; 4] =
-            [Button::A, Button::B, Button::Menu1, Button::Menu2];
+        use crate::{
+            sleep_manager::wait_buttons_stable_released_mask,
+            sleep_pins::{arm_deep_wake, DEEP_WAKE_BUTTONS},
+        };
 
         println!("[Power] Entering deep sleep");
         self.renderer.clear();
@@ -447,27 +438,13 @@ impl Game {
         // the still-held press or its release bounce.
         wait_buttons_stable_released_mask(
             &self.buttons,
-            &DEEP_WAKE_BUTTONS,
+            DEEP_WAKE_BUTTONS,
             Duration::from_millis(500),
         );
 
         // Safety: deep sleep is one-way; on wake the device boots from reset
         // and the old `Input` wrappers in `Buttons` will never be used again.
-        let input_config = InputConfig::default().with_pull(Pull::Up);
-        let mut pins = [
-            Input::new(unsafe { GPIO0::steal() }, input_config),
-            Input::new(unsafe { GPIO1::steal() }, input_config),
-            Input::new(unsafe { GPIO2::steal() }, input_config),
-            Input::new(unsafe { GPIO3::steal() }, input_config),
-        ];
-
-        // Sleep entry copies these pull-ups onto the LP-IO pads before it
-        // holds them, so the level=Low trigger doesn't see a floating pin.
-        let wake_config = WakeupConfig::default().with_low_power_path(true);
-        for pin in &mut pins {
-            pin.listen(Event::LowLevel);
-            pin.apply_wakeup_config(&wake_config).unwrap();
-        }
+        let _wake_pins = unsafe { arm_deep_wake() };
 
         watchdog::stop();
         LowPower::new(unsafe { LPWR::steal() }).sleep_deep(RtcSleepConfig::deep());

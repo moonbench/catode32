@@ -48,7 +48,7 @@ pub struct InboxItem {
     pub data: Vec<u8, MAX_PAYLOAD>,
 }
 
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 mod firmware {
     use super::*;
     use esp_radio::esp_now::{
@@ -231,10 +231,10 @@ mod firmware {
     }
 }
 
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 pub use firmware::EspNowManager;
 
-#[cfg(feature = "desktop")]
+#[cfg(any(feature = "desktop", feature = "h2"))]
 mod desktop {
     use super::*;
 
@@ -264,7 +264,7 @@ mod desktop {
     }
 }
 
-#[cfg(feature = "desktop")]
+#[cfg(any(feature = "desktop", feature = "h2"))]
 pub use desktop::EspNowManager;
 
 /// Acquire the radio for ESP-NOW traffic. Scenes call this on `enter`.
