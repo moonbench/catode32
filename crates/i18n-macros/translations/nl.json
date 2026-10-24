@@ -395,9 +395,9 @@
   "{s}'s been very subdued.": "{s} is erg ingetogen.",
   "{s}'s been impulsive.": "{s} is impulsief.",
   "Sickness": "Ziekte",
-  "Wifi": "Wifi",
+  "Location": "Location",
   "Wireless": "Draadloos",
-  "ESP-NOW": "ESP-NOW",
+  "Peers": "Peers",
   "RGB LED": "RGB LED",
   "Plant type": "Planttype",
   "Pot type": "Pottype",
@@ -496,5 +496,6 @@
   "Round over": "Ronde voorbij",
   "New Round": "Nieuwe ronde",
   "New Green": "Nieuwe baan",
+  "BLE name": "catode32"
   "Laser Bounce": "Laserkaatsen"
 }

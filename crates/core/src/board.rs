@@ -9,6 +9,10 @@
 
 pub const DISPLAY_WIDTH: u16 = 128;
 pub const DISPLAY_HEIGHT: u16 = 64;
+// The H2 board relies on weak internal pull-ups, so keep the bus slower.
+#[cfg(feature = "h2")]
+pub const I2C_FREQ_KHZ: u32 = 100;
+#[cfg(not(feature = "h2"))]
 pub const I2C_FREQ_KHZ: u32 = 400;
 
 #[cfg(not(feature = "desktop"))]
@@ -16,7 +20,7 @@ mod firmware {
     use esp_hal::{
         gpio::{Input, InputConfig, Pull},
         i2c::master::{Config, I2c},
-        peripherals::{Peripherals, FLASH, FROM_CPU_INTR0, TIMG0, WIFI},
+        peripherals::{Peripherals, FLASH, FROM_CPU_INTR0, TIMG0},
         rng::Rng,
         time::Rate,
         Blocking,
@@ -25,11 +29,20 @@ mod firmware {
     use super::I2C_FREQ_KHZ;
     use crate::{input::Buttons, led::Led};
 
-    #[cfg(all(feature = "c6", feature = "c3"))]
-    compile_error!("Features `c6` and `c3` are mutually exclusive, enable exactly one.");
+    #[cfg(not(feature = "h2"))]
+    use esp_hal::peripherals::WIFI;
+    #[cfg(feature = "h2")]
+    use crate::platform::radio::WIFI;
 
-    #[cfg(not(any(feature = "c6", feature = "c3")))]
-    compile_error!("Enable either feature `c6` or `c3` to select the target board.");
+    #[cfg(any(
+        all(feature = "c6", feature = "c3"),
+        all(feature = "c6", feature = "h2"),
+        all(feature = "c3", feature = "h2")
+    ))]
+    compile_error!("Features `c6`, `c3` and `h2` are mutually exclusive, enable exactly one.");
+
+    #[cfg(not(any(feature = "c6", feature = "c3", feature = "h2")))]
+    compile_error!("Enable feature `c6`, `c3` or `h2` to select the target board.");
 
     pub struct Board {
         pub i2c: I2c<'static, Blocking>,
@@ -39,7 +52,7 @@ mod firmware {
         pub flash: FLASH<'static>,
         pub timg0: TIMG0<'static>,
         pub sw_int0: FROM_CPU_INTR0<'static>,
-        pub wifi: WIFI<'static>,
+        pub radio: WIFI<'static>,
     }
 
     pub fn init(peripherals: Peripherals) -> Board {
@@ -55,6 +68,11 @@ mod firmware {
             .unwrap()
             .with_sda(peripherals.GPIO6)
             .with_scl(peripherals.GPIO7);
+        #[cfg(feature = "h2")]
+        let i2c = I2c::new(peripherals.I2C0, i2c_config)
+            .unwrap()
+            .with_sda(peripherals.GPIO0)
+            .with_scl(peripherals.GPIO1);
 
         let input_config = InputConfig::default().with_pull(Pull::Up);
         // Button order: UP, DOWN, LEFT, RIGHT, A, B, MENU1, MENU2
@@ -80,6 +98,18 @@ mod firmware {
             Input::new(peripherals.GPIO10, input_config),
             Input::new(peripherals.GPIO11, input_config),
         ]);
+        // H2: UP=13 DOWN=23 LEFT=24 RIGHT=14 A=12 B=11 MENU1=10 MENU2=2
+        #[cfg(feature = "h2")]
+        let buttons = Buttons::new([
+            Input::new(peripherals.GPIO13, input_config),
+            Input::new(peripherals.GPIO23, input_config),
+            Input::new(peripherals.GPIO24, input_config),
+            Input::new(peripherals.GPIO14, input_config),
+            Input::new(peripherals.GPIO12, input_config),
+            Input::new(peripherals.GPIO11, input_config),
+            Input::new(peripherals.GPIO10, input_config),
+            Input::new(peripherals.GPIO2, input_config),
+        ]);
 
         let led = Led::new(peripherals.RMT, peripherals.GPIO8);
 
@@ -91,7 +121,10 @@ mod firmware {
             flash: peripherals.FLASH,
             timg0: peripherals.TIMG0,
             sw_int0: peripherals.FROM_CPU_INTR0,
-            wifi: peripherals.WIFI,
+            #[cfg(not(feature = "h2"))]
+            radio: peripherals.WIFI,
+            #[cfg(feature = "h2")]
+            radio: peripherals.BT,
         }
     }
 }

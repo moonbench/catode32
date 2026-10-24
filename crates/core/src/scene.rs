@@ -29,8 +29,8 @@ pub enum SceneId {
     DebugPlants,
     DebugPower,
     DebugContext,
-    DebugWifi,
-    DebugEspnow,
+    DebugLocation,
+    DebugPeer,
     Social,
     Zoomies,
     Breakout,
@@ -84,8 +84,8 @@ impl SceneId {
         SceneId::DebugPlants,
         SceneId::DebugPower,
         SceneId::DebugContext,
-        SceneId::DebugWifi,
-        SceneId::DebugEspnow,
+        SceneId::DebugLocation,
+        SceneId::DebugPeer,
         SceneId::Social,
         SceneId::Zoomies,
         SceneId::Breakout,
@@ -180,6 +180,7 @@ pub struct SceneManager {
 }
 
 impl SceneManager {
+    #[inline(never)]
     pub fn new(ctx: &mut GameContext, start: SceneId) -> Self {
         let mut current = ActiveScene::from_id(start);
         current.as_scene_mut().enter(ctx);

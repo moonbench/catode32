@@ -70,7 +70,10 @@ fn flash() -> Option<&'static mut FlashStorage<'static>> {
 #[derive(Clone, Copy)]
 struct PartitionInfo {
     offset: u32,
+    /// Sectors available to the save ring.
     sectors: usize,
+    /// All sectors in the partition.
+    total: usize,
 }
 
 fn find_nvs_partition(flash: &mut FlashStorage) -> Option<PartitionInfo> {
@@ -79,10 +82,76 @@ fn find_nvs_partition(flash: &mut FlashStorage) -> Option<PartitionInfo> {
     let entry = pt
         .find_partition(PartitionType::Data(DataPartitionSubType::Nvs))
         .ok()??;
+    let total = (entry.len() as usize) / SECTOR_SIZE;
+    // The H2's last sector holds BLE bonds; the save ring excludes it.
+    #[cfg(feature = "h2")]
+    let sectors = total.saturating_sub(1);
+    #[cfg(not(feature = "h2"))]
+    let sectors = total;
     Some(PartitionInfo {
         offset: entry.offset(),
-        sectors: (entry.len() as usize) / SECTOR_SIZE,
+        sectors,
+        total,
     })
+}
+
+#[cfg(feature = "h2")]
+const BOND_MAGIC: [u8; 4] = *b"BOND";
+
+/// Read the bond blob (written by [`write_bonds`]) into `buf`.
+#[cfg(feature = "h2")]
+pub fn read_bonds(buf: &mut [u8]) -> Option<usize> {
+    let flash = flash()?;
+    let part = find_nvs_partition(flash)?;
+    if part.total == 0 {
+        return None;
+    }
+    let addr = part.offset + ((part.total - 1) * SECTOR_SIZE) as u32;
+    let mut head = [0u8; 8];
+    flash.read_nor(addr, &mut head).ok()?;
+    if head[..4] != BOND_MAGIC {
+        return None;
+    }
+    let len = u32::from_le_bytes(head[4..8].try_into().ok()?) as usize;
+    if len > buf.len() || len > SECTOR_SIZE - 8 {
+        return None;
+    }
+    let padded = len.div_ceil(WORD_SIZE) * WORD_SIZE;
+    let mut scratch = [0u8; 256];
+    if padded > scratch.len() {
+        return None;
+    }
+    flash.read_nor(addr + 8, &mut scratch[..padded]).ok()?;
+    buf[..len].copy_from_slice(&scratch[..len]);
+    Some(len)
+}
+
+/// Replace the bond blob. Erases the reserved sector, so a power loss
+/// mid-write loses the bonds (the cats simply re-pair).
+#[cfg(feature = "h2")]
+pub fn write_bonds(payload: &[u8]) -> bool {
+    if payload.len() > 248 {
+        return false;
+    }
+    let Some(flash) = flash() else {
+        return false;
+    };
+    let Some(part) = find_nvs_partition(flash) else {
+        return false;
+    };
+    if part.total == 0 {
+        return false;
+    }
+    let addr = part.offset + ((part.total - 1) * SECTOR_SIZE) as u32;
+    if flash.erase(addr, addr + SECTOR_SIZE as u32).is_err() {
+        return false;
+    }
+    let mut buf = [0xFFu8; 256];
+    buf[..4].copy_from_slice(&BOND_MAGIC);
+    buf[4..8].copy_from_slice(&(payload.len() as u32).to_le_bytes());
+    buf[8..8 + payload.len()].copy_from_slice(payload);
+    let padded = (8 + payload.len()).div_ceil(WORD_SIZE) * WORD_SIZE;
+    flash.write_nor(addr, &buf[..padded]).is_ok()
 }
 
 #[derive(Clone, Copy)]
@@ -227,14 +296,14 @@ pub fn erase_all() -> bool {
     let Some(part) = find_nvs_partition(flash) else {
         return false;
     };
-    for i in 0..part.sectors {
+    for i in 0..part.total {
         let addr = part.offset + (i * SECTOR_SIZE) as u32;
         if flash.erase(addr, addr + SECTOR_SIZE as u32).is_err() {
             println!("[Storage] Factory erase failed at sector {}", i);
             return false;
         }
     }
-    println!("[Storage] Factory reset, wiped {} sectors", part.sectors);
+    println!("[Storage] Factory reset, wiped {} sectors", part.total);
     true
 }
 
@@ -355,6 +424,8 @@ pub fn write_next(payload: &[u8]) -> bool {
 
 #[cfg(not(feature = "desktop"))]
 pub use firmware::{erase_all, has_save, init, read_latest, write_next};
+#[cfg(all(not(feature = "desktop"), feature = "h2"))]
+pub use firmware::{read_bonds, write_bonds};
 
 #[cfg(feature = "desktop")]
 mod desktop {

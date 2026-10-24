@@ -38,6 +38,9 @@ const MAX_PIECES: usize = 21;
 
 /// Arrangements one generation attempt may enumerate before it is thrown
 /// away. Bounds the scratch buffer and the time an attempt takes.
+#[cfg(feature = "h2")]
+const MAX_STATES: usize = 2048;
+#[cfg(not(feature = "h2"))]
 const MAX_STATES: usize = 4096;
 const HASH_SIZE: usize = MAX_STATES * 2;
 const UNSEEN: u8 = u8::MAX;

@@ -5,11 +5,11 @@
 //! module owns that drop/recreate dance so the rest of the codebase can
 //! request the radio without thinking about it.
 //!
-//! At rest, the WiFi peripheral handle sits in `ctx.wifi_peripheral` and
+//! At rest, the WiFi peripheral handle sits in `ctx.radio_peripheral` and
 //! the radio is fully off. The first call to [`acquire`] consumes the
 //! peripheral via `WifiController::new`, parks the new controller into
 //! `ctx.wifi`, and binds the freshly-minted ESP-NOW handle onto
-//! `ctx.espnow`. Each subsequent caller just bumps the refcount.
+//! `ctx.peers`. Each subsequent caller just bumps the refcount.
 //! [`release`] decrements; on the last release the controller and
 //! ESP-NOW handle are dropped (which de-inits the WiFi MAC) and the
 //! peripheral is recovered via `unsafe { WIFI::steal() }` for the next
@@ -22,12 +22,13 @@
 #[cfg(feature = "desktop")]
 use crate::context::GameContext;
 
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 mod firmware {
     use esp_hal::peripherals::WIFI;
     use esp_radio::wifi::{Interface, WifiController};
 
     use crate::context::GameContext;
+    use crate::transport::Transport;
 
     /// Bring the radio up (or just bump the refcount). Returns `true` if
     /// the radio is usable on exit, `false` if init failed.
@@ -36,8 +37,8 @@ mod firmware {
             if !init_radio(ctx) {
                 return false;
             }
-            if let Some(espnow) = ctx.espnow.as_mut() {
-                espnow.activate();
+            if let Some(peers) = ctx.peers.as_mut() {
+                peers.activate();
             }
         }
         ctx.radio_users = ctx.radio_users.saturating_add(1);
@@ -52,45 +53,45 @@ mod firmware {
         }
         ctx.radio_users -= 1;
         if ctx.radio_users == 0 {
-            if let Some(espnow) = ctx.espnow.as_mut() {
-                espnow.deactivate();
+            if let Some(peers) = ctx.peers.as_mut() {
+                peers.deactivate();
             }
             teardown_radio(ctx);
         }
     }
 
     fn init_radio(ctx: &mut GameContext) -> bool {
-        let Some(peripheral) = ctx.wifi_peripheral.take() else {
+        let Some(peripheral) = ctx.radio_peripheral.take() else {
             println!("[radio] no wifi peripheral available");
             return false;
         };
         match WifiController::new(peripheral, Default::default()) {
             Ok(controller) => {
                 let mac = Interface::station().mac_address();
-                if let Some(espnow) = ctx.espnow.as_mut() {
-                    espnow.attach(controller.esp_now(), mac);
+                if let Some(peers) = ctx.peers.as_mut() {
+                    peers.attach(controller.esp_now(), mac);
                 }
                 ctx.wifi = Some(controller);
                 true
             }
             Err(e) => {
                 println!("[radio] WifiController::new failed: {:?}", e);
-                ctx.wifi_peripheral = Some(unsafe { WIFI::steal() });
+                ctx.radio_peripheral = Some(unsafe { WIFI::steal() });
                 false
             }
         }
     }
 
     fn teardown_radio(ctx: &mut GameContext) {
-        if let Some(espnow) = ctx.espnow.as_mut() {
-            drop(espnow.detach());
+        if let Some(peers) = ctx.peers.as_mut() {
+            drop(peers.detach());
         }
         drop(ctx.wifi.take());
-        ctx.wifi_peripheral = Some(unsafe { WIFI::steal() });
+        ctx.radio_peripheral = Some(unsafe { WIFI::steal() });
     }
 }
 
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 pub use firmware::{acquire, release};
 
 #[cfg(feature = "desktop")]
@@ -100,3 +101,55 @@ pub fn acquire(_ctx: &mut GameContext) -> bool {
 
 #[cfg(feature = "desktop")]
 pub fn release(_ctx: &mut GameContext) {}
+
+#[cfg(feature = "h2")]
+mod ble {
+    use esp_hal::peripherals::BT;
+    use esp_radio::ble::controller::BleConnector;
+
+    use crate::context::GameContext;
+    use crate::transport::Transport;
+
+    /// Bring BLE up (or bump the refcount). `true` if usable on exit.
+    pub fn acquire(ctx: &mut GameContext) -> bool {
+        if ctx.radio_users == 0 {
+            let Some(bt) = ctx.radio_peripheral.take() else {
+                println!("[radio] BT peripheral unavailable");
+                return false;
+            };
+            match BleConnector::new(bt, Default::default()) {
+                Ok(connector) => {
+                    if let Some(m) = ctx.peers.as_mut() {
+                        m.attach(connector);
+                        m.activate();
+                    }
+                }
+                Err(e) => {
+                    println!("[radio] BLE init failed: {:?}", e);
+                    ctx.radio_peripheral = Some(unsafe { BT::steal() });
+                    return false;
+                }
+            }
+        }
+        ctx.radio_users = ctx.radio_users.saturating_add(1);
+        true
+    }
+
+    pub fn release(ctx: &mut GameContext) {
+        if ctx.radio_users == 0 {
+            println!("[radio] unbalanced release");
+            return;
+        }
+        ctx.radio_users -= 1;
+        if ctx.radio_users == 0 {
+            if let Some(m) = ctx.peers.as_mut() {
+                m.deactivate();
+                m.detach();
+            }
+            ctx.radio_peripheral = Some(unsafe { BT::steal() });
+        }
+    }
+}
+
+#[cfg(feature = "h2")]
+pub use ble::{acquire, release};

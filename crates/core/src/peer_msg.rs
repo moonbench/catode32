@@ -1,4 +1,4 @@
-//! Wire format for ESP-NOW messages between Rust devices.
+//! Wire format for peer messages (ESP-NOW and BLE) between Rust devices.
 //!
 //! Every message is a 4-byte ASCII tag followed by a small binary body.
 //! The tag identifies the message kind; the body shape is per-tag and

@@ -22,9 +22,15 @@ rustflags = [
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
 
+# Desktop build on Windows with MinGW: bundled SDL2 needs advapi32 for the registry calls.
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-C", "link-arg=-ladvapi32"]
+
 [env]
 ESP_LOG = "info"
 # The Windows desktop build compiles the SDL2 that ships with sdl2-sys (2.26)
 # using CMake. That SDL declares CMake 3.0 compatibility, which CMake 4 refuses
 # to configure unless this is set.
 CMAKE_POLICY_VERSION_MINIMUM = "3.5"
+# Newer GCC defaults to C23, which the bundled SDL2 C sources do not compile under.
+CFLAGS_x86_64_pc_windows_gnu = "-std=gnu11"

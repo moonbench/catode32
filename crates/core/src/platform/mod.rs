@@ -11,5 +11,6 @@ pub mod persist;
 pub mod power;
 pub mod radio;
 pub mod rng;
+pub mod stackmark;
 pub mod time;
 pub mod watchdog;

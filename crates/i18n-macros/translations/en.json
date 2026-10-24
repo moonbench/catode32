@@ -304,9 +304,9 @@
   "Stats": "Stats",
   "Power": "Power",
   "Power Control": "Power Control",
-  "Wifi": "Wifi",
+  "Location": "Location",
   "Wireless": "Wireless",
-  "ESP-NOW": "ESP-NOW",
+  "Peers": "Peers",
   "RGB LED": "RGB LED",
   "Plant type": "Plant type",
   "Pot type": "Pot type",
@@ -496,5 +496,6 @@
   "Round over": "Round over",
   "New Round": "New Round",
   "New Green": "New Green",
+  "BLE name": "catode32",
   "Laser Bounce": "Laser Bounce"
 }

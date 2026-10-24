@@ -69,6 +69,53 @@ pub fn intent_peek() -> Option<(u8, u8)> {
     Some((scene as u8, attempts as u8))
 }
 
+const SLEEP_MAGIC: u32 = 0x534C_5031; // "SLP1"
+
+fn sleep_checksum(lo: u32, hi: u32) -> u32 {
+    (SLEEP_MAGIC ^ lo.rotate_left(8) ^ hi.rotate_left(16)).wrapping_mul(0x9E37_79B1)
+}
+
+#[cfg(not(feature = "desktop"))]
+#[esp_hal::ram(unstable(rtc_fast, persistent))]
+static mut SLEEP_RECORD: [u32; 4] = [0; 4];
+
+#[cfg(feature = "desktop")]
+static mut SLEEP_RECORD: [u32; 4] = [0; 4];
+
+/// RTC time in microseconds. It keeps counting through deep sleep, so the
+/// difference between two readings across a sleep is the time asleep.
+#[cfg(not(feature = "desktop"))]
+pub fn rtc_now_us() -> u64 {
+    use esp_hal::{peripherals::RTC_TIMER, rtc_cntl::Rtc};
+    // SAFETY: read-only use of the free-running counter.
+    Rtc::new(unsafe { RTC_TIMER::steal() }).current_time_us()
+}
+
+#[cfg(feature = "desktop")]
+pub fn rtc_now_us() -> u64 {
+    0
+}
+
+/// Stamp the moment deep sleep began.
+pub fn sleep_record_set(now_us: u64) {
+    let (lo, hi) = (now_us as u32, (now_us >> 32) as u32);
+    let record = [SLEEP_MAGIC, lo, hi, sleep_checksum(lo, hi)];
+    // SAFETY: single-threaded game loop is the only accessor.
+    unsafe { core::ptr::write_volatile(core::ptr::addr_of_mut!(SLEEP_RECORD), record) }
+}
+
+/// Return the deep-sleep start stamp, if a valid one exists, and clear it.
+pub fn sleep_record_take() -> Option<u64> {
+    // SAFETY: see `sleep_record_set`.
+    let [magic, lo, hi, sum] =
+        unsafe { core::ptr::read_volatile(core::ptr::addr_of!(SLEEP_RECORD)) };
+    unsafe { core::ptr::write_volatile(core::ptr::addr_of_mut!(SLEEP_RECORD), [0; 4]) }
+    if magic != SLEEP_MAGIC || sum != sleep_checksum(lo, hi) {
+        return None;
+    }
+    Some(lo as u64 | (hi as u64) << 32)
+}
+
 const CRASH_MAGIC: u32 = 0x4352_5348; // "CRSH"
 
 /// Bytes of panic text kept. Six 21-column lines on the debug screen.

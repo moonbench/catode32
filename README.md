@@ -157,6 +157,22 @@ To flash a fresh build and drop into the serial monitor:
 cargo run --release
 ```
 
+## Supported Boards
+
+| Board | Feature | Location | Messaging with other pets |
+|---|---|---|---|
+| ESP32-C6 (default) | `c6` | WiFi scan | ESP-NOW |
+| ESP32-C3 | `c3` | WiFi scan | ESP-NOW |
+| ESP32-H2 | `h2` | BLE scan | BLE (GATT) |
+
+The ESP32-H2 has no WiFi, so it uses Bluetooth LE for both location detection and pet-to-pet visits. H2 pets can only visit other H2 pets; C3/C6 pets only visit each other. Select a board with the firmware feature:
+
+```bash
+cargo run --release --no-default-features --features h2,lang-en
+```
+
+C3 builds also need `--target riscv32imc-unknown-none-elf`. The H2 BLE support is new and has not yet been tested on hardware.
+
 ## Controls
 
 - **D-pad**: Navigate / Move camera
@@ -198,6 +214,10 @@ cargo run --release
 ```
 
 Debug builds work too and are faster to compile, but release builds are strongly recommended for on-device testing because the binary is much smaller and the game runs closer to full speed.
+
+## Continuous Integration
+
+GitHub Actions (`.github/workflows/ci.yml`) checks the firmware for c6, c3 and h2, runs the core tests, and builds the desktop emulator on Linux and Windows.
 
 ## Scripts
 

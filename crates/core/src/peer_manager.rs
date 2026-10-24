@@ -1,4 +1,7 @@
-//! ESP-NOW transport layer.
+//! Peer manager: the game-facing transport handle.
+//!
+//! `PeerManager` is ESP-NOW on C3/C6 and the BLE manager on H2. Desktop
+//! builds get a no-op stub.
 //!
 //! Wraps [`esp_radio::esp_now::EspNow`] with a small in-process inbox
 //! and a fixed-size set of registered unicast peers. The manager lives
@@ -6,49 +9,32 @@
 //! `EspNow` handle is only bound while the radio is acquired by
 //! [`crate::radio`]. Operations are silent no-ops otherwise.
 //!
-//! Desktop builds keep the same `EspNowManager` shape but every method
+//! Desktop builds keep the same `PeerManager` shape but every method
 //! is a no-op. There are no peers and the inbox is always empty, so
 //! scenes that use the radio degrade gracefully into "offline" mode.
 
 #![allow(dead_code)]
 
+#[cfg(not(feature = "h2"))]
 use heapless::Vec;
 
 use crate::{
     context::GameContext,
-    espnow_msg::{encode_empty, TAG_VBYE},
+    peer_msg::{encode_empty, TAG_VBYE},
     radio,
 };
 
-/// MAC address newtype. Stored as raw 6 bytes; formatted as
-/// `aa:bb:cc:dd:ee:ff` via [`crate::wifi_tracker::format_bssid`] (same byte
-/// layout).
+pub use crate::transport::{InboxItem, PeerId, Transport, INBOX_CAPACITY, MAX_PAYLOAD};
+
+/// ESP-NOW addresses peers by raw MAC.
 pub type MacAddr = [u8; 6];
-
-/// Broadcast destination, re-exported for callers.
-pub const BROADCAST: MacAddr = [0xFF; 6];
-
-/// Max bytes we will ever buffer for a single inbound or outbound message.
-/// Matches the ESP-NOW MTU so we never silently truncate.
-pub const MAX_PAYLOAD: usize = 250;
-
-/// How many inbound messages we will hold between polls before dropping
-/// the oldest.
-pub const INBOX_CAPACITY: usize = 8;
 
 /// How many distinct unicast peers we will register at once. The
 /// broadcast peer is always registered separately and does not count
 /// against this.
 pub const MAX_UNICAST_PEERS: usize = 4;
 
-/// One received frame. The payload's first 4 bytes are the message tag
-/// (e.g. `b"vst "`); the rest is the message-specific binary body.
-pub struct InboxItem {
-    pub src: MacAddr,
-    pub data: Vec<u8, MAX_PAYLOAD>,
-}
-
-#[cfg(not(feature = "desktop"))]
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
 mod firmware {
     use super::*;
     use esp_radio::esp_now::{
@@ -67,7 +53,7 @@ mod firmware {
         }
     }
 
-    pub struct EspNowManager {
+    pub struct PeerManager {
         inner: Option<EspNow>,
         own_mac: Option<MacAddr>,
         inbox: Vec<InboxItem, INBOX_CAPACITY>,
@@ -75,7 +61,7 @@ mod firmware {
         active: bool,
     }
 
-    impl EspNowManager {
+    impl PeerManager {
         pub fn new() -> Self {
             Self {
                 inner: None,
@@ -84,10 +70,6 @@ mod firmware {
                 peers: Vec::new(),
                 active: false,
             }
-        }
-
-        pub fn own_mac(&self) -> Option<MacAddr> {
-            self.own_mac
         }
 
         pub fn attach(&mut self, inner: EspNow, own_mac: MacAddr) {
@@ -104,11 +86,18 @@ mod firmware {
             self.inner.take()
         }
 
-        pub fn is_active(&self) -> bool {
+    }
+
+    impl Transport for PeerManager {
+        fn own_id(&self) -> Option<PeerId> {
+            self.own_mac.map(PeerId::from_mac)
+        }
+
+        fn is_active(&self) -> bool {
             self.active
         }
 
-        pub fn activate(&mut self) {
+        fn activate(&mut self) {
             if self.active {
                 return;
             }
@@ -131,7 +120,7 @@ mod firmware {
             self.active = true;
         }
 
-        pub fn deactivate(&mut self) {
+        fn deactivate(&mut self) {
             if !self.active {
                 return;
             }
@@ -146,7 +135,8 @@ mod firmware {
             self.active = false;
         }
 
-        pub fn add_peer(&mut self, mac: MacAddr) {
+        fn add_peer(&mut self, peer: PeerId) {
+            let mac = *peer.as_bytes();
             if !self.active {
                 return;
             }
@@ -174,7 +164,7 @@ mod firmware {
             }
         }
 
-        pub fn send_broadcast(&mut self, data: &[u8]) {
+        fn send_broadcast(&mut self, data: &[u8]) {
             if !self.active || data.len() > MAX_PAYLOAD {
                 return;
             }
@@ -184,7 +174,8 @@ mod firmware {
             send_detached(inner, &BROADCAST_ADDRESS, data);
         }
 
-        pub fn send_to(&mut self, mac: MacAddr, data: &[u8]) {
+        fn send_to(&mut self, peer: PeerId, data: &[u8]) {
+            let mac = *peer.as_bytes();
             if !self.active || data.len() > MAX_PAYLOAD {
                 return;
             }
@@ -197,7 +188,7 @@ mod firmware {
             send_detached(inner, &mac, data);
         }
 
-        pub fn poll(&mut self) {
+        fn poll(&mut self) {
             if !self.active {
                 return;
             }
@@ -221,51 +212,61 @@ mod firmware {
                 if self.inbox.is_full() {
                     let _ = self.inbox.remove(0);
                 }
-                let _ = self.inbox.push(InboxItem { src, data: buf });
+                let _ = self.inbox.push(InboxItem {
+                    src: PeerId::from_mac(src),
+                    data: buf,
+                });
             }
         }
 
-        pub fn drain(&mut self) -> Vec<InboxItem, INBOX_CAPACITY> {
+        fn drain(&mut self) -> Vec<InboxItem, INBOX_CAPACITY> {
             core::mem::take(&mut self.inbox)
         }
     }
 }
 
-#[cfg(not(feature = "desktop"))]
-pub use firmware::EspNowManager;
+#[cfg(not(any(feature = "desktop", feature = "h2")))]
+pub use firmware::PeerManager;
 
-#[cfg(feature = "desktop")]
+#[cfg(all(feature = "desktop", not(feature = "h2")))]
 mod desktop {
     use super::*;
 
     /// No-op manager. There is no radio on desktop, so every call
     /// silently does nothing and `drain` always returns an empty Vec.
-    pub struct EspNowManager;
+    pub struct PeerManager;
 
-    impl EspNowManager {
+    impl PeerManager {
         pub fn new() -> Self {
             Self
         }
-        pub fn own_mac(&self) -> Option<MacAddr> {
+    }
+
+    impl Transport for PeerManager {
+        fn own_id(&self) -> Option<PeerId> {
             None
         }
-        pub fn is_active(&self) -> bool {
+        fn is_active(&self) -> bool {
             false
         }
-        pub fn activate(&mut self) {}
-        pub fn deactivate(&mut self) {}
-        pub fn add_peer(&mut self, _mac: MacAddr) {}
-        pub fn send_broadcast(&mut self, _data: &[u8]) {}
-        pub fn send_to(&mut self, _mac: MacAddr, _data: &[u8]) {}
-        pub fn poll(&mut self) {}
-        pub fn drain(&mut self) -> Vec<InboxItem, INBOX_CAPACITY> {
+        fn activate(&mut self) {}
+        fn deactivate(&mut self) {}
+        fn add_peer(&mut self, _peer: PeerId) {}
+        fn send_broadcast(&mut self, _data: &[u8]) {}
+        fn send_to(&mut self, _peer: PeerId, _data: &[u8]) {}
+        fn poll(&mut self) {}
+        fn drain(&mut self) -> Vec<InboxItem, INBOX_CAPACITY> {
             Vec::new()
         }
     }
 }
 
-#[cfg(feature = "desktop")]
-pub use desktop::EspNowManager;
+#[cfg(all(feature = "desktop", not(feature = "h2")))]
+pub use desktop::PeerManager;
+
+/// The H2 has no WiFi; its "ESP-NOW" transport is BLE.
+#[cfg(feature = "h2")]
+pub use crate::ble_transport::BleManager as PeerManager;
 
 /// Acquire the radio for ESP-NOW traffic. Scenes call this on `enter`.
 /// On desktop this always returns false (no radio).
@@ -282,9 +283,9 @@ pub fn end_visit(ctx: &mut GameContext, notify_peer: bool) {
         return;
     };
     if notify_peer {
-        if let Some(espnow) = ctx.espnow.as_mut() {
+        if let Some(peers) = ctx.peers.as_mut() {
             let frame = encode_empty(TAG_VBYE);
-            espnow.send_to(visit.peer_mac, &frame);
+            peers.send_to(visit.peer_id, &frame);
         }
     }
     radio::release(ctx);
