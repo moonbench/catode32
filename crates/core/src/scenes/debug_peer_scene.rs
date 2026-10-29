@@ -3,7 +3,7 @@
 //! it. Shows the local MAC address, registered-peer count, send and
 //! receive counters, and a scrollable log of the most recent packets.
 //!
-//! Activates the [`crate::espnow_manager::EspNowManager`] on `enter` and
+//! Activates the [`crate::peer_manager::PeerManager`] on `enter` and
 //! parks it on `exit`, so opening the scene is the only thing on the
 //! device that powers up the radio for ESP-NOW traffic until the social
 //! scene is implemented.
@@ -14,17 +14,18 @@
 //!   * B: back to the main scene.
 
 use core::fmt::Write as _;
+use crate::transport::Transport;
 
 use embedded_graphics::prelude::Point;
 use heapless::{String, Vec};
 
 use crate::{
     context::GameContext,
-    espnow_manager,
+    peer_manager,
     input::{Button, Buttons},
     render::Renderer,
     scene::{Scene, SceneId},
-    wifi_tracker::format_bssid,
+    location_tracker::format_addr,
 };
 
 const LINES_VISIBLE: usize = 8;
@@ -39,7 +40,7 @@ const PING_TAG: [u8; 4] = *b"png ";
 
 type Line = String<LOG_LINE_LEN>;
 
-pub struct DebugEspnowScene {
+pub struct DebugPeerScene {
     /// Ring buffer of formatted log lines (most recent at the end).
     log: Vec<Line, LOG_CAPACITY>,
     /// 0 = pinned to the bottom (auto-scroll on new packets). Anything
@@ -49,7 +50,7 @@ pub struct DebugEspnowScene {
     recv_count: u32,
 }
 
-impl DebugEspnowScene {
+impl DebugPeerScene {
     pub fn new() -> Self {
         Self {
             log: Vec::new(),
@@ -73,10 +74,10 @@ impl DebugEspnowScene {
     /// scene reflects packets that arrived between ticks even when no
     /// input was pressed.
     fn ingest_inbox(&mut self, ctx: &mut GameContext) {
-        let Some(espnow) = ctx.espnow.as_mut() else {
+        let Some(peers) = ctx.peers.as_mut() else {
             return;
         };
-        let drained = espnow.drain();
+        let drained = peers.drain();
         for item in drained.iter() {
             self.recv_count = self.recv_count.saturating_add(1);
             // Format: `<XX:YY tag N`. Last two MAC bytes (enough to
@@ -91,8 +92,8 @@ impl DebugEspnowScene {
                 let _ = write!(
                     s,
                     "<{:02x}:{:02x} {}{}{}{} {}",
-                    item.src[4],
-                    item.src[5],
+                    item.src.as_bytes()[4],
+                    item.src.as_bytes()[5],
                     printable(tag_bytes[0]),
                     printable(tag_bytes[1]),
                     printable(tag_bytes[2]),
@@ -104,7 +105,7 @@ impl DebugEspnowScene {
     }
 
     fn send_ping(&mut self, ctx: &mut GameContext) {
-        let Some(espnow) = ctx.espnow.as_mut() else {
+        let Some(peers) = ctx.peers.as_mut() else {
             self.push_log(|s| {
                 let _ = s.push_str("(no radio)");
             });
@@ -118,7 +119,7 @@ impl DebugEspnowScene {
         let mut frame: [u8; 8] = [0; 8];
         frame[0..4].copy_from_slice(&PING_TAG);
         frame[4..8].copy_from_slice(&counter.to_be_bytes());
-        espnow.send_broadcast(&frame);
+        peers.send_broadcast(&frame);
         self.push_log(|s| {
             let _ = write!(s, ">> png  #{}", counter);
         });
@@ -135,13 +136,13 @@ fn printable(b: u8) -> char {
     }
 }
 
-impl Scene for DebugEspnowScene {
+impl Scene for DebugPeerScene {
     fn enter(&mut self, ctx: &mut GameContext) {
         self.log.clear();
         self.scroll_from_bottom = 0;
         self.send_count = 0;
         self.recv_count = 0;
-        if espnow_manager::start_session(ctx) {
+        if peer_manager::start_session(ctx) {
             self.push_log(|s| {
                 let _ = s.push_str("radio on");
             });
@@ -153,7 +154,7 @@ impl Scene for DebugEspnowScene {
     }
 
     fn exit(&mut self, ctx: &mut GameContext) {
-        espnow_manager::stop_session(ctx);
+        peer_manager::stop_session(ctx);
     }
 
     fn update(
@@ -186,10 +187,10 @@ impl Scene for DebugEspnowScene {
         // Header rows: own MAC, counters. Each row is 8 px tall and the
         // log occupies the remaining 6 lines (LINES_VISIBLE - 2).
         let own_mac = ctx
-            .espnow
+            .peers
             .as_ref()
-            .and_then(|m| m.own_mac())
-            .map(|m| format_bssid(&m))
+            .and_then(|m| m.own_id())
+            .map(|m| format_addr(m.as_bytes()))
             .unwrap_or_else(|| {
                 let mut s: String<17> = String::new();
                 let _ = s.push_str("--");

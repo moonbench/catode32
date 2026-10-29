@@ -304,9 +304,9 @@
   "Stats": "Estadísticas",
   "Power": "Energía",
   "Power Control": "Control energía",
-  "Wifi": "Wifi",
+  "Location": "Location",
   "Wireless": "Inalámbrico",
-  "ESP-NOW": "ESP-NOW",
+  "Peers": "Peers",
   "RGB LED": "RGB LED",
   "Plant type": "Tipo de planta",
   "Pot type": "Tipo de maceta",
@@ -496,5 +496,6 @@
   "Round over": "Fin de ronda",
   "New Round": "Nueva ronda",
   "New Green": "Nueva pista",
+  "BLE name": "catode32"
   "Laser Bounce": "Rebote láser"
 }

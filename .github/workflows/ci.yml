@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  firmware:
+    name: firmware (${{ matrix.chip }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - chip: c6
+            target: riscv32imac-unknown-none-elf
+          - chip: h2
+            target: riscv32imac-unknown-none-elf
+          - chip: c3
+            target: riscv32imc-unknown-none-elf
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rust-src
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.chip }}
+      - name: Check firmware
+        run: >
+          cargo check --release -p catode32-firmware --no-default-features
+          --features ${{ matrix.chip }},lang-en --target ${{ matrix.target }}
+
+  desktop:
+    name: core tests + desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Install SDL2 (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
+      - name: Core tests
+        run: >
+          cargo test -p catode32-core --no-default-features
+          --features desktop,lang-en --target ${{ matrix.target }}
+      - name: Build desktop
+        run: cargo build -p catode32-desktop --target ${{ matrix.target }}

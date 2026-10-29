@@ -59,7 +59,10 @@ pub fn wait_buttons_stable_released_mask(
 }
 
 /// Seconds of inactivity before sleeping.
-pub const SLEEP_TIMEOUT: Duration = Duration::from_secs(900);
+pub const SLEEP_TIMEOUT: Duration = Duration::from_secs(300);
+
+/// Total inactivity before screen-off sleep escalates to deep sleep.
+pub const DEEP_SLEEP_TIMEOUT: Duration = Duration::from_secs(600);
 
 /// Game update rate while in basic sleep.
 pub const SLEEP_FPS: u64 = 2;
@@ -114,6 +117,10 @@ impl SleepManager {
     /// at `SLEEP_FPS` so needs and time still advance while the screen is
     /// dark. On wake we restore the display, consume the wake press, and
     /// flag a pending greeting.
+    ///
+    /// Returns `true` if it stopped because the deep-sleep timeout elapsed
+    /// (no button pressed, radio idle); the screen is still off and the
+    /// caller must enter deep sleep. Returns `false` on a normal wake.
     pub fn enter_sleep(
         &mut self,
         renderer: &mut Renderer,
@@ -121,7 +128,7 @@ impl SleepManager {
         ctx: &mut GameContext,
         scene_manager: &mut SceneManager,
         time_system: &mut TimeSystem,
-    ) {
+    ) -> bool {
         println!("[Sleep] Entering basic sleep");
         self.sleeping = true;
         renderer.power_off();
@@ -142,6 +149,14 @@ impl SleepManager {
                 time_system.advance(ctx, dt);
                 scene_manager.sleep_update(ctx, buttons, dt);
             }
+            // Never cut the radio off mid-visit or mid-scan.
+            if ctx.radio_users == 0
+                && self.last_activity.elapsed() >= DEEP_SLEEP_TIMEOUT
+            {
+                println!("[Sleep] Idle timeout, going to deep sleep");
+                self.sleeping = false;
+                return true;
+            }
         }
 
         println!("[Sleep] Waking from basic sleep");
@@ -156,5 +171,6 @@ impl SleepManager {
         // either honor this (rouse in ~3s) or veto the greeting and stay
         // asleep based on serenity (matches the MicroPython port).
         scene_manager.mark_behavior_almost_done(ctx);
+        false
     }
 }

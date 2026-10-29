@@ -50,8 +50,8 @@ impl GreetingBehavior {
 
     fn start_sniff(&mut self, _ctx: &GameContext) {
         // TODO(friendship): Once the friendship system is ported, derive
-        // familiarity from `ctx.get_friendship_level(peer_mac)` using the
-        // current visit's peer MAC. See `visit_manager.py` for the Python
+        // familiarity from `ctx.get_friendship_level(peer_id)` using the
+        // current visit's peer id. See `visit_manager.py` for the Python
         // implementation. Until then familiarity stays at 0.0 and the pet
         // always shows the neutral question bubble + neutral react pose
         // (matches Python behavior for a first encounter).

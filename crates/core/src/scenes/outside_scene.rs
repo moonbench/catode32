@@ -256,13 +256,13 @@ impl Scene for OutsideScene {
         self.respawn_timers.clear();
         self.spawn_critters(ctx);
         self.last_weather = Some(ctx.weather);
-        // Acquire the radio for passive ESP-NOW listening. Phase 4
+        // Acquire the radio for passive peer listening. Phase 4
         // will gate this on "not currently visiting" once visits exist.
-        crate::espnow_manager::start_session(ctx);
+        crate::peer_manager::start_session(ctx);
     }
 
     fn exit(&mut self, ctx: &mut GameContext) {
-        crate::espnow_manager::stop_session(ctx);
+        crate::peer_manager::stop_session(ctx);
     }
 
     fn update(

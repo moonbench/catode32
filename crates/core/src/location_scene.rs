@@ -1,5 +1,6 @@
 use embedded_graphics::prelude::Point;
 use crate::t;
+use crate::transport::{PeerId, Transport};
 
 use crate::{
     assets::character::PoseId,
@@ -7,7 +8,7 @@ use crate::{
     context::GameContext,
     entities::{character::Character, visitor_cat::VisitorCat},
     environment::{Environment, Layer},
-    espnow_msg,
+    peer_msg,
     gardening_ui::{
         PlacementKind, PlacementMode, PlacementResult, PlantBursts, PlantSelectionMode,
         PlantSurface, SelectionFilter, SelectionResult,
@@ -118,7 +119,7 @@ pub struct LocationScene {
     popup_active: bool,
     /// Bubble shown in a screen corner when another nearby device
     /// broadcasts a `vocalize` (`voc `) frame. `None` when no sound is
-    /// currently being "heard". Only updated while ESP-NOW is acquired
+    /// currently being "heard". Only updated while the peer radio is acquired
     /// for this scene.
     heard_flash: Option<HeardFlash>,
     /// The other pet, while a playdate is active. Created on `enter`
@@ -139,7 +140,7 @@ pub struct LocationScene {
     /// during a visit. Past [`VISIT_SILENCE_TIMEOUT`] we declare the
     /// playdate dead and tear it down without notifying.
     visit_silence_timer: f32,
-    /// Last broadcast behavior id. `tick_espnow` compares against
+    /// Last broadcast behavior id. `tick_peers` compares against
     /// `behaviors.current_id()` and sends `vbeh` on change. Sentinel
     /// `None` means "no broadcast yet this visit".
     last_vbeh: Option<BehaviorId>,
@@ -183,23 +184,23 @@ impl LocationScene {
         }
     }
 
-    /// Per-frame ESP-NOW dispatch hook. Called from [`Self::update`].
+    /// Per-frame peer dispatch hook. Called from [`Self::update`].
     /// Drains the manager's inbox, processes any `voc ` frames into a
     /// heard-bubble overlay + maybe-Hearing trigger, ticks the
     /// existing flash timer, and broadcasts a `voc ` of our own if
     /// the Vocalizing behavior asked us to.
     ///
-    /// Whole method is a no-op when ESP-NOW has not been activated for
+    /// Whole method is a no-op when the peer radio has not been activated for
     /// this scene (the inbox stays empty and the broadcast no-ops).
-    fn tick_espnow(&mut self, ctx: &mut GameContext, dt: f32) {
+    fn tick_peers(&mut self, ctx: &mut GameContext, dt: f32) {
         // Outgoing: behaviors set `pending_vocalize_broadcast` when
         // they want a sound to travel over the air; we read-and-clear
         // it here so the same vocalization only goes out once.
         if let Some(name) = ctx.pending_vocalize_broadcast.take() {
             if let Some(icon) = BubbleIcon::from_name(name) {
-                if let Some(espnow) = ctx.espnow.as_mut() {
-                    let frame = espnow_msg::encode_vocalize(icon);
-                    espnow.send_broadcast(&frame);
+                if let Some(peers) = ctx.peers.as_mut() {
+                    let frame = peer_msg::encode_vocalize(icon);
+                    peers.send_broadcast(&frame);
                 }
             }
         }
@@ -211,7 +212,7 @@ impl LocationScene {
             if self.visit_silence_timer >= VISIT_SILENCE_TIMEOUT {
                 // Peer hasn't been heard in a while. End the visit
                 // locally without notifying; they're probably gone.
-                crate::espnow_manager::end_visit(ctx, false);
+                crate::peer_manager::end_visit(ctx, false);
             }
         }
 
@@ -221,11 +222,11 @@ impl LocationScene {
         // changed, position drifted past the delta threshold, or the
         // heartbeat fired.
         if let Some(visit) = ctx.visit.as_ref() {
-            let peer_mac = visit.peer_mac;
+            let peer_id = visit.peer_id;
             let role = visit.role;
-            self.broadcast_vst(ctx, peer_mac, dt);
-            self.broadcast_vbeh_on_change(ctx, peer_mac);
-            self.maybe_proximity_sniff(ctx, peer_mac, role, dt);
+            self.broadcast_vst(ctx, peer_id, dt);
+            self.broadcast_vbeh_on_change(ctx, peer_id);
+            self.maybe_proximity_sniff(ctx, peer_id, role, dt);
             // Inviter is the authority on time-of-day during a
             // visit. Sending hour/minute/weather/season every ~1 s
             // keeps both screens visually in sync.
@@ -233,14 +234,14 @@ impl LocationScene {
                 self.venv_timer += dt;
                 if self.venv_timer >= VENV_INTERVAL {
                     self.venv_timer = 0.0;
-                    if let Some(espnow) = ctx.espnow.as_mut() {
-                        let frame = espnow_msg::encode_venv(
+                    if let Some(peers) = ctx.peers.as_mut() {
+                        let frame = peer_msg::encode_venv(
                             ctx.time_hours,
                             ctx.time_minutes,
-                            espnow_msg::weather_to_wire(ctx.weather),
-                            espnow_msg::season_to_wire(ctx.season),
+                            peer_msg::weather_to_wire(ctx.weather),
+                            peer_msg::season_to_wire(ctx.season),
                         );
-                        espnow.send_to(peer_mac, &frame);
+                        peers.send_to(peer_id, &frame);
                     }
                 }
                 // Sky event sync: any locally-spawned shooting star
@@ -250,23 +251,23 @@ impl LocationScene {
                 if let Some((sx_pos, sy_pos, max_len, vx, vy)) =
                     self.sky.take_just_spawned_shooting_star()
                 {
-                    if let Some(espnow) = ctx.espnow.as_mut() {
-                        let frame = espnow_msg::encode_vss(
+                    if let Some(peers) = ctx.peers.as_mut() {
+                        let frame = peer_msg::encode_vss(
                             sx_pos as i32,
                             sy_pos as i32,
                             max_len as i32,
                             vx as i32,
                             vy as i32,
                         );
-                        espnow.send_to(peer_mac, &frame);
+                        peers.send_to(peer_id, &frame);
                     }
                 }
                 if let Some((idx, going_right, y, speed)) =
                     self.sky.take_just_spawned_sky_event()
                 {
-                    if let Some(espnow) = ctx.espnow.as_mut() {
-                        let frame = espnow_msg::encode_vse(idx, going_right, y, speed);
-                        espnow.send_to(peer_mac, &frame);
+                    if let Some(peers) = ctx.peers.as_mut() {
+                        let frame = peer_msg::encode_vse(idx, going_right, y, speed);
+                        peers.send_to(peer_id, &frame);
                     }
                 }
             }
@@ -281,18 +282,18 @@ impl LocationScene {
         // owned vec so the manager borrow ends before we touch other
         // ctx fields (Hearing trigger reads stats, recent_behaviors,
         // etc.).
-        let inbox = match ctx.espnow.as_mut() {
+        let inbox = match ctx.peers.as_mut() {
             Some(m) => m.drain(),
             None => Default::default(),
         };
-        let peer_mac = ctx.visit.as_ref().map(|v| v.peer_mac);
+        let peer_id = ctx.visit.as_ref().map(|v| v.peer_id);
         for item in inbox.iter() {
-            if let Some(icon) = espnow_msg::decode_vocalize(&item.data) {
+            if let Some(icon) = peer_msg::decode_vocalize(&item.data) {
                 self.handle_heard_vocalize(ctx, icon);
                 continue;
             }
-            if let Some(vst) = espnow_msg::decode_vst(&item.data) {
-                if Some(item.src) == peer_mac {
+            if let Some(vst) = peer_msg::decode_vst(&item.data) {
+                if Some(item.src) == peer_id {
                     self.visit_silence_timer = 0.0;
                 }
                 if let Some(visitor) = self.visitor.as_mut() {
@@ -300,41 +301,41 @@ impl LocationScene {
                 }
                 continue;
             }
-            if espnow_msg::matches_tag(espnow_msg::TAG_VBYE, &item.data) {
-                if Some(item.src) == peer_mac {
+            if peer_msg::matches_tag(peer_msg::TAG_VBYE, &item.data) {
+                if Some(item.src) == peer_id {
                     // Peer is leaving. End locally without re-notifying.
-                    crate::espnow_manager::end_visit(ctx, false);
+                    crate::peer_manager::end_visit(ctx, false);
                 }
                 continue;
             }
-            if Some(item.src) == peer_mac {
-                if let Some(peer_id) = espnow_msg::decode_vbeh(&item.data) {
+            if Some(item.src) == peer_id {
+                if let Some(peer_beh) = peer_msg::decode_vbeh(&item.data) {
                     self.visit_silence_timer = 0.0;
-                    self.handle_peer_vbeh(ctx, peer_id);
+                    self.handle_peer_vbeh(ctx, peer_beh);
                     continue;
                 }
-                if espnow_msg::matches_tag(espnow_msg::TAG_VGREET, &item.data) {
+                if peer_msg::matches_tag(peer_msg::TAG_VGREET, &item.data) {
                     self.visit_silence_timer = 0.0;
                     self.handle_peer_vgreet(ctx);
                     continue;
                 }
-                if espnow_msg::matches_tag(espnow_msg::TAG_VPROX, &item.data) {
+                if peer_msg::matches_tag(peer_msg::TAG_VPROX, &item.data) {
                     self.visit_silence_timer = 0.0;
                     self.handle_peer_vprox(ctx);
                     continue;
                 }
-                if let Some(env) = espnow_msg::decode_venv(&item.data) {
+                if let Some(env) = peer_msg::decode_venv(&item.data) {
                     self.visit_silence_timer = 0.0;
                     // Invitee mirrors the inviter's clock + weather
                     // for the duration of the visit. We don't touch
                     // day_number or season_offset, those are local-only.
                     ctx.time_hours = env.hour.min(23);
                     ctx.time_minutes = env.minute.min(59);
-                    ctx.weather = espnow_msg::weather_from_wire(env.weather);
-                    ctx.season = espnow_msg::season_from_wire(env.season);
+                    ctx.weather = peer_msg::weather_from_wire(env.weather);
+                    ctx.season = peer_msg::season_from_wire(env.season);
                     continue;
                 }
-                if let Some(ss) = espnow_msg::decode_vss(&item.data) {
+                if let Some(ss) = peer_msg::decode_vss(&item.data) {
                     self.visit_silence_timer = 0.0;
                     self.sky.spawn_shooting_star_from_packet(
                         ss.x as f32,
@@ -345,7 +346,7 @@ impl LocationScene {
                     );
                     continue;
                 }
-                if let Some(se) = espnow_msg::decode_vse(&item.data) {
+                if let Some(se) = peer_msg::decode_vse(&item.data) {
                     self.visit_silence_timer = 0.0;
                     self.sky.spawn_sky_event_from_packet(
                         se.event_idx,
@@ -355,7 +356,7 @@ impl LocationScene {
                     );
                     continue;
                 }
-                if let Some(target_scene) = espnow_msg::decode_vloc(&item.data) {
+                if let Some(target_scene) = peer_msg::decode_vloc(&item.data) {
                     self.visit_silence_timer = 0.0;
                     if target_scene != self.scene_id {
                         // Stage a scene swap. `update` checks
@@ -394,7 +395,7 @@ impl LocationScene {
         }
     }
 
-    fn broadcast_vst(&mut self, ctx: &mut GameContext, peer_mac: [u8; 6], dt: f32) {
+    fn broadcast_vst(&mut self, ctx: &mut GameContext, peer_id: PeerId, dt: f32) {
         let cur_x = self.character.pos.x;
         let cur_pose = self.character.pose_id;
         let cur_mirror = self.character.mirror_h;
@@ -421,29 +422,29 @@ impl LocationScene {
         if !(pose_changed || pos_changed || stop_edge || heartbeat) {
             return;
         }
-        let Some(espnow) = ctx.espnow.as_mut() else {
+        let Some(peers) = ctx.peers.as_mut() else {
             return;
         };
         // Ensure the peer is registered for unicast; `start_session`
         // only adds the broadcast peer. Idempotent on repeat calls.
-        espnow.add_peer(peer_mac);
-        let frame = espnow_msg::encode_vst(cur_x, cur_pose, cur_mirror, vx);
-        espnow.send_to(peer_mac, &frame);
+        peers.add_peer(peer_id);
+        let frame = peer_msg::encode_vst(cur_x, cur_pose, cur_mirror, vx);
+        peers.send_to(peer_id, &frame);
         self.last_vst_x = cur_x;
         self.last_vst_pose = cur_pose;
         self.last_vst_vx = vx;
         self.vst_heartbeat = 0.0;
     }
 
-    fn broadcast_vbeh_on_change(&mut self, ctx: &mut GameContext, peer_mac: [u8; 6]) {
+    fn broadcast_vbeh_on_change(&mut self, ctx: &mut GameContext, peer_id: PeerId) {
         let cur = self.behaviors.current_id();
         if Some(cur) == self.last_vbeh {
             return;
         }
         self.last_vbeh = Some(cur);
-        if let Some(espnow) = ctx.espnow.as_mut() {
-            let frame = espnow_msg::encode_vbeh(cur);
-            espnow.send_to(peer_mac, &frame);
+        if let Some(peers) = ctx.peers.as_mut() {
+            let frame = peer_msg::encode_vbeh(cur);
+            peers.send_to(peer_id, &frame);
         }
     }
 
@@ -453,7 +454,7 @@ impl LocationScene {
     fn maybe_proximity_sniff(
         &mut self,
         ctx: &mut GameContext,
-        peer_mac: [u8; 6],
+        peer_id: PeerId,
         role: crate::context::VisitRole,
         dt: f32,
     ) {
@@ -483,9 +484,9 @@ impl LocationScene {
         ctx.pending_greeting_target_x = None;
         self.behaviors
             .trigger(NextBehavior::Greeting, ctx, &mut self.character);
-        if let Some(espnow) = ctx.espnow.as_mut() {
-            let frame = espnow_msg::encode_empty(espnow_msg::TAG_VPROX);
-            espnow.send_to(peer_mac, &frame);
+        if let Some(peers) = ctx.peers.as_mut() {
+            let frame = peer_msg::encode_empty(peer_msg::TAG_VPROX);
+            peers.send_to(peer_id, &frame);
         }
         self.sniff_cooldown = SNIFF_COOLDOWN;
     }
@@ -646,10 +647,10 @@ impl LocationScene {
         // Only valid for `LocationScene`-backed scenes; non-encodable
         // scene ids (minigames etc.) just skip the broadcast.
         if let Some(visit) = ctx.visit.as_ref() {
-            let peer_mac = visit.peer_mac;
-            if let Some(frame) = espnow_msg::encode_vloc(scene_id) {
-                if let Some(espnow) = ctx.espnow.as_mut() {
-                    espnow.send_to(peer_mac, &frame);
+            let peer_id = visit.peer_id;
+            if let Some(frame) = peer_msg::encode_vloc(scene_id) {
+                if let Some(peers) = ctx.peers.as_mut() {
+                    peers.send_to(peer_id, &frame);
                 }
             }
         }
@@ -668,7 +669,7 @@ impl LocationScene {
                         VISIT_ANCHOR_X + GREETING_APPROACH_GAP
                     }
                 };
-                let peer_mac = visit.peer_mac;
+                let peer_id = visit.peer_id;
                 let role = visit.role;
                 ctx.pending_greeting_target_x = Some(target_x);
                 self.behaviors.trigger(
@@ -677,9 +678,9 @@ impl LocationScene {
                     &mut self.character,
                 );
                 if matches!(role, crate::context::VisitRole::Inviter) {
-                    if let Some(espnow) = ctx.espnow.as_mut() {
-                        let frame = espnow_msg::encode_empty(espnow_msg::TAG_VGREET);
-                        espnow.send_to(peer_mac, &frame);
+                    if let Some(peers) = ctx.peers.as_mut() {
+                        let frame = peer_msg::encode_empty(peer_msg::TAG_VGREET);
+                        peers.send_to(peer_id, &frame);
                     }
                 }
                 if let Some(visit) = ctx.visit.as_mut() {
@@ -794,10 +795,10 @@ impl LocationScene {
         self.sky.update(ctx, dt);
         // Advance plants once per in-game hour (catches up if many hours elapsed).
         tick_plants(ctx);
-        // ESP-NOW: drain any inbound vocalizations from nearby devices
+        // Peers: drain any inbound vocalizations from nearby devices
         // and emit our own pending broadcast. No-op when the scene has
         // not acquired the radio (see outside/treehouse `enter`).
-        self.tick_espnow(ctx, dt);
+        self.tick_peers(ctx, dt);
         let prev_x = self.character.pos.x;
         self.behaviors.update(ctx, &mut self.character, dt);
         let pose = self.behaviors.current_pose();

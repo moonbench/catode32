@@ -6,13 +6,13 @@ pub mod credits_scene;
 pub mod debug_behaviors_scene;
 pub mod debug_context_scene;
 pub mod debug_env_scene;
-pub mod debug_espnow_scene;
+pub mod debug_peer_scene;
 pub mod debug_led_scene;
 pub mod debug_plants_scene;
 pub mod debug_power_scene;
 pub mod debug_stats_scene;
 pub mod debug_time_scene;
-pub mod debug_wifi_scene;
+pub mod debug_location_scene;
 pub mod forecast_scene;
 pub mod hanjie_scene;
 pub mod herding_scene;
@@ -60,13 +60,13 @@ use credits_scene::CreditsScene;
 use debug_behaviors_scene::DebugBehaviorsScene;
 use debug_context_scene::DebugContextScene;
 use debug_env_scene::DebugEnvScene;
-use debug_espnow_scene::DebugEspnowScene;
+use debug_peer_scene::DebugPeerScene;
 use debug_led_scene::DebugLedScene;
 use debug_plants_scene::DebugPlantsScene;
 use debug_power_scene::DebugPowerScene;
 use debug_stats_scene::DebugStatsScene;
 use debug_time_scene::DebugTimeScene;
-use debug_wifi_scene::DebugWifiScene;
+use debug_location_scene::DebugLocationScene;
 use forecast_scene::ForecastScene;
 use hanjie_scene::HanjieScene;
 use herding_scene::HerdingScene;
@@ -128,8 +128,8 @@ crate::dispatch_enum! {
         DebugPower(DebugPowerScene)               = DebugPowerScene::new(),
         DebugStats(DebugStatsScene)               = DebugStatsScene::new(),
         DebugTime(DebugTimeScene)                 = DebugTimeScene::new(),
-        DebugWifi(DebugWifiScene)                 = DebugWifiScene::new(),
-        DebugEspnow(DebugEspnowScene)             = DebugEspnowScene::new(),
+        DebugLocation(DebugLocationScene)                 = DebugLocationScene::new(),
+        DebugPeer(DebugPeerScene)             = DebugPeerScene::new(),
         Social(SocialScene)                       = SocialScene::new(),
         Zoomies(ZoomiesScene)                     = ZoomiesScene::new(),
         Breakout(BreakoutScene)                   = BreakoutScene::new(),

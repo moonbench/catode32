@@ -50,6 +50,7 @@ mod firmware {
     }
 
     pub fn feed() {
+        super::super::stackmark::tick();
         rtc().rwdt.feed();
     }
 

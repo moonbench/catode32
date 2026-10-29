@@ -9,7 +9,7 @@ use std::env;
 use std::fs;
 
 use catode32_core::{
-    espnow_manager::EspNowManager,
+    peer_manager::PeerManager,
     game::Game,
     input::{ButtonPin, Buttons},
     led::Led,
@@ -59,7 +59,7 @@ fn ten_ticks_paints_pixels() {
         Rng::new(),
         Led::new(),
         WIFI::new(),
-        EspNowManager::new(),
+        PeerManager::new(),
     );
 
     for _ in 0..10 {

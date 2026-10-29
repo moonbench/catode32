@@ -10,7 +10,7 @@ use crate::platform::{
 use crate::{
     assets::plants::{PlantStage, PotKind},
     behavior::BehaviorId,
-    espnow_manager::EspNowManager,
+    peer_manager::PeerManager,
     led::Led,
     pet_seed::{PetGender, StarSign},
     plant_system::{Plant, PlantLayer},
@@ -21,20 +21,20 @@ use crate::{
 pub const PET_NAME_MAX: usize = 12;
 
 /// Caps for the wifi tracker's two AP lists.
-pub const WIFI_FAMILIAR_MAX: usize = 16;
-pub const WIFI_RECENT_MAX: usize = 8;
+pub const LOCATION_FAMILIAR_MAX: usize = 16;
+pub const LOCATION_RECENT_MAX: usize = 8;
 
-/// Max SSID length we persist with each tracked AP. Truncated to 16 at scan
+/// Max name length we persist with each tracked location entry. Truncated to 16 at scan
 /// time so saves round-trip cleanly.
-pub const WIFI_SSID_MAX: usize = 16;
+pub const LOCATION_NAME_MAX: usize = 16;
 
-/// One tracked access point. `b` is the BSSID (6 raw bytes; rendered as
-/// `aa:bb:cc:dd:ee:ff` in JSON), `s` is the SSID, `n` is the running
+/// One tracked location entry (WiFi AP or BLE beacon). `b` is the address (6 raw bytes; rendered as
+/// `aa:bb:cc:dd:ee:ff` in JSON), `s` is the name, `n` is the running
 /// "times seen" count subject to per-scan decay.
 #[derive(Clone, Debug)]
-pub struct WifiEntry {
-    pub bssid: [u8; 6],
-    pub ssid: heapless::String<WIFI_SSID_MAX>,
+pub struct LocationEntry {
+    pub addr: [u8; 6],
+    pub name: heapless::String<LOCATION_NAME_MAX>,
     pub count: f32,
 }
 
@@ -112,7 +112,7 @@ pub enum VisitRole {
 /// across scene transitions so the visit runtime keeps receiving.
 #[derive(Clone)]
 pub struct VisitState {
-    pub peer_mac: [u8; 6],
+    pub peer_id: crate::transport::PeerId,
     pub peer_name: heapless::String<PET_NAME_MAX>,
     pub role: VisitRole,
     /// Wall-clock seconds the visit has been running. Bumped each
@@ -583,7 +583,7 @@ pub struct GameContext {
     /// Set by the Vocalizing behavior when it transitions from
     /// WindingUp into the actual Vocalizing phase. `LocationScene`
     /// reads-and-clears this each frame and, if the cat is currently
-    /// in a scene that has the ESP-NOW radio acquired
+    /// in a scene that has the peer radio acquired
     /// (outside/treehouse), broadcasts a `voc ` frame so nearby cats
     /// can hear the vocalization.
     pub pending_vocalize_broadcast: Option<&'static str>,
@@ -602,14 +602,14 @@ pub struct GameContext {
 
     /// Long-lived AP list. Survives reboots via the save file. Entries here
     /// are what `in_familiar_location` checks against.
-    pub wifi_familiar: Vec<WifiEntry, WIFI_FAMILIAR_MAX>,
+    pub loc_familiar: Vec<LocationEntry, LOCATION_FAMILIAR_MAX>,
     /// Short-lived AP list. Entries here are candidates that haven't been
     /// seen enough times yet to count as "familiar".
-    pub wifi_recent: Vec<WifiEntry, WIFI_RECENT_MAX>,
+    pub loc_recent: Vec<LocationEntry, LOCATION_RECENT_MAX>,
     /// Set by the debug scene's "Scan" action; Game::update consumes it
     /// next frame and drives a synchronous scan. Out-of-band from the
     /// hourly midpoint scan so the debug UI can force a fresh result.
-    pub wifi_scan_requested: bool,
+    pub location_scan_requested: bool,
     /// True only while writing the pre-scan save, so that save records
     /// "a scan started at this save's moment". Loaded back on boot to defer
     /// the first scan, since no clock survives a reset.
@@ -621,10 +621,10 @@ pub struct GameContext {
     /// at boot for the Power debug screen; never saved.
     pub last_crash: Option<crate::platform::persist::CrashRecord>,
 
-    /// ESP-NOW transport. The manager struct itself is always present;
+    /// peer transport (ESP-NOW or BLE). The manager struct itself is always present;
     /// its inner driver handle is bound only while
     /// [`crate::radio::acquire`] has the radio up.
-    pub espnow: Option<EspNowManager>,
+    pub peers: Option<PeerManager>,
 
     /// WiFi radio controller. `Some` only while the radio is acquired;
     /// `None` at rest. Managed by [`crate::radio`].
@@ -633,7 +633,7 @@ pub struct GameContext {
     /// Stash for the WiFi peripheral while the radio is off. `wifi::new`
     /// consumes this on acquire; teardown steals it back via
     /// `WIFI::steal()` so the next acquire can re-init.
-    pub wifi_peripheral: Option<WIFI<'static>>,
+    pub radio_peripheral: Option<WIFI<'static>>,
 
     /// Refcount of how many subsystems currently want the radio up.
     /// Bumped by [`crate::radio::acquire`], decremented by
@@ -782,15 +782,15 @@ impl GameContext {
 
             scene_plant_health: 0,
             in_familiar_location: true,
-            wifi_familiar: Vec::new(),
-            wifi_recent: Vec::new(),
-            wifi_scan_requested: false,
+            loc_familiar: Vec::new(),
+            loc_recent: Vec::new(),
+            location_scan_requested: false,
             scan_started: false,
             last_reset_reason: heapless::String::new(),
             last_crash: None,
-            espnow: None,
+            peers: None,
             wifi: None,
-            wifi_peripheral: None,
+            radio_peripheral: None,
             radio_users: 0,
             visit: None,
 

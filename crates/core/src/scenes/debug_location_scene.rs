@@ -1,7 +1,7 @@
 //! Debug screen for the wifi tracker. Shows the familiar/recent AP lists,
 //! the last live-scan results, and the `in_familiar_location` flag. A press
 //! of A triggers a fresh scan (handled by `Game::update` via
-//! `ctx.wifi_scan_requested`).
+//! `ctx.location_scan_requested`).
 
 use core::fmt::Write as _;
 
@@ -9,7 +9,7 @@ use embedded_graphics::prelude::Point;
 use heapless::{String, Vec};
 
 use crate::{
-    context::{GameContext, WifiEntry, WIFI_FAMILIAR_MAX, WIFI_RECENT_MAX},
+    context::{GameContext, LocationEntry, LOCATION_FAMILIAR_MAX, LOCATION_RECENT_MAX},
     input::{Button, Buttons},
     render::Renderer,
     scene::{Scene, SceneId},
@@ -22,12 +22,12 @@ const LINE_HEIGHT: i32 = 8;
 const MAX_LINES: usize = 64;
 type Line = String<24>;
 
-pub struct DebugWifiScene {
+pub struct DebugLocationScene {
     lines: Vec<Line, MAX_LINES>,
     scroll: usize,
 }
 
-impl DebugWifiScene {
+impl DebugLocationScene {
     pub fn new() -> Self {
         Self {
             lines: Vec::new(),
@@ -47,24 +47,24 @@ impl DebugWifiScene {
         push_blank(&mut self.lines);
 
         push_line(&mut self.lines, |s| {
-            let _ = write!(s, "Familiar: {}/{}", ctx.wifi_familiar.len(), WIFI_FAMILIAR_MAX);
+            let _ = write!(s, "Familiar: {}/{}", ctx.loc_familiar.len(), LOCATION_FAMILIAR_MAX);
         });
-        if ctx.wifi_familiar.is_empty() {
+        if ctx.loc_familiar.is_empty() {
             push_static(&mut self.lines, "(none yet)");
         } else {
-            for e in ctx.wifi_familiar.iter() {
+            for e in ctx.loc_familiar.iter() {
                 push_entry(&mut self.lines, e);
             }
         }
         push_blank(&mut self.lines);
 
         push_line(&mut self.lines, |s| {
-            let _ = write!(s, "Recent: {}/{}", ctx.wifi_recent.len(), WIFI_RECENT_MAX);
+            let _ = write!(s, "Recent: {}/{}", ctx.loc_recent.len(), LOCATION_RECENT_MAX);
         });
-        if ctx.wifi_recent.is_empty() {
+        if ctx.loc_recent.is_empty() {
             push_static(&mut self.lines, "(none yet)");
         } else {
-            for e in ctx.wifi_recent.iter() {
+            for e in ctx.loc_recent.iter() {
                 push_entry(&mut self.lines, e);
             }
         }
@@ -90,22 +90,22 @@ fn push_line<F: FnOnce(&mut Line)>(lines: &mut Vec<Line, MAX_LINES>, f: F) {
     let _ = lines.push(s);
 }
 
-fn push_entry(lines: &mut Vec<Line, MAX_LINES>, e: &WifiEntry) {
+fn push_entry(lines: &mut Vec<Line, MAX_LINES>, e: &LocationEntry) {
     let mut s = Line::new();
-    let label: &str = if e.ssid.is_empty() {
-        // No SSID, so fall back to the first 10 chars of the BSSID for some
+    let label: &str = if e.name.is_empty() {
+        // No name, so fall back to the first 10 chars of the address for some
         // identifying info.
         let _ = write!(
             s,
             "{:02x}:{:02x}:{:02x} {:.1}",
-            e.bssid[3], e.bssid[4], e.bssid[5], e.count
+            e.addr[3], e.addr[4], e.addr[5], e.count
         );
         let _ = lines.push(s);
         return;
     } else {
-        e.ssid.as_str()
+        e.name.as_str()
     };
-    // Truncate SSID to 10 chars for layout.
+    // Truncate name to 10 chars for layout.
     let mut shown: String<10> = String::new();
     for c in label.chars().take(10) {
         let _ = shown.push(c);
@@ -114,7 +114,7 @@ fn push_entry(lines: &mut Vec<Line, MAX_LINES>, e: &WifiEntry) {
     let _ = lines.push(s);
 }
 
-impl Scene for DebugWifiScene {
+impl Scene for DebugLocationScene {
     fn enter(&mut self, ctx: &mut GameContext) {
         self.scroll = 0;
         self.rebuild(ctx);
@@ -130,7 +130,7 @@ impl Scene for DebugWifiScene {
             return Some(ctx.last_main_scene);
         }
         if buttons.was_just_pressed(Button::A) {
-            ctx.wifi_scan_requested = true;
+            ctx.location_scan_requested = true;
             // Refresh the displayed lines next frame so the new scan
             // result lands as soon as the game loop has run it.
             self.scroll = 0;

@@ -1,3 +1,4 @@
+use crate::transport::Transport;
 use crate::platform::{
     persist, watchdog,
     power::software_reset,
@@ -7,19 +8,21 @@ use crate::platform::{
 };
 
 use crate::{
+    catch_up,
     context::{GameContext, PowerAction},
-    espnow_manager::EspNowManager,
+    peer_manager::PeerManager,
     input::Buttons,
     led::Led,
     render::Renderer,
     save,
     scene::{SceneId, SceneManager},
+    ui::confirm::{Confirm, ConfirmResult},
     sleep_manager::SleepManager,
     time_system::TimeSystem,
     transition::{TransitionManager, TransitionStep},
-    wifi_tracker,
+    location_tracker,
 };
-// Both the WiFi peripheral stash and the ESP-NOW manager live on
+// Both the WiFi peripheral stash and the peer manager live on
 // `GameContext`. The wifi controller itself only exists between
 // `radio::acquire` / `radio::release` calls.
 
@@ -51,15 +54,17 @@ pub struct Game {
     last_dt_ms: u64,
     /// Real-time instant at which the next wifi scan becomes due.
     /// `None` means "scan ASAP" (used on boot). The controller itself
-    /// lives on `GameContext` so the ESP-NOW manager and scenes can
+    /// lives on `GameContext` so the peer manager and scenes can
     /// share it.
-    wifi_next_scan: Option<Instant>,
+    location_next_scan: Option<Instant>,
     /// Promoted from a local in `run()` so `tick()` can compute dt across
     /// calls. Initialised lazily on the first tick.
     last_frame: Option<Instant>,
     /// True when this boot resumed a scene from a crash-resume intent. The
     /// intent is cleared after the first completed tick.
     resumed_intent: bool,
+    /// Numeric-comparison pairing prompt (BLE only), drawn over any scene.
+    pair_confirm: Confirm,
 }
 
 impl Game {
@@ -68,17 +73,35 @@ impl Game {
         buttons: Buttons,
         rng: Rng,
         led: Led,
-        wifi_peripheral: WIFI<'static>,
-        espnow: EspNowManager,
+        radio_peripheral: WIFI<'static>,
+        peers: PeerManager,
     ) -> Self {
+        let mut slot = core::mem::MaybeUninit::<Game>::uninit();
+        Self::init(&mut slot, renderer, buttons, rng, led, radio_peripheral, peers);
+        // SAFETY: `init` fully initialised the slot.
+        unsafe { slot.assume_init() }
+    }
+
+    /// Build the game directly inside `slot` so firmware can keep the 23 KB
+    /// struct in static memory instead of copying it through stack frames.
+    #[inline(never)]
+    pub fn init<'a>(
+        slot: &'a mut core::mem::MaybeUninit<Game>,
+        renderer: Renderer,
+        buttons: Buttons,
+        rng: Rng,
+        led: Led,
+        radio_peripheral: WIFI<'static>,
+        peers: PeerManager,
+    ) -> &'a mut Game {
         let mut context = GameContext::new(led);
         // Seed the behavior RNG from the hardware peripheral so each boot's
         // behavior choices differ until/unless a save provides a seed.
         let seed = rng.random();
         context.rng = if seed == 0 { 1 } else { seed };
         context.hw_rng = rng;
-        context.espnow = Some(espnow);
-        context.wifi_peripheral = Some(wifi_peripheral);
+        context.peers = Some(peers);
+        context.radio_peripheral = Some(radio_peripheral);
         let (reset_label, brownout) = persist::reset_reason();
         println!("[Boot] Reset reason: {}", reset_label);
         context.last_reset_reason = reset_label;
@@ -96,6 +119,19 @@ impl Game {
         println!("[DBG] has_save = {}", hs);
         let loaded = hs && save::load(&mut context);
         println!("[DBG] loaded = {}", loaded);
+
+        // A valid sleep stamp means this boot is a wake from deep sleep.
+        // Land on the home scene and catch the pet up on the time asleep.
+        let mut time_system = TimeSystem::new();
+        let slept_us = persist::sleep_record_take().filter(|_| loaded);
+        if let Some(start_us) = slept_us {
+            let elapsed_s = persist::rtc_now_us().saturating_sub(start_us) as f32 / 1.0e6;
+            println!("[Boot] Woke from deep sleep after {}s", elapsed_s as u32);
+            time_system.advance(&mut context, elapsed_s);
+            context.apply_stat_changes(&catch_up::catch_up(elapsed_s));
+            context.pending_wake_greeting = true;
+            persist::intent_clear();
+        }
 
         // Resume a scene change that a reset interrupted. Capped so a scene
         // that crashes on entry gets at most MAX_RESUME_ATTEMPTS boots before
@@ -128,33 +164,35 @@ impl Game {
         // means "the last scan was at this save's moment": wait a full
         // interval. A brownout also defers, in case it hit during that save
         // before the marker was committed.
-        let wifi_next_scan = if context.scan_started || brownout {
+        let location_next_scan = if context.scan_started || brownout {
             println!("[Boot] Deferring first wifi scan");
-            Some(Instant::now() + wifi_tracker::SCAN_INTERVAL)
+            Some(Instant::now() + location_tracker::SCAN_INTERVAL)
         } else {
             None
         };
         context.scan_started = false;
 
-        println!("[DBG] start = {:?}", start);
-        let scene_manager = SceneManager::new(&mut context, start);
-        println!("[DBG] scene manager ready");
-        Self {
-            renderer,
-            buttons,
-            context,
-            scene_manager,
-            time_system: TimeSystem::new(),
-            sleep_manager: SleepManager::new(),
-            transition: TransitionManager::new(),
-            pending_scene: None,
-            sleep_pending: false,
-            deep_sleep_pending: false,
-            just_woke: false,
-            last_dt_ms: 0,
-            wifi_next_scan,
-            last_frame: None,
-            resumed_intent: resumed,
+        let p = slot.as_mut_ptr();
+        // SAFETY: every field of Game is written exactly once before `assume_init_mut`.
+        unsafe {
+            let scene_manager = core::ptr::addr_of_mut!((*p).scene_manager);
+            scene_manager.write(SceneManager::new(&mut context, start));
+            core::ptr::addr_of_mut!((*p).renderer).write(renderer);
+            core::ptr::addr_of_mut!((*p).buttons).write(buttons);
+            core::ptr::addr_of_mut!((*p).context).write(context);
+            core::ptr::addr_of_mut!((*p).time_system).write(time_system);
+            core::ptr::addr_of_mut!((*p).sleep_manager).write(SleepManager::new());
+            core::ptr::addr_of_mut!((*p).transition).write(TransitionManager::new());
+            core::ptr::addr_of_mut!((*p).pending_scene).write(None);
+            core::ptr::addr_of_mut!((*p).sleep_pending).write(false);
+            core::ptr::addr_of_mut!((*p).deep_sleep_pending).write(false);
+            core::ptr::addr_of_mut!((*p).just_woke).write(false);
+            core::ptr::addr_of_mut!((*p).last_dt_ms).write(0);
+            core::ptr::addr_of_mut!((*p).location_next_scan).write(location_next_scan);
+            core::ptr::addr_of_mut!((*p).last_frame).write(None);
+            core::ptr::addr_of_mut!((*p).resumed_intent).write(resumed);
+            core::ptr::addr_of_mut!((*p).pair_confirm).write(Confirm::new());
+            slot.assume_init_mut()
         }
     }
 
@@ -179,24 +217,25 @@ impl Game {
             self.sleep_manager.notify_activity();
         }
 
-        // Pull any inbound ESP-NOW frames from the driver into our inbox
+        // Pull any inbound peer frames from the driver into our inbox
         // before scene update so a scene-side dispatcher can drain them.
         // No-op when the manager has not been started by a social scene.
-        if let Some(espnow) = self.context.espnow.as_mut() {
-            espnow.poll();
+        if let Some(peers) = self.context.peers.as_mut() {
+            peers.poll();
         }
+        self.update_pairing_prompt();
 
         self.update(dt);
 
         // Debug-scene-requested scan. Runs immediately (no transition
         // cover) since the player is staring at a debug screen and
         // explicitly asked for fresh data.
-        if self.context.wifi_scan_requested {
-            self.context.wifi_scan_requested = false;
+        if self.context.location_scan_requested {
+            self.context.location_scan_requested = false;
             // No pre-scan save here: repeated debug presses would mean
             // repeated flash writes. The hourly clock still restarts.
-            self.wifi_next_scan = Some(Instant::now() + wifi_tracker::SCAN_INTERVAL);
-            wifi_tracker::scan_now(&mut self.context);
+            self.location_next_scan = Some(Instant::now() + location_tracker::SCAN_INTERVAL);
+            location_tracker::scan_now(&mut self.context);
         }
 
         self.draw();
@@ -248,6 +287,7 @@ impl Game {
     }
 
     pub fn run(&mut self) -> ! {
+        crate::platform::stackmark::report("run entry");
         loop {
             let frame_start = Instant::now();
             watchdog::feed();
@@ -300,13 +340,16 @@ impl Game {
                 }
                 if self.sleep_pending {
                     self.sleep_pending = false;
-                    self.sleep_manager.enter_sleep(
+                    let go_deep = self.sleep_manager.enter_sleep(
                         &mut self.renderer,
                         &mut self.buttons,
                         &mut self.context,
                         &mut self.scene_manager,
                         &mut self.time_system,
                     );
+                    if go_deep {
+                        self.enter_deep_sleep();
+                    }
                     // Replace the auto-advanced `In` phase with a fresh
                     // in-only reveal so the wake fade plays from full black.
                     self.transition.start_in_only();
@@ -323,15 +366,44 @@ impl Game {
         }
     }
 
+    /// Show the pairing code from the transport and route A/B to it, hiding
+    /// input from the scenes while the prompt is up.
+    fn update_pairing_prompt(&mut self) {
+        let code = self.context.peers.as_ref().and_then(|p| p.pairing_code());
+        match code {
+            Some(c) if !self.pair_confirm.is_open() => {
+                use core::fmt::Write as _;
+                let mut text: heapless::String<32> = heapless::String::new();
+                let _ = write!(text, "Pair? {:06}", c);
+                self.pair_confirm.open(text.as_str());
+            }
+            None if self.pair_confirm.is_open() => self.pair_confirm.close(),
+            _ => {}
+        }
+        if self.pair_confirm.is_open() {
+            let accept = match self.pair_confirm.handle_input(&mut self.buttons) {
+                ConfirmResult::Confirmed => Some(true),
+                ConfirmResult::Cancelled => Some(false),
+                ConfirmResult::Pending => None,
+            };
+            if let Some(a) = accept {
+                if let Some(p) = self.context.peers.as_mut() {
+                    p.answer_pairing(a);
+                }
+            }
+            self.buttons.consume_all();
+        }
+    }
+
     /// Run a wifi scan if one is due. Called only from the transition
     /// midpoint so the ~1-3 s blocking scan is hidden behind a black screen.
-    /// `wifi_next_scan = None` means "scan immediately" (a boot whose save
+    /// `location_next_scan = None` means "scan immediately" (a boot whose save
     /// was not taken right before a scan).
     fn maybe_scan_wifi(&mut self) {
         // No `ctx.wifi` check anymore: the controller doesn't exist at
         // rest. `scan_now` does its own acquire/release.
         let now = Instant::now();
-        let due = match self.wifi_next_scan {
+        let due = match self.location_next_scan {
             None => true,
             Some(t) => now >= t,
         };
@@ -340,7 +412,7 @@ impl Game {
         }
         // Push the next scan out before scanning, success or not, so a
         // failing or resetting scan can't be retried on every swap.
-        self.wifi_next_scan = Some(now + wifi_tracker::SCAN_INTERVAL);
+        self.location_next_scan = Some(now + location_tracker::SCAN_INTERVAL);
 
         // The pre-scan save doubles as the hourly save (it restamps
         // `last_save_time`, holding off `save_if_needed`). Its
@@ -351,7 +423,7 @@ impl Game {
         save::save(&mut self.context);
         self.context.scan_started = false;
 
-        wifi_tracker::scan_now(&mut self.context);
+        location_tracker::scan_now(&mut self.context);
     }
 
     fn draw(&mut self) {
@@ -361,6 +433,7 @@ impl Game {
         self.scene_manager
             .draw(&self.context, &mut self.renderer, self.last_dt_ms);
         self.transition.draw(&mut self.renderer);
+        self.pair_confirm.draw(&mut self.renderer);
         self.renderer.flush();
     }
 
@@ -411,33 +484,26 @@ impl Game {
         }
     }
 
-    /// One-way deep sleep. Wakes the device only on a falling edge on
-    /// GPIO0/1/2/3 (A/B/Menu1/Menu2 buttons). Direction buttons live on
-    /// GPIO14/18/19/20, outside the C6's LP-IO domain, so they cannot
-    /// serve as wake sources. The device resets on wake.
+    /// One-way deep sleep. The device resets on wake. Which buttons can wake
+    /// it depends on the chip; see [`crate::sleep_pins`].
     ///
     /// Desktop builds have no deep-sleep equivalent; the simulator exits
     /// the process instead.
-    ///
-    /// TODO(c3): the wake pins are the C6 mapping. Needs hardware to verify:
-    /// * On the C3 only GPIO0-5 can wake the chip. GPIO0-3 are the D-pad,
-    ///   A/B are GPIO4/5, and Menu1/Menu2 (GPIO10/11) can't wake it at all.
-    ///   Wake set probably becomes A/B only, chosen per board.
-    /// * Once the C3 build compiles, re-check it for warnings.
     #[cfg(not(feature = "desktop"))]
     fn enter_deep_sleep(&mut self) -> ! {
         use esp_hal::{
-            gpio::{Event, Input, InputConfig, Pull, WakeupConfig},
-            peripherals::{GPIO0, GPIO1, GPIO2, GPIO3, LPWR},
+            peripherals::LPWR,
             rtc_cntl::sleep::{LowPower, RtcSleepConfig},
         };
 
-        use crate::{input::Button, sleep_manager::wait_buttons_stable_released_mask};
-
-        const DEEP_WAKE_BUTTONS: [Button; 4] =
-            [Button::A, Button::B, Button::Menu1, Button::Menu2];
+        use crate::{
+            sleep_manager::wait_buttons_stable_released_mask,
+            sleep_pins::{arm_deep_wake, DEEP_WAKE_BUTTONS},
+        };
 
         println!("[Power] Entering deep sleep");
+        save::save(&mut self.context);
+        persist::sleep_record_set(persist::rtc_now_us());
         self.renderer.clear();
         self.renderer.flush();
         self.renderer.power_off();
@@ -447,27 +513,13 @@ impl Game {
         // the still-held press or its release bounce.
         wait_buttons_stable_released_mask(
             &self.buttons,
-            &DEEP_WAKE_BUTTONS,
+            DEEP_WAKE_BUTTONS,
             Duration::from_millis(500),
         );
 
         // Safety: deep sleep is one-way; on wake the device boots from reset
         // and the old `Input` wrappers in `Buttons` will never be used again.
-        let input_config = InputConfig::default().with_pull(Pull::Up);
-        let mut pins = [
-            Input::new(unsafe { GPIO0::steal() }, input_config),
-            Input::new(unsafe { GPIO1::steal() }, input_config),
-            Input::new(unsafe { GPIO2::steal() }, input_config),
-            Input::new(unsafe { GPIO3::steal() }, input_config),
-        ];
-
-        // Sleep entry copies these pull-ups onto the LP-IO pads before it
-        // holds them, so the level=Low trigger doesn't see a floating pin.
-        let wake_config = WakeupConfig::default().with_low_power_path(true);
-        for pin in &mut pins {
-            pin.listen(Event::LowLevel);
-            pin.apply_wakeup_config(&wake_config).unwrap();
-        }
+        let _wake_pins = unsafe { arm_deep_wake() };
 
         watchdog::stop();
         LowPower::new(unsafe { LPWR::steal() }).sleep_deep(RtcSleepConfig::deep());

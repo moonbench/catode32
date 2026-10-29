@@ -2,7 +2,7 @@
 name = "catode32-core"
 version = "0.13.0"
 edition = "2021"
-description = "Core game logic for catode32 — shared between firmware and desktop builds"
+description = "Core game logic for catode32 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â shared between firmware and desktop builds"
 license = "MIT"
 repository = "https://github.com/moonbench/catode32"
 
@@ -22,6 +22,8 @@ c6 = [
     "esp-storage/esp32c6",
     "esp-hal-smartled/esp32c6",
     "esp-radio/esp32c6",
+    "esp-radio/wifi",
+    "esp-radio/esp-now",
     "esp-rtos/esp32c6",
 ]
 c3 = [
@@ -39,12 +41,40 @@ c3 = [
     "esp-storage/esp32c3",
     "esp-hal-smartled/esp32c3",
     "esp-radio/esp32c3",
+    "esp-radio/wifi",
+    "esp-radio/esp-now",
     "esp-rtos/esp32c3",
+]
+# ESP32-H2 has no WiFi/ESP-NOW. Phase 1 builds with the radio stubbed out
+# (same no-op path as desktop); BLE is added in a later phase.
+h2 = [
+    "dep:esp-hal",
+    "dep:esp-println",
+    "dep:esp-bootloader-esp-idf",
+    "dep:esp-storage",
+    "dep:esp-hal-smartled",
+    "dep:esp-radio",
+    "dep:esp-rtos",
+    "dep:bt-hci",
+    "dep:embassy-time",
+    "dep:embassy-futures",
+    "esp-rtos/embassy",
+    "dep:trouble-host",
+    "dep:static_cell",
+    "esp-radio/esp32h2",
+    "esp-radio/ble",
+    "esp-hal/esp32h2",
+    "esp-println/esp32h2",
+    "esp-bootloader-esp-idf/esp32h2",
+    "esp-storage/esp32h2",
+    "esp-hal-smartled/esp32h2",
+    "esp-rtos/esp32h2",
 ]
 # Host-side build: skips esp-* deps, swaps platform modules for std-backed shims.
 desktop = []
+stackmark = []
 
-# Language selection — exactly one should be active. Defaults to English.
+# Language selection ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â exactly one should be active. Defaults to English.
 lang-en = ["catode32-i18n-macros/lang-en"]
 lang-de = ["catode32-i18n-macros/lang-de"]
 lang-es = ["catode32-i18n-macros/lang-es"]
@@ -58,9 +88,13 @@ esp-println = { version = "0.18.0", default-features = false, features = ["auto"
 esp-bootloader-esp-idf = { version = "0.6.0", default-features = false, optional = true }
 esp-storage = { version = "0.10.0", default-features = false, optional = true }
 esp-hal-smartled = { version = "0.18.0", default-features = false, optional = true }
-esp-radio = { version = "=1.0.0-beta.1", default-features = false, features = ["wifi", "esp-now", "esp-alloc", "unstable"], optional = true }
+esp-radio = { version = "=1.0.0-beta.1", default-features = false, features = ["esp-alloc", "unstable"], optional = true }
 esp-rtos = { version = "0.4.0", default-features = false, features = ["esp-radio", "esp-alloc"], optional = true }
 embassy-futures = { version = "0.1", optional = true }
+bt-hci = { version = "0.9", optional = true }
+embassy-time = { version = "0.5.1", features = ["generic-queue-8"], optional = true }
+static_cell = { version = "2", optional = true }
+trouble-host = { version = "0.7", default-features = false, features = ["central", "peripheral", "gatt", "derive", "scan", "security", "default-packet-pool-mtu-128", "default-packet-pool-size-4"], optional = true }
 
 ssd1306 = "0.10.0"
 embedded-graphics = "0.8.2"
@@ -68,5 +102,5 @@ heapless = { version = "0.8", features = ["serde"] }
 micromath = "2"
 smart-leds = "0.4.0"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
-serde-json-core = "0.6"
+postcard = { version = "1", default-features = false }
 catode32-i18n-macros = { path = "../i18n-macros", default-features = false }
