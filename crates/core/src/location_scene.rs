@@ -899,7 +899,11 @@ impl LocationScene {
             LocationMenuResult::Continue => None,
             LocationMenuResult::Closed => {
                 self.menu_active = false;
-                self.in_tend_mode = false;
+                // Closing the Tend menu returns to plant selection; only B from
+                // the selection cursor itself leaves tend mode.
+                if self.in_tend_mode {
+                    self.reenter_tend_selection(ctx);
+                }
                 None
             }
             LocationMenuResult::Action(action) => {

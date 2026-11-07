@@ -124,7 +124,6 @@ fn read_header(flash: &mut FlashStorage, part: PartitionInfo, sector: usize) -> 
 fn find_latest(flash: &mut FlashStorage, part: PartitionInfo) -> Option<Record> {
     let mut best: Option<Record> = None;
     for i in 0..part.sectors {
-        println!("[DBG] find_latest: sector {}", i);
         if let Some(r) = read_header(flash, part, i) {
             match best {
                 Some(b) if b.seq >= r.seq => {}
@@ -140,12 +139,10 @@ pub fn has_save() -> bool {
     let Some(flash) = flash() else {
         return false;
     };
-    println!("[DBG] has_save: reading partition table");
     let Some(part) = find_nvs_partition(flash) else {
-        println!("[DBG] has_save: no nvs partition");
+        println!("[Save] No nvs partition found");
         return false;
     };
-    println!("[DBG] has_save: nvs at {:#x}, {} sectors", part.offset, part.sectors);
     find_latest(flash, part).is_some()
 }
 

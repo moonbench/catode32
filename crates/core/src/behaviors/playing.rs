@@ -119,11 +119,18 @@ const WAND_RANGE: f32 = 60.0;
 const WAND_SCREEN_TOP: i32 = 8;
 const WAND_POUNCE_DELAY_MIN: f32 = 2.5;
 const WAND_POUNCE_DELAY_MAX: f32 = 6.5;
-const BUBBLE_MAX: usize = 10;
-const BUBBLE_SPAWN_DIST: f32 = 20.0;
+const BUBBLE_MAX: usize = 20;
+const BUBBLE_SPAWN_DIST: f32 = 12.0;
 const BUBBLE_SPAWN_SPEED_MIN: f32 = 12.0;
 const BUBBLE_FALL_SPEED: f32 = 9.0;
-const BUBBLE_DRIFT_SPEED: f32 = 2.5;
+const BUBBLE_SPAWN_VX: f32 = 10.0;
+const BUBBLE_SPAWN_VY_UP: f32 = 10.0;
+const BUBBLE_SPAWN_VY_DOWN: f32 = 4.0;
+const BUBBLE_GRAVITY: f32 = 8.0;
+const BUBBLE_WANDER_SPEED: f32 = 7.0;
+const BUBBLE_WANDER_EASE: f32 = 1.5;
+const BUBBLE_WANDER_MIN: f32 = 0.6;
+const BUBBLE_WANDER_MAX: f32 = 1.6;
 const BUBBLE_POP_FPS: f32 = 7.0;
 const BUBBLE_POP_DURATION: f32 = 4.0 / BUBBLE_POP_FPS;
 
@@ -231,8 +238,11 @@ struct Bubble {
     size: u8,    // 0 = BUBBLE1, 1 = BUBBLE2
     x: f32,
     y: f32,
-    drift: f32,
-    pop_timer: f32, // <0 = falling, >=0 = popping
+    vx: f32,
+    vy: f32,
+    drift_target: f32,
+    drift_timer: f32, // re-roll drift_target when it hits 0
+    pop_timer: f32,   // <0 = falling, >=0 = popping
 }
 
 impl PlayingBehavior {
@@ -775,14 +785,24 @@ impl PlayingBehavior {
 
     // -- Bubbles -----------------------------------------------------------
 
-    fn update_bubble_particles(&mut self, dt: f32, ground_y: f32) {
+    fn update_bubble_particles(&mut self, rng: &mut u32, dt: f32, ground_y: f32) {
         let mut i = 0;
         while i < self.bubbles.len() {
             let mut keep = true;
             let b = &mut self.bubbles[i];
             if b.pop_timer < 0.0 {
-                b.y += BUBBLE_FALL_SPEED * dt;
-                b.x += b.drift * dt;
+                b.vy = (b.vy + BUBBLE_GRAVITY * dt).min(BUBBLE_FALL_SPEED);
+                b.drift_timer -= dt;
+                if b.drift_timer <= 0.0 {
+                    b.drift_target =
+                        rand::rand_range_f32(rng, -BUBBLE_WANDER_SPEED, BUBBLE_WANDER_SPEED);
+                    b.drift_timer =
+                        rand::rand_range_f32(rng, BUBBLE_WANDER_MIN, BUBBLE_WANDER_MAX);
+                }
+                // Spawn velocity eases into the wandering drift.
+                b.vx += (b.drift_target - b.vx) * (BUBBLE_WANDER_EASE * dt).min(1.0);
+                b.x += b.vx * dt;
+                b.y += b.vy * dt;
                 if b.y >= ground_y {
                     b.y = ground_y;
                     b.pop_timer = 0.0;
@@ -883,7 +903,7 @@ impl PlayingBehavior {
     }
 
     fn update_bubbles(&mut self, ctx: &mut GameContext, character: &mut Character, dt: f32) {
-        self.update_bubble_particles(dt, self.play_char_y);
+        self.update_bubble_particles(&mut ctx.rng, dt, self.play_char_y);
 
         if matches!(self.phase, Phase::Catching) {
             self.update_bubbles_catching(ctx, character);
@@ -909,18 +929,22 @@ impl PlayingBehavior {
                 && self.bubbles.len() < BUBBLE_MAX
             {
                 self.wand_spawn_dist -= BUBBLE_SPAWN_DIST;
-                let drift = rand::rand_range_f32(
-                    &mut ctx.rng,
-                    -BUBBLE_DRIFT_SPEED,
-                    BUBBLE_DRIFT_SPEED,
-                );
-                let size = rand::rand_range_u32(&mut ctx.rng, 0, 1) as u8;
+                let rng = &mut ctx.rng;
+                let vx = rand::rand_range_f32(rng, -BUBBLE_SPAWN_VX, BUBBLE_SPAWN_VX);
+                let vy = rand::rand_range_f32(rng, -BUBBLE_SPAWN_VY_UP, BUBBLE_SPAWN_VY_DOWN);
+                let drift_target =
+                    rand::rand_range_f32(rng, -BUBBLE_WANDER_SPEED, BUBBLE_WANDER_SPEED);
+                let drift_timer = rand::rand_range_f32(rng, BUBBLE_WANDER_MIN, BUBBLE_WANDER_MAX);
+                let size = rand::rand_range_u32(rng, 0, 1) as u8;
                 let wy = (WAND_SCREEN_TOP + BUBBLE_WAND.height as i32 / 2) as f32;
                 let _ = self.bubbles.push(Bubble {
                     size,
                     x: self.toy_x,
                     y: wy,
-                    drift,
+                    vx,
+                    vy,
+                    drift_target,
+                    drift_timer,
                     pop_timer: -1.0,
                 });
             }

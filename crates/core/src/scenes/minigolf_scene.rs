@@ -24,6 +24,7 @@ use crate::{
     rand::{rand_bool, rand_range_u32},
     render::Renderer,
     scene::{Scene, SceneId},
+    ui::confirm::{Confirm, ConfirmResult},
     ui::menu::{Menu, MenuItem, MenuResult},
     ui::popup::Popup,
 };
@@ -69,8 +70,9 @@ const SLOPE_ACCEL: f32 = 29.0;
 const V_MAX: f32 = 90.0;
 const V_MIN: f32 = 5.0;
 const RESTITUTION: f32 = 0.75;
-/// Faster than this and the ball rolls over the hole.
-const V_CAPTURE: f32 = 45.0;
+/// Faster than this and the ball rolls over the hole. Well under half of
+/// `V_MAX`, so a hard putt runs past and comes back off the wall too fast.
+const V_CAPTURE: f32 = 32.0;
 /// Pull towards the cup while the ball is over it.
 const HOLE_PULL: f32 = 90.0;
 /// Longest substep, kept under the ball radius so walls can't be skipped.
@@ -100,6 +102,8 @@ const CAM_LEFT: f32 = 40.0;
 const CAM_RIGHT: f32 = 88.0;
 const CAM_TOP: f32 = 20.0;
 const CAM_BOTTOM: f32 = 44.0;
+/// How quickly the camera eases into its aiming spot, per second.
+const CAM_PAN: f32 = 6.0;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum MiniGolfAction {
@@ -132,6 +136,8 @@ enum Kind {
     Fork,
     /// Three wide and open, with an obstacle in the middle.
     Room,
+    /// Open putting area at the end, two or three wide, holding the hole.
+    Green,
 }
 
 /// A placed piece. The rect is inclusive and in grid cells.
@@ -154,6 +160,7 @@ struct Layout {
     head: (i32, i32),
     dir: u8,
     start: (i32, i32),
+    hole: (i32, i32),
 }
 
 fn grid_idx(x: i32, y: i32) -> Option<usize> {
@@ -174,6 +181,7 @@ impl Layout {
             head: (start.0 - dx, start.1 - dy),
             dir,
             start,
+            hole: start,
         }
     }
 
@@ -184,6 +192,13 @@ impl Layout {
     /// Place a piece off the head. It may only touch the previous piece, and
     /// only side-on at the head, so lanes never merge by accident.
     fn try_place(&mut self, kind: Kind, dir: u8, len: i32) -> bool {
+        let span = if kind == Kind::Straight { (0, 0) } else { (-1, 1) };
+        self.try_place_span(kind, dir, len, span)
+    }
+
+    /// As `try_place`, with the piece spanning `lo..=hi` cells across the
+    /// lane (right of travel is positive), so it can open out to one side.
+    fn try_place_span(&mut self, kind: Kind, dir: u8, len: i32, (lo, hi): (i32, i32)) -> bool {
         if self.pieces.is_full() {
             return false;
         }
@@ -195,16 +210,9 @@ impl Layout {
 
         let mut cells: Vec<(i32, i32, bool), 16> = Vec::new();
         for k in 1..=len {
-            match kind {
-                Kind::Straight => {
-                    let _ = cells.push((hx + dx * k, hy + dy * k, true));
-                }
-                Kind::Fork | Kind::Room => {
-                    for l in -1..=1 {
-                        let island = kind == Kind::Fork && l == 0 && k > 1 && k < len;
-                        let _ = cells.push((hx + dx * k + px * l, hy + dy * k + py * l, !island));
-                    }
-                }
+            for l in lo..=hi {
+                let island = kind == Kind::Fork && l == 0 && k > 1 && k < len;
+                let _ = cells.push((hx + dx * k + px * l, hy + dy * k + py * l, !island));
             }
         }
         let entry = (hx + dx, hy + dy);
@@ -303,7 +311,7 @@ fn gen_layout(rng: &mut u32) -> Option<Layout> {
                 match kind {
                     Kind::Fork => forks += 1,
                     Kind::Room => rooms += 1,
-                    Kind::Straight => {}
+                    _ => {}
                 }
                 placed = true;
                 break;
@@ -313,11 +321,7 @@ fn gen_layout(rng: &mut u32) -> Option<Layout> {
             break;
         }
     }
-    // Finish on a lane so the hole isn't in the middle of a room.
-    if lay.last_kind() != Some(Kind::Straight) && !lay.try_place(Kind::Straight, lay.dir, 2) {
-        return None;
-    }
-    if lay.pieces.len() < 4 {
+    if !finish(&mut lay, rng) || lay.pieces.len() < 4 {
         return None;
     }
     let (x0, y0, x1, y1) = bbox(&lay);
@@ -326,6 +330,64 @@ fn gen_layout(rng: &mut u32) -> Option<Layout> {
         return None;
     }
     Some(lay)
+}
+
+/// Place the hole: at the end of a lane, on an open green, or at a turn with
+/// a short spur beyond it to overshoot into.
+fn finish(lay: &mut Layout, rng: &mut u32) -> bool {
+    // Forks and rooms are only left by a lane, so the hole isn't in one.
+    if lay.last_kind() != Some(Kind::Straight) && !lay.try_place(Kind::Straight, lay.dir, 2) {
+        return false;
+    }
+    let roll = rand_range_u32(rng, 0, 99);
+    if roll < 55 {
+        for _ in 0..8 {
+            if try_green(lay, rng) {
+                return true;
+            }
+        }
+    } else if roll < 75 {
+        let corner = lay.head;
+        let turn = if rand_bool(rng, 0.5) { 1 } else { 3 };
+        for t in [turn, 4 - turn] {
+            if lay.try_place(Kind::Straight, (lay.dir + t) % 4, rand_range_u32(rng, 1, 2) as i32) {
+                lay.hole = corner;
+                return true;
+            }
+        }
+    }
+    lay.hole = lay.head;
+    true
+}
+
+/// An open green two or three wide, straight on or round a turn, with the
+/// hole anywhere but the mouth.
+fn try_green(lay: &mut Layout, rng: &mut u32) -> bool {
+    // Lopsided spans let a green flare out round a turn.
+    const SPANS: [(i32, i32); 5] = [(-1, 1), (0, 2), (-2, 0), (0, 1), (-1, 0)];
+    let turn = match rand_range_u32(rng, 0, 3) {
+        0 => 1,
+        1 => 3,
+        _ => 0,
+    };
+    let dir = (lay.dir + turn) % 4;
+    let span = SPANS[rand_range_u32(rng, 0, SPANS.len() as u32 - 1) as usize];
+    let (dx, dy) = DIRS[dir as usize];
+    let entry = (lay.head.0 + dx, lay.head.1 + dy);
+    if !lay.try_place_span(Kind::Green, dir, rand_range_u32(rng, 2, 3) as i32, span) {
+        return false;
+    }
+    let p = *lay.pieces.last().unwrap();
+    loop {
+        let c = (
+            rand_range_u32(rng, p.x0 as u32, p.x1 as u32) as i32,
+            rand_range_u32(rng, p.y0 as u32, p.y1 as u32) as i32,
+        );
+        if c != entry {
+            lay.hole = c;
+            return true;
+        }
+    }
 }
 
 fn bbox(lay: &Layout) -> (i32, i32, i32, i32) {
@@ -340,6 +402,7 @@ fn fallback_layout() -> Layout {
     lay.try_place(Kind::Straight, 0, 8);
     lay.try_place(Kind::Straight, 1, 3);
     lay.try_place(Kind::Straight, 2, 6);
+    lay.hole = lay.head;
     lay
 }
 
@@ -370,6 +433,8 @@ struct Green {
     tee_dir: u8,
     hole: (f32, f32),
     hole_cell: (i32, i32),
+    /// Cells of the green round the hole, if it ends on one.
+    hole_area: Option<(i32, i32, i32, i32)>,
     par: u8,
     /// Specks of grass off the green, in world px.
     grass: Vec<(i16, i16), MAX_GRASS>,
@@ -396,6 +461,7 @@ impl Green {
             tee_dir: 0,
             hole: (0.0, 0.0),
             hole_cell: (0, 0),
+            hole_area: None,
             par: 3,
             grass: Vec::new(),
         }
@@ -487,7 +553,9 @@ impl Green {
             }
         }
         g.tee_cell = (lay.start.0 - bx0, lay.start.1 - by0);
-        g.hole_cell = (lay.head.0 - bx0, lay.head.1 - by0);
+        g.hole_cell = (lay.hole.0 - bx0, lay.hole.1 - by0);
+        g.hole_area = lay.pieces.iter().find(|p| p.kind == Kind::Green)
+            .map(|p| (p.x0 - bx0, p.y0 - by0, p.x1 - bx0, p.y1 - by0));
         g.tee = cell_center(g.tee_cell);
         g.hole = cell_center(g.hole_cell);
         g.tee_dir = lay.pieces[0].dir;
@@ -581,7 +649,14 @@ impl Green {
         Some(())
     }
 
+    /// Corners by the tee or the hole, or anywhere round a green, only get
+    /// small cuts. Big ones would funnel the ball onto the cup.
     fn touches_special(&self, vx: i32, vy: i32) -> bool {
+        if let Some((x0, y0, x1, y1)) = self.hole_area {
+            if vx >= x0 && vx <= x1 + 1 && vy >= y0 && vy <= y1 + 1 {
+                return true;
+            }
+        }
         [self.tee_cell, self.hole_cell]
             .iter()
             .any(|&(cx, cy)| (cx == vx - 1 || cx == vx) && (cy == vy - 1 || cy == vy))
@@ -685,7 +760,7 @@ impl Green {
             }
             let (px, py) = DIRS[(p.dir as usize + 1) % 4];
             let roll = rand_range_u32(rng, 0, 99);
-            if roll < 30 && roughs < 2 && p.kind != Kind::Room {
+            if roll < 30 && roughs < 2 && !matches!(p.kind, Kind::Room | Kind::Green) {
                 roughs += 1;
                 // A rough fork only roughs one side, so there's a choice.
                 let side = if rand_bool(rng, 0.5) { 1 } else { -1 };
@@ -1000,6 +1075,8 @@ pub struct MiniGolfScene {
     cam_y: f32,
 
     popup: Popup,
+    /// Asks before leaving the scorecard, so a quick A doesn't skip it.
+    confirm: Confirm,
 
     session_holes: u32,
     session_bonus: i32,
@@ -1029,6 +1106,7 @@ impl MiniGolfScene {
             cam_y: 0.0,
 
             popup: Popup::new(24, 16, 80, 30),
+            confirm: Confirm::new(),
 
             session_holes: 0,
             session_bonus: 0,
@@ -1039,6 +1117,7 @@ impl MiniGolfScene {
     }
 
     fn start_round(&mut self, ctx: &mut GameContext) {
+        self.confirm.close();
         self.hole_no = 0;
         self.card = [0; HOLES];
         self.pars = [0; HOLES];
@@ -1087,6 +1166,26 @@ impl MiniGolfScene {
             .filter(|&i| self.card[i] > 0)
             .map(|i| self.card[i] as i32 - self.pars[i] as i32)
             .sum()
+    }
+
+    /// Ease the camera towards the midpoint of ball and hole, as far as the
+    /// ball can stay in the dead zone, so there's a view of what's ahead and
+    /// the camera doesn't jump once the ball rolls. The tee shot keeps the
+    /// default camera.
+    fn pan_to_hole(&mut self, dt: f32) {
+        if self.strokes == 0 {
+            return;
+        }
+        let fit = |b: f32, h: f32, screen: i32, margin: f32, world: i32| {
+            let want = (b + h) / 2.0 - screen as f32 / 2.0;
+            clamp_cam(want.clamp(b - screen as f32 + margin, b - margin), world, screen)
+        };
+        let g = &self.green;
+        let tx = fit(self.ball.x, g.hole.0, SCREEN_W, CAM_LEFT, g.world_w());
+        let ty = fit(self.ball.y, g.hole.1, SCREEN_H, CAM_TOP, g.world_h());
+        let k = (CAM_PAN * dt).min(1.0);
+        self.cam_x += (tx - self.cam_x) * k;
+        self.cam_y += (ty - self.cam_y) * k;
     }
 
     fn update_camera(&mut self, snap: bool) {
@@ -1476,6 +1575,7 @@ impl Scene for MiniGolfScene {
             }
             State::Aim => {
                 self.update_aim(buttons, dt);
+                self.pan_to_hole(dt);
                 if buttons.was_just_pressed(Button::A) {
                     self.phase = 0.0;
                     self.state = State::Power;
@@ -1483,6 +1583,7 @@ impl Scene for MiniGolfScene {
             }
             State::Power => {
                 self.phase = (self.phase + dt * 2.0 * PI / POWER_PERIOD) % (2.0 * PI);
+                self.pan_to_hole(dt);
                 if buttons.was_just_pressed(Button::A) {
                     self.putt();
                 } else if buttons.was_just_pressed(Button::B) {
@@ -1501,8 +1602,12 @@ impl Scene for MiniGolfScene {
                 }
             }
             State::Scorecard => {
-                if buttons.was_just_pressed(Button::A) {
-                    self.start_round(ctx);
+                if self.confirm.is_open() {
+                    if self.confirm.handle_input(buttons) == ConfirmResult::Confirmed {
+                        self.start_round(ctx);
+                    }
+                } else if buttons.was_just_pressed(Button::A) {
+                    self.confirm.open(t!("New round?"));
                 }
             }
         }
@@ -1516,6 +1621,9 @@ impl Scene for MiniGolfScene {
         }
         if self.state == State::Scorecard {
             self.draw_scorecard(renderer);
+            if self.confirm.is_open() {
+                self.confirm.draw(renderer);
+            }
             return;
         }
         self.draw_course(renderer);

@@ -313,6 +313,7 @@ impl MemoryScene {
         let _ = write!(best_buf, "{}", new_best);
         crate::i18n::substitute(&mut text, t!("Best: {n}"), &[("n", best_buf.as_str())]);
         self.win_popup.set_text(text.as_str(), false, true);
+        self.win_popup.fit_height(40, 32);
 
         self.state = State::Win;
         self.win_timer = 0.0;

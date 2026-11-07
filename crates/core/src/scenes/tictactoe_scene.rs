@@ -266,6 +266,7 @@ impl TicTacToeScene {
             _ => return,
         }
         self.result_popup.set_text(msg.as_str(), false, true);
+        self.result_popup.fit_height(40, 20);
     }
 
     fn score_cell(&self, cell: usize) -> i32 {

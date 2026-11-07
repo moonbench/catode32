@@ -1,6 +1,7 @@
 pub mod adoption_scene;
 pub mod bedroom_scene;
 pub mod balancing_scene;
+pub mod boxedin_scene;
 pub mod breakout_scene;
 pub mod credits_scene;
 pub mod debug_behaviors_scene;
@@ -18,21 +19,26 @@ pub mod hanjie_scene;
 pub mod herding_scene;
 pub mod inside_scene;
 pub mod kitchen_scene;
+pub mod life_scene;
 pub mod laserbounce_scene;
 pub mod lightsout_scene;
 pub mod luckylanding_scene;
 pub mod maze_scene;
 pub mod memory_scene;
 pub mod meowltiply_scene;
+pub mod meowteor_scene;
 pub mod menu_scene;
 pub mod minigolf_scene;
 pub mod outside_scene;
+pub mod pawpong_scene;
+pub mod pestcontrol_scene;
 pub mod pet_info_scene;
 pub mod pipes_scene;
 pub mod platformer_scene;
 pub mod pose_scene;
 pub mod purrimeter_scene;
 pub mod reversi_scene;
+pub mod scratch_scene;
 pub mod sleepingdogs_scene;
 pub mod snake_scene;
 pub mod social_scene;
@@ -55,6 +61,7 @@ use crate::scene::{Scene, SceneId};
 use adoption_scene::AdoptionScene;
 use bedroom_scene::BedroomScene;
 use balancing_scene::BalancingScene;
+use boxedin_scene::BoxedInScene;
 use breakout_scene::BreakoutScene;
 use credits_scene::CreditsScene;
 use debug_behaviors_scene::DebugBehaviorsScene;
@@ -72,6 +79,7 @@ use hanjie_scene::HanjieScene;
 use herding_scene::HerdingScene;
 use inside_scene::InsideScene;
 use kitchen_scene::KitchenScene;
+use life_scene::LifeScene;
 use lightsout_scene::LightsOutScene;
 use luckylanding_scene::LuckyLandingScene;
 use maze_scene::MazeScene;
@@ -81,6 +89,10 @@ use menu_scene::MenuScene;
 use outside_scene::OutsideScene;
 use minigolf_scene::MiniGolfScene;
 use laserbounce_scene::LaserBounceScene;
+use pawpong_scene::PawPongScene;
+use pestcontrol_scene::PestControlScene;
+use meowteor_scene::MeowteorScene;
+use scratch_scene::ScratchScene;
 use pet_info_scene::PetInfoScene;
 use pipes_scene::PipesScene;
 use platformer_scene::PlatformerScene;
@@ -152,6 +164,12 @@ crate::dispatch_enum! {
         SleepingDogs(SleepingDogsScene)           = SleepingDogsScene::new(),
         MiniGolf(MiniGolfScene)                   = MiniGolfScene::new(),
         LaserBounce(LaserBounceScene)             = LaserBounceScene::new(),
+        BoxedIn(BoxedInScene)                     = BoxedInScene::new(),
+        PestControl(PestControlScene)             = PestControlScene::new(),
+        PawPong(PawPongScene)                     = PawPongScene::new(),
+        Life(LifeScene)                           = LifeScene::new(),
+        Meowteor(MeowteorScene)                   = MeowteorScene::new(),
+        Scratch(ScratchScene)                     = ScratchScene::new(),
         Platformer(PlatformerScene)               = PlatformerScene::new(),
         VacationPark(VacationParkScene)           = VacationParkScene::new(),
         VacationForest(VacationForestScene)       = VacationForestScene::new(),

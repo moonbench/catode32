@@ -428,9 +428,9 @@ fn build_page(
         Page::Affection => {
             push_item(items, t!("Pets"), Some(icons::HAND), Some(LocationAction::Affection(AffectionVariant::Pets)), None, None);
             push_item(items, t!("Scratch"), Some(icons::HAND), Some(LocationAction::Affection(AffectionVariant::Scratching)), None, None);
+            push_item(items, t!("Groom"), Some(icons::HAND), Some(LocationAction::Groom), None, None);
             push_item(items, t!("Kiss"), Some(icons::HEART), Some(LocationAction::Affection(AffectionVariant::Kiss)), None, None);
             push_item(items, t!("Psst psst"), Some(icons::HEART_BUBBLE), Some(LocationAction::Attention(AttentionVariant::Psst)), None, None);
-            push_item(items, t!("Groom"), Some(icons::HAND), Some(LocationAction::Groom), None, None);
         }
         Page::Train => {
             push_item(items, t!("Intelligence"), Some(icons::HAND), Some(LocationAction::Train(TrainingKind::Intelligence)), None, None);

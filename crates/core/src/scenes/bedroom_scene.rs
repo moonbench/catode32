@@ -62,17 +62,33 @@ impl BedroomScene {
         let mg_offset = self.base.environment.camera_offset(Layer::Midground);
         let bed_x = BED_WORLD_X - mg_offset;
         // Mask
-        renderer.fill_rect_off(Point::new(bed_x, 32), Size::new(82, 20));
-        renderer.fill_rect_off(Point::new(bed_x + 50, 23), Size::new(23, 10));
-        renderer.fill_rect_off(Point::new(bed_x + 73, 25), Size::new(2, 8));
-        // Frame
-        renderer.draw_rect(Point::new(bed_x, 50), Size::new(80, 5), true);
-        renderer.draw_rect(Point::new(bed_x, 55), Size::new(8, 9), true);
-        renderer.draw_rect(Point::new(bed_x + 80, 16), Size::new(8, 48), true);
-        // Mattress outline
-        renderer.draw_rect(Point::new(bed_x, 32), Size::new(79, 16), false);
+        renderer.fill_rect_off(Point::new(bed_x, 30), Size::new(6, 34));
+        renderer.fill_rect_off(Point::new(bed_x + 5, 34), Size::new(76, 17));
+        renderer.fill_rect_off(Point::new(bed_x + 79, 16), Size::new(10, 48));
+        renderer.fill_rect_off(Point::new(bed_x + 53, 26), Size::new(23, 8));
+        renderer.fill_rect_off(Point::new(bed_x + 76, 28), Size::new(2, 6));
+        // Footboard
+        draw_rounded_outline(renderer, Point::new(bed_x, 30), Size::new(6, 34));
+        // Headboard: capped post
+        draw_rounded_outline(renderer, Point::new(bed_x + 79, 16), Size::new(10, 4));
+        renderer.draw_rect(Point::new(bed_x + 80, 19), Size::new(8, 45), false);
+        // Side rail between the posts
+        renderer.draw_rect(Point::new(bed_x + 5, 46), Size::new(76, 5), false);
+        // Mattress
+        draw_rounded_outline(renderer, Point::new(bed_x + 7, 34), Size::new(72, 11));
     }
 
+}
+
+/// Rectangle outline with the four corner pixels left off.
+fn draw_rounded_outline(renderer: &mut Renderer, pos: Point, size: Size) {
+    let (x0, y0) = (pos.x, pos.y);
+    let x1 = x0 + size.width as i32 - 1;
+    let y1 = y0 + size.height as i32 - 1;
+    renderer.draw_line(Point::new(x0 + 1, y0), Point::new(x1 - 1, y0));
+    renderer.draw_line(Point::new(x0 + 1, y1), Point::new(x1 - 1, y1));
+    renderer.draw_line(Point::new(x0, y0 + 1), Point::new(x0, y1 - 1));
+    renderer.draw_line(Point::new(x1, y0 + 1), Point::new(x1, y1 - 1));
 }
 
 // Approx foreground world-x of the bed interior; sleep/nap behaviors read
@@ -95,7 +111,7 @@ impl Scene for BedroomScene {
             bookshelf_y,
             false,
         );
-        self.base.environment.add_object(Layer::Midground, &PILLOW, 158, 23, false);
+        self.base.environment.add_object(Layer::Midground, &PILLOW, 161, 26, false);
         let yarn_y = 63 - YARN_BALL.height as i32;
         self.base.environment.add_object(Layer::Midground, &YARN_BALL, 82, yarn_y, false);
     }
@@ -130,8 +146,9 @@ impl Scene for BedroomScene {
         self.base.environment.draw_layer(renderer, Layer::Background);
         self.draw_lamp(renderer);
         self.base.draw_plants(ctx, renderer, PlantLayer::Background);
-        self.base.environment.draw_layer(renderer, Layer::Midground);
+        // Bed first so its mask doesn't wipe the pillow drawn on top of it.
         self.draw_bed(renderer);
+        self.base.environment.draw_layer(renderer, Layer::Midground);
         self.base.draw_plants(ctx, renderer, PlantLayer::Midground);
         self.base.environment.draw_layer(renderer, Layer::Foreground);
         self.base.draw_plants(ctx, renderer, PlantLayer::Foreground);

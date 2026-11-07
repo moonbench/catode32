@@ -15,6 +15,7 @@ pub const QUEEN_NAMES: &[&str] = &[
     "Daisy", "Jasmine", "Lizzy", "Daphnie", "Paprika", "Mocha", "Cocoa",
     "Luna", "Peaches", "Kiki", "Suki", "Cleo", "Violet", "Lilith", "Buffie",
     "Piper", "Star", "Maya", "Hidey", t!("Bubbles"), t!("Rose"), "Fiona",
+    "Zali",
 ];
 
 pub const EITHER_NAMES: &[&str] = &[

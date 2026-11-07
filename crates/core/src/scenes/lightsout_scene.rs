@@ -267,6 +267,7 @@ impl LightsOutScene {
         let _ = write!(n, "{}", self.move_count);
         crate::i18n::substitute(&mut text, t!("Moves: {n}"), &[("n", n.as_str())]);
         self.win_popup.set_text(text.as_str(), false, true);
+        self.win_popup.fit_height(36, 32);
     }
 }
 

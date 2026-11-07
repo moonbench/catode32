@@ -69,6 +69,15 @@ impl Popup {
         (content_height / LINE_HEIGHT).max(0) as usize
     }
 
+    /// Resize the box to show every line of the current text (never shorter
+    /// than `min_height`), centred on `center_y` and kept on screen.
+    pub fn fit_height(&mut self, min_height: u32, center_y: i32) {
+        let needed = self.padding * 2 + self.lines.len() as i32 * LINE_HEIGHT;
+        let height = needed.max(min_height as i32);
+        self.height = height as u32;
+        self.y = (center_y - height / 2).max(0);
+    }
+
     pub fn can_scroll(&self) -> bool {
         self.lines.len() > self.visible_lines()
     }

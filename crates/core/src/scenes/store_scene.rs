@@ -179,7 +179,7 @@ const ROOT: &[MenuItem<StoreAction>] = &[
     MenuItem { label: t!("Service"), icon: None, submenu: Some(SERVICE), action: None, confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Trips"),   icon: None, submenu: Some(TRIPS),   action: None, confirm: None, confirm_on_vacation: None },
     MenuItem {
-        label: t!("Meds."),
+        label: t!("store_medicine"),
         icon: None,
         submenu: None,
         action: Some(StoreAction::BuyMedicine(MEDICINE_COST)),
@@ -410,6 +410,7 @@ impl StoreScene {
 
     fn set_popup(&mut self, text: &str) {
         self.popup.set_text(text, true, true);
+        self.popup.fit_height(24, 32);
         self.popup_active = true;
     }
 
@@ -418,8 +419,7 @@ impl StoreScene {
     fn set_popup_with_item(&mut self, template: &str, item: &str) {
         let mut buf: heapless::String<48> = heapless::String::new();
         crate::i18n::substitute(&mut buf, template, &[("item", item)]);
-        self.popup.set_text(buf.as_str(), true, true);
-        self.popup_active = true;
+        self.set_popup(buf.as_str());
     }
 
     fn try_spend(ctx: &mut GameContext, cost: u8) -> bool {

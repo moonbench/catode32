@@ -1,5 +1,6 @@
 use embedded_graphics::{
-    mono_font::{iso_8859_1::{FONT_4X6, FONT_6X10}, MonoTextStyle},
+    image::ImageRaw,
+    mono_font::{iso_8859_1::{FONT_4X6, FONT_6X10}, MonoFont, MonoTextStyle},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::{Line, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle},
@@ -21,6 +22,12 @@ type Display = Ssd1306<DisplayInterface, DisplaySize128x64, BufferedGraphicsMode
 
 #[cfg(feature = "desktop")]
 type Display = desktop_fb::DesktopFramebuffer;
+
+/// FONT_6X10 with plain-dot `.` and `:` glyphs (stock ones are plus-shaped).
+const FONT_6X10_DOTS: MonoFont = MonoFont {
+    image: ImageRaw::new(include_bytes!("assets/font_6x10.raw"), 96),
+    ..FONT_6X10
+};
 
 pub struct Sprite {
     pub width: u16,
@@ -99,6 +106,18 @@ impl Renderer {
         self.display.set_display_on(true).ok();
     }
 
+    /// Drop the panel to its lowest contrast, or back to normal. OLED
+    /// current scales with contrast, so this is the idle power saver short
+    /// of turning the panel off. Desktop has no brightness, so it no-ops.
+    #[cfg(not(feature = "desktop"))]
+    pub fn set_dimmed(&mut self, dimmed: bool) {
+        let level = if dimmed { Brightness::DIMMEST } else { Brightness::NORMAL };
+        self.display.set_brightness(level).ok();
+    }
+
+    #[cfg(feature = "desktop")]
+    pub fn set_dimmed(&mut self, _dimmed: bool) {}
+
     pub fn set_invert(&mut self, invert: bool) {
         if self.invert_state == invert {
             return;
@@ -116,14 +135,14 @@ impl Renderer {
     }
 
     pub fn draw_text(&mut self, text: &str, pos: Point) {
-        let style = MonoTextStyle::new(&FONT_6X10, BinaryColor::On);
+        let style = MonoTextStyle::new(&FONT_6X10_DOTS, BinaryColor::On);
         Text::with_baseline(text, pos, style, Baseline::Top)
             .draw(&mut self.display)
             .unwrap();
     }
 
     pub fn draw_text_inverted(&mut self, text: &str, pos: Point) {
-        let style = MonoTextStyle::new(&FONT_6X10, BinaryColor::Off);
+        let style = MonoTextStyle::new(&FONT_6X10_DOTS, BinaryColor::Off);
         Text::with_baseline(text, pos, style, Baseline::Top)
             .draw(&mut self.display)
             .unwrap();
