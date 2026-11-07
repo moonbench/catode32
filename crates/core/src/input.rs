@@ -157,6 +157,44 @@ impl Buttons {
         }
     }
 
+    /// Make every button a light-sleep wake source (falling to low level).
+    /// Pair with [`Self::disarm_wakeup`] once the sleep returns.
+    ///
+    /// TODO(c3): untested on the C3. Light sleep should accept any GPIO
+    /// there too, but verify on hardware.
+    #[cfg(not(feature = "desktop"))]
+    pub fn arm_wakeup(&mut self) {
+        for pin in &mut self.pins {
+            pin.listen(esp_hal::gpio::Event::LowLevel);
+        }
+    }
+
+    #[cfg(feature = "desktop")]
+    pub fn arm_wakeup(&mut self) {}
+
+    /// Stop the buttons acting as wake sources, back to plain polled pins.
+    #[cfg(not(feature = "desktop"))]
+    pub fn disarm_wakeup(&mut self) {
+        for pin in &mut self.pins {
+            pin.unlisten();
+        }
+    }
+
+    #[cfg(feature = "desktop")]
+    pub fn disarm_wakeup(&mut self) {}
+
+    /// True if a button ended the last light sleep. Catches a tap that was
+    /// already released by the time the CPU got to read the pins.
+    #[cfg(not(feature = "desktop"))]
+    pub fn caused_wakeup(&self) -> bool {
+        self.pins.iter().any(|pin| pin.caused_wakeup())
+    }
+
+    #[cfg(feature = "desktop")]
+    pub fn caused_wakeup(&self) -> bool {
+        false
+    }
+
     pub fn direction(&self) -> (i8, i8) {
         let mut dx = 0;
         let mut dy = 0;

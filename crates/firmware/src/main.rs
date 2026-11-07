@@ -21,7 +21,9 @@ fn main() -> ! {
     // comfortable headroom. Nothing else in this firmware allocates.
     esp_alloc::heap_allocator!(size: 64 * 1024);
 
-    let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
+    // 80 MHz rather than the 160 MHz max: lower active current, and the
+    // 12 FPS game loop has headroom to spare.
+    let config = esp_hal::Config::default().with_cpu_clock(CpuClock::_80MHz);
     let peripherals = esp_hal::init(config);
     // `init` disables every watchdog. Arm ours before anything that could
     // hang (flash, display, radio scheduler); the game loop feeds it.

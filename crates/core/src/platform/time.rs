@@ -103,3 +103,28 @@ mod desktop {
 
 #[cfg(feature = "desktop")]
 pub use desktop::{Duration, Instant};
+
+/// Block the calling task until `deadline`. On firmware this parks the task
+/// on the esp-rtos scheduler, whose idle task halts the CPU (`wfi`) until the
+/// next interrupt, instead of spinning at full clock.
+#[cfg(not(feature = "desktop"))]
+pub fn delay_until(deadline: Instant) {
+    if deadline > Instant::now() {
+        esp_rtos::CurrentThreadHandle::get().delay_until(deadline);
+    }
+}
+
+#[cfg(feature = "desktop")]
+pub fn delay_until(deadline: Instant) {
+    let now = Instant::now();
+    if deadline > now {
+        std::thread::sleep(
+            (deadline.duration_since_epoch() - now.duration_since_epoch()).into(),
+        );
+    }
+}
+
+/// Block the calling task for `duration`. See [`delay_until`].
+pub fn delay(duration: Duration) {
+    delay_until(Instant::now() + duration);
+}

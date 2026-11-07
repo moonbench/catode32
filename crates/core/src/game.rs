@@ -3,7 +3,7 @@ use crate::platform::{
     power::software_reset,
     radio::WIFI,
     rng::Rng,
-    time::{Duration, Instant},
+    time::{self, Duration, Instant},
 };
 
 use crate::{
@@ -82,9 +82,7 @@ impl Game {
         let (reset_label, brownout) = persist::reset_reason();
         println!("[Boot] Reset reason: {}", reset_label);
         context.last_reset_reason = reset_label;
-        println!("[DBG] before crash_take");
         context.last_crash = persist::crash_take();
-        println!("[DBG] after crash_take");
         if let Some(crash) = &context.last_crash {
             println!("[Boot] Previous reset was a panic: {}", crash.msg);
             for pc in crash.pcs.iter() {
@@ -92,10 +90,7 @@ impl Game {
             }
         }
 
-        let hs = save::has_save();
-        println!("[DBG] has_save = {}", hs);
-        let loaded = hs && save::load(&mut context);
-        println!("[DBG] loaded = {}", loaded);
+        let loaded = save::has_save() && save::load(&mut context);
 
         // Resume a scene change that a reset interrupted. Capped so a scene
         // that crashes on entry gets at most MAX_RESUME_ATTEMPTS boots before
@@ -136,9 +131,7 @@ impl Game {
         };
         context.scan_started = false;
 
-        println!("[DBG] start = {:?}", start);
         let scene_manager = SceneManager::new(&mut context, start);
-        println!("[DBG] scene manager ready");
         Self {
             renderer,
             buttons,
@@ -160,7 +153,7 @@ impl Game {
 
     /// Run a single frame: input snapshot, update, draw, post-frame
     /// bookkeeping. Does **not** pace the frame; the caller decides when
-    /// to invoke the next tick (the firmware busy-waits to 12 FPS in
+    /// to invoke the next tick (the firmware idles to 12 FPS in
     /// `run()`; the desktop binary uses the simulator window's vsync /
     /// sleep instead).
     pub fn tick(&mut self) {
@@ -178,6 +171,7 @@ impl Game {
         if self.buttons.any_pressed() {
             self.sleep_manager.notify_activity();
         }
+        self.sleep_manager.update_dim(&mut self.renderer);
 
         // Pull any inbound ESP-NOW frames from the driver into our inbox
         // before scene update so a scene-side dispatcher can drain them.
@@ -252,12 +246,8 @@ impl Game {
             let frame_start = Instant::now();
             watchdog::feed();
             self.tick();
-            let frame_used = frame_start.elapsed().as_millis();
-            if frame_used < FRAME_TIME_MS {
-                let wait_start = Instant::now();
-                let remaining = Duration::from_millis(FRAME_TIME_MS - frame_used);
-                while wait_start.elapsed() < remaining {}
-            }
+            // Idle (not spin) for the rest of the frame so the CPU can halt.
+            time::delay_until(frame_start + Duration::from_millis(FRAME_TIME_MS));
         }
     }
 

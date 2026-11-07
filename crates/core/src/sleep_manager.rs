@@ -2,6 +2,8 @@
 //!
 //! Currently implements only the "basic" mode:
 //!
+//!   - After `DIM_TIMEOUT` of no button activity, dim the display; the
+//!     next press restores it (and still acts as a normal press).
 //!   - After `SLEEP_TIMEOUT` of no button activity, power off the display.
 //!   - Continue ticking the game at `SLEEP_FPS` so needs/time advance while
 //!     invisible.
@@ -12,19 +14,17 @@
 //!     scene's behavior manager to wind down quickly so the greeting fires
 //!     promptly rather than at the next natural completion.
 //!
-//! TODO(deep_sleep): implement a "deep" mode (true MCU light/deep sleep with
-//! GPIO IRQ wake) once esp-hal's sleep APIs are wired up.
+//! While the screen is off the chip spends the gaps between slow ticks in
+//! true light sleep (timer + button GPIO wake), so the idle current is a
+//! fraction of a running CPU. If the radio is up (scan, ESP-NOW) it falls
+//! back to the scheduler idle loop, since light sleep would stall the
+//! radio.
 //!
-//! TODO(gpio_irq_wake): wake detection currently polls every button in
-//! the slow loop at `SLEEP_FPS` (option A from the design discussion).
-//! A falling-edge IRQ on each button would let the CPU idle until a
-//! press, which actually saves CPU power between ticks. Move to esp-hal
-//! GPIO IRQ + light sleep to match that intent. Until then the
-//! screen-off saving (~1-2 mA) is the only real power benefit of basic
-//! mode.
+//! TODO(deep_sleep): implement a "deep" mode for basic auto-sleep (the
+//! Power debug menu already has a one-way deep sleep).
 
-use crate::platform::time::{Duration, Instant};
-use crate::platform::watchdog;
+use crate::platform::time::{self, Duration, Instant};
+use crate::platform::{power, watchdog};
 
 use crate::{
     context::GameContext,
@@ -55,11 +55,22 @@ pub fn wait_buttons_stable_released_mask(
         } else if released_since.elapsed() >= stable {
             return;
         }
+        time::delay(STABLE_POLL);
     }
 }
 
-/// Seconds of inactivity before sleeping.
-pub const SLEEP_TIMEOUT: Duration = Duration::from_secs(900);
+/// Inactivity before the display dims.
+pub const DIM_TIMEOUT: Duration = Duration::from_secs(60);
+
+/// Inactivity before sleeping.
+pub const SLEEP_TIMEOUT: Duration = Duration::from_secs(300);
+
+/// Button poll interval while waiting for a stable release.
+const STABLE_POLL: Duration = Duration::from_millis(10);
+
+/// Button poll interval while asleep with the radio up (no light sleep).
+/// Short enough that a tap wakes the device; the CPU idles between polls.
+const WAKE_POLL: Duration = Duration::from_millis(50);
 
 /// Game update rate while in basic sleep.
 pub const SLEEP_FPS: u64 = 2;
@@ -67,6 +78,7 @@ pub const SLEEP_FRAME_TIME_MS: u64 = 1000 / SLEEP_FPS;
 
 pub struct SleepManager {
     sleeping: bool,
+    dimmed: bool,
     last_activity: Instant,
 }
 
@@ -74,6 +86,7 @@ impl SleepManager {
     pub fn new() -> Self {
         Self {
             sleeping: false,
+            dimmed: false,
             last_activity: Instant::now(),
         }
     }
@@ -86,6 +99,17 @@ impl SleepManager {
     /// Reset the inactivity timer. Call from the main loop on any button press.
     pub fn notify_activity(&mut self) {
         self.last_activity = Instant::now();
+    }
+
+    /// Dim the display once idle for `DIM_TIMEOUT`, restore it on activity.
+    /// Call once per frame, after `notify_activity`. Only talks to the panel
+    /// when the state changes.
+    pub fn update_dim(&mut self, renderer: &mut Renderer) {
+        let dim = self.last_activity.elapsed() >= DIM_TIMEOUT;
+        if dim != self.dimmed {
+            self.dimmed = dim;
+            renderer.set_dimmed(dim);
+        }
     }
 
     /// True when the inactivity timeout has elapsed and sleep is appropriate.
@@ -133,8 +157,11 @@ impl SleepManager {
         wait_buttons_stable_released(buttons, Duration::from_millis(500));
 
         let mut last_tick = Instant::now();
-        while !buttons.any_pressed() {
+        loop {
             watchdog::feed();
+            if buttons.any_pressed() {
+                break;
+            }
             let elapsed_ms = last_tick.elapsed().as_millis();
             if elapsed_ms >= SLEEP_FRAME_TIME_MS {
                 last_tick = Instant::now();
@@ -142,11 +169,28 @@ impl SleepManager {
                 time_system.advance(ctx, dt);
                 scene_manager.sleep_update(ctx, buttons, dt);
             }
+
+            if ctx.radio_users == 0 {
+                // Sleep through to the next slow tick unless a button
+                // wakes us first.
+                let next_tick = last_tick + Duration::from_millis(SLEEP_FRAME_TIME_MS);
+                buttons.arm_wakeup();
+                power::light_sleep_until(next_tick);
+                buttons.disarm_wakeup();
+                // A quick tap can be released before we read the pins.
+                if buttons.caused_wakeup() {
+                    break;
+                }
+            } else {
+                time::delay(WAKE_POLL);
+            }
         }
 
         println!("[Sleep] Waking from basic sleep");
         self.sleeping = false;
         self.last_activity = Instant::now();
+        // Undim before the panel comes back so the first frame is bright.
+        self.update_dim(renderer);
         renderer.power_on();
         // Drop the wake press so it doesn't fire a game action.
         buttons.consume_all();
