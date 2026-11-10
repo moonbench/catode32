@@ -203,6 +203,24 @@ const LOCATIONS: [SceneId; 4] = [
 const TRAIT_MAGNITUDE: u32 = 10;
 const PERSONALITY_TRAITS: usize = 5;
 
+/// Fold `word` into `state`. Each step is invertible, so absorbing more data
+/// never shrinks the entropy already held; the multiply keeps it non-linear.
+pub fn absorb(state: &mut u64, word: u64) {
+    let mut s = (*state ^ word).rotate_left(23);
+    s = s.wrapping_mul(0xFF51_AFD7_ED55_8CCD);
+    *state = s ^ (s >> 29);
+}
+
+/// Splitmix64 step: the next pet seed derived from a root `state`. The
+/// constant increment means a zero state is not a fixed point.
+pub fn next_expanded(state: &mut u64) -> u64 {
+    *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    let mut z = *state;
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    z ^ (z >> 31)
+}
+
 /// Returns five `(courage, loyalty, mischievousness, curiosity, sociability)`
 /// offsets in roughly `[-TRAIT_MAGNITUDE, +TRAIT_MAGNITUDE]`, mean-centered.
 pub fn derive_trait_offsets(seed: u64) -> [i32; PERSONALITY_TRAITS] {

@@ -49,6 +49,7 @@ fn main() -> ! {
         renderer,
         board.buttons,
         board.rng,
+        board.entropy,
         board.led,
         board.wifi,
         EspNowManager::new(),

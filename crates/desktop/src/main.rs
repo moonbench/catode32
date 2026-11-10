@@ -23,7 +23,10 @@ use catode32_core::{
     game::Game,
     input::{set_desktop_button, ButtonPin, Buttons},
     led::Led,
-    platform::{radio::WIFI, rng::Rng},
+    platform::{
+        radio::WIFI,
+        rng::{EntropySource, Rng},
+    },
     render::Renderer,
     storage,
 };
@@ -150,7 +153,7 @@ fn main() {
     let wifi = WIFI::new();
     let espnow = EspNowManager::new();
 
-    let mut game = Game::new(renderer, buttons, rng, led, wifi, espnow);
+    let mut game = Game::new(renderer, buttons, rng, EntropySource::new(), led, wifi, espnow);
 
     let mut sim_display = SimulatorDisplay::<Rgb888>::new(Size::new(WIDTH, HEIGHT));
     let output = OutputSettingsBuilder::new().scale(SCALE).build();

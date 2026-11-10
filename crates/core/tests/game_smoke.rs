@@ -13,7 +13,10 @@ use catode32_core::{
     game::Game,
     input::{ButtonPin, Buttons},
     led::Led,
-    platform::{radio::WIFI, rng::Rng},
+    platform::{
+        radio::WIFI,
+        rng::{EntropySource, Rng},
+    },
     render::Renderer,
     storage,
 };
@@ -57,6 +60,7 @@ fn ten_ticks_paints_pixels() {
         renderer,
         buttons,
         Rng::new(),
+        EntropySource::new(),
         Led::new(),
         WIFI::new(),
         EspNowManager::new(),

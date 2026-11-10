@@ -2,7 +2,7 @@ use crate::platform::{
     persist, watchdog,
     power::software_reset,
     radio::WIFI,
-    rng::Rng,
+    rng::{EntropySource, Rng},
     time::{self, Duration, Instant},
 };
 
@@ -67,6 +67,7 @@ impl Game {
         renderer: Renderer,
         buttons: Buttons,
         rng: Rng,
+        entropy: EntropySource,
         led: Led,
         wifi_peripheral: WIFI<'static>,
         espnow: EspNowManager,
@@ -77,6 +78,7 @@ impl Game {
         let seed = rng.random();
         context.rng = if seed == 0 { 1 } else { seed };
         context.hw_rng = rng;
+        context.entropy = Some(entropy);
         context.espnow = Some(espnow);
         context.wifi_peripheral = Some(wifi_peripheral);
         let (reset_label, brownout) = persist::reset_reason();

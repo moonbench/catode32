@@ -19,7 +19,8 @@ use crate::{
     context::{FavWeather, GameContext, PET_NAME_MAX},
     input::{Button, Buttons},
     pet_names,
-    pet_seed::{derive_favorites, derive_trait_offsets, DerivedFavorites, PetGender, StarSign, Temperament},
+    pet_seed::{absorb, derive_favorites, derive_trait_offsets, next_expanded, DerivedFavorites, PetGender, StarSign, Temperament},
+    platform::{rng::device_id, time::Instant},
     rand,
     render::{Renderer, SpriteOpts},
     scene::{Scene, SceneId},
@@ -34,6 +35,8 @@ const TITLE_H: i32 = 9;
 const CELL_W: i32 = 64;
 const CELL_H: i32 = 27;
 const PROFILE_TEXT_CAP: usize = 256;
+/// RNG words absorbed per root seed: 4x oversampled against its 8 bytes.
+const ENTROPY_SAMPLES: usize = 32;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum State {
@@ -130,13 +133,15 @@ impl AdoptionScene {
         let mut toms: Vec<Candidate, 2> = Vec::new();
         let mut queens: Vec<Candidate, 2> = Vec::new();
 
+        let mut root = gather_root_seed(ctx);
+
         // Cap iterations. At 12 FPS we don't want a runaway loop if the
         // entropy/uniqueness conditions can't be satisfied.
         for _ in 0..1024 {
             if toms.len() >= 2 && queens.len() >= 2 {
                 break;
             }
-            let seed = next_seed(ctx);
+            let seed = next_expanded(&mut root);
             let favs = derive_favorites(seed);
             let offs = derive_trait_offsets(seed);
             let portrait_idx = ((seed >> 40) as usize) % portraits.len();
@@ -486,11 +491,25 @@ impl Scene for AdoptionScene {
 // Helpers
 // ----------------------------------------------------------------------
 
-/// Pull a fresh 64-bit seed from the HW RNG.
-fn next_seed(ctx: &mut GameContext) -> u64 {
-    let mut buf = [0u8; 8];
-    ctx.hw_rng.read(&mut buf);
-    u64::from_be_bytes(buf)
+/// Build the root all candidate seeds expand from. The physical noise samples
+/// carry the entropy; time, device id and the previous pet keep roots distinct
+/// across devices and re-adoptions even if a noise source underperforms.
+fn gather_root_seed(ctx: &mut GameContext) -> u64 {
+    let mut samples = [0u32; ENTROPY_SAMPLES];
+    let radio_on = ctx.radio_users > 0;
+    match ctx.entropy.as_mut() {
+        Some(entropy) => entropy.collect(&ctx.hw_rng, radio_on, &mut samples),
+        None => samples.iter_mut().for_each(|s| *s = ctx.hw_rng.random()),
+    }
+
+    let mut root = 0;
+    for sample in samples {
+        absorb(&mut root, u64::from(sample));
+    }
+    absorb(&mut root, Instant::now().duration_since_epoch().as_micros());
+    absorb(&mut root, device_id());
+    absorb(&mut root, ctx.pet_seed);
+    root
 }
 
 fn seed_to_u32(seed: u64) -> u32 {

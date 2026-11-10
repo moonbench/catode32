@@ -3,7 +3,7 @@ use crate::t;
 
 use crate::platform::{
     radio::{WifiController, WIFI},
-    rng::Rng,
+    rng::{EntropySource, Rng},
     time::Instant,
 };
 
@@ -571,6 +571,9 @@ pub struct GameContext {
     // marker; it's stashed on the context so scenes can reach it without
     // plumbing a separate parameter.
     pub hw_rng: Rng,
+    /// Physical noise source for adoption seeds. `None` only on a context
+    /// built outside `Game::new`.
+    pub entropy: Option<EntropySource>,
 
     /// On-board WS2812 RGB LED handle (GPIO8). Stored on the context so the
     /// LED debug scene can drive it without a separate plumbing path.
@@ -772,6 +775,7 @@ impl GameContext {
 
             rng: 0xC0FFEEu32,
             hw_rng: Rng::new(),
+            entropy: None,
             led,
 
             pending_scene: None,

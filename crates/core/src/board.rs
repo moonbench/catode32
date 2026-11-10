@@ -23,7 +23,7 @@ mod firmware {
     };
 
     use super::I2C_FREQ_KHZ;
-    use crate::{input::Buttons, led::Led};
+    use crate::{input::Buttons, led::Led, platform::rng::EntropySource};
 
     #[cfg(all(feature = "c6", feature = "c3"))]
     compile_error!("Features `c6` and `c3` are mutually exclusive, enable exactly one.");
@@ -35,6 +35,7 @@ mod firmware {
         pub i2c: I2c<'static, Blocking>,
         pub buttons: Buttons,
         pub rng: Rng,
+        pub entropy: EntropySource,
         pub led: Led,
         pub flash: FLASH<'static>,
         pub timg0: TIMG0<'static>,
@@ -87,6 +88,7 @@ mod firmware {
             i2c,
             buttons,
             rng: Rng::new(),
+            entropy: EntropySource::new(peripherals.RNG, peripherals.ADC1),
             led,
             flash: peripherals.FLASH,
             timg0: peripherals.TIMG0,
