@@ -133,6 +133,16 @@ fn compute_transition(
     (next, duration)
 }
 
+/// Start this pet's weather at a seed-derived point in the shared sequence.
+pub fn init_from_seed(ctx: &mut GameContext) {
+    let step = (ctx.pet_seed >> 8) as u32;
+    let (weather, duration) = compute_transition(step, Weather::Clear, ctx.season, ctx.temperature);
+    ctx.weather = weather;
+    ctx.weather_step = step.wrapping_add(1);
+    ctx.weather_timer = duration as f32;
+    ctx.meteor_shower_timer = 0.0;
+}
+
 pub struct WeatherSystem;
 
 impl WeatherSystem {

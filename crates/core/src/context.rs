@@ -870,8 +870,8 @@ impl GameContext {
     }
 
     /// Apply a new pet seed and re-derive every field that depends on it
-    /// (gender, star sign, favorites, personality offsets). Stats, inventory,
-    /// plants, and name are untouched.
+    /// (gender, star sign, favorites, personality offsets, weather sequence).
+    /// Stats, inventory, plants, and name are untouched.
     pub fn reseed(&mut self, new_seed: u64) {
         self.pet_seed = new_seed;
         let favs = crate::pet_seed::derive_favorites(new_seed);
@@ -892,6 +892,7 @@ impl GameContext {
         self.mischievousness = 50.0 + offsets[2] as f32;
         self.curiosity = 50.0 + offsets[3] as f32;
         self.sociability = 50.0 + offsets[4] as f32;
+        crate::weather_system::init_from_seed(self);
     }
 
     /// Replace the player's plants with the developer starter set. Surfaced

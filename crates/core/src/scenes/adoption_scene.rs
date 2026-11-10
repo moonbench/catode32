@@ -227,30 +227,7 @@ impl AdoptionScene {
         let Some(cand) = self.candidates.get(self.viewing).copied() else {
             return;
         };
-        ctx.pet_seed = cand.seed;
-        ctx.pet_gender = Some(cand.favs.pet_gender);
-        ctx.star_sign = Some(cand.favs.star_sign);
-        ctx.fav_weather = Some(cand.favs.fav_weather);
-        ctx.fav_meal = Some(cand.favs.fav_meal);
-        ctx.least_fav_meal = Some(cand.favs.least_fav_meal);
-        ctx.fav_snack = Some(cand.favs.fav_snack);
-        ctx.least_fav_snack = Some(cand.favs.least_fav_snack);
-        ctx.fav_toy = Some(cand.favs.fav_toy);
-        ctx.least_fav_toy = Some(cand.favs.least_fav_toy);
-        ctx.fav_location = Some(cand.favs.fav_location);
-        ctx.least_fav_location = Some(cand.favs.least_fav_location);
-
-        // Personality trait offsets centred on 50.
-        let traits: [&mut f32; 5] = [
-            &mut ctx.courage,
-            &mut ctx.loyalty,
-            &mut ctx.mischievousness,
-            &mut ctx.curiosity,
-            &mut ctx.sociability,
-        ];
-        for (slot, off) in traits.into_iter().zip(cand.offsets.iter()) {
-            *slot = 50.0 + *off as f32;
-        }
+        ctx.reseed(cand.seed);
 
         // Pet name (trimmed; fallback to "Cat" when empty).
         let trimmed = name.trim();
@@ -547,13 +524,11 @@ fn profile_text(cand: &Candidate) -> String<PROFILE_TEXT_CAP> {
         PetGender::Queen => t!("Her"),
     };
     let possessive_lower: String<8> = to_lower(possessive);
-    // Displayed sign uses `seed % 12`, not the stored `cand.favs.star_sign`.
-    let displayed_sign = StarSign::from_index(cand.seed as u32 % 12);
     let temper = Temperament::from_dominant_index(dominant_trait_index(&cand.offsets));
     let weather = fav_weather_label(cand.favs.fav_weather);
 
     let temper_lower: String<24> = to_lower(temper.label());
-    let sign_lower: String<24> = to_lower(displayed_sign.label());
+    let sign_lower: String<24> = to_lower(cand.favs.star_sign.label());
     let meal_lower: String<24> = to_lower(food_label(cand.favs.fav_meal));
     let snack_lower: String<24> = to_lower(food_label(cand.favs.fav_snack));
     let toy_lower: String<24> = to_lower(toy_label(cand.favs.fav_toy));
