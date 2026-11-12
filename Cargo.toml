@@ -5,7 +5,9 @@ resolver = "2"
 
 [profile.dev.package.esp-radio]
 opt-level = 3
-[profile.dev.package.esp-wifi-sys]
+[profile.dev.package.esp-wifi-sys-esp32c6]
+opt-level = 3
+[profile.dev.package.esp-wifi-sys-esp32c3]
 opt-level = 3
 
 [profile.dev]
