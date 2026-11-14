@@ -209,7 +209,7 @@ pub static BODY_SIDE_KNEADING: CharBody = CharBody {
 };
 
 const BODY_SIDE_LAYING_FRAMES: &[&[u8]] = &[
-    b"\x00\x00\x00\x00\x00\x00\xf0\x00\x00\x0b\x0c\x00\x00\x04\x03\x00\x00\x00\x00\x80\x00\x00\x00\x40\x10\x00\x00\x20\x10\x00\x00\x20\x10\x00\x00\x10\x10\x00\x00\x10\x10\x00\x00\x08\x10\x00\x00\x08\x20\x00\x00\x00\x40\x00\x00\x80\x81\x00\x00\x80\x81\x00\x01\x08\x7e\xff\xff\xf0",
+    b"\x00\x00\x00\x00\x00\x00\xf0\x00\x00\x03\x0c\x00\x00\x04\x03\x00\x00\x00\x00\x80\x00\x00\x00\x40\x10\x00\x00\x20\x10\x00\x00\x20\x10\x00\x00\x10\x10\x00\x00\x10\x10\x00\x00\x08\x10\x00\x00\x08\x20\x00\x00\x00\x40\x00\x00\x80\x81\x00\x00\x80\x81\x00\x01\x08\x7e\xff\xff\xf0",
 ];
 
 const BODY_SIDE_LAYING_FILL_FRAMES: &[&[u8]] = &[
@@ -857,7 +857,7 @@ pub static HEAD_BACK_NEUTRAL: CharHead = CharHead {
 };
 
 const HEAD_FRONT_NEUTRAL_FRAMES: &[&[u8]] = &[
-    b"\x40\x00\x01\x00\xa0\x00\x02\x80\x90\x00\x04\x80\x88\x00\x08\x80\xa4\x00\x12\x80\xa2\x00\x22\x80\x91\xff\xc4\x80\x90\x00\x04\x80\x88\x00\x08\x80\x88\x00\x08\x80\xb0\x00\x06\x80\x80\x00\x00\x80\x80\x00\x00\x80\x80\x00\x00\x80\x80\x00\x00\x80\x80\x00\x00\x80\x40\x00\x01\x00\x40\x00\x01\x00\x40\x00\x01\x00\x40\x00\x01\x00\xe0\x00\x03\x80\x10\x00\x04\x00\x78\x00\x0f\x00\x06\x00\x30\x00",
+    b"\x40\x00\x01\x00\xa0\x00\x02\x80\x90\x00\x04\x80\x88\x00\x08\x80\xa4\x00\x12\x80\xa2\x00\x22\x80\x91\xff\xc4\x80\x90\x00\x04\x80\x88\x00\x08\x80\x88\x00\x08\x80\xb0\x00\x06\x80\x80\x00\x00\x80\x80\x00\x00\x80\x80\x00\x00\x80\x80\x00\x00\x80\x80\x00\x00\x80\x40\x00\x01\x00\x40\x00\x01\x00\x40\x00\x01\x00\x40\x00\x01\x00\xe0\x00\x03\x80\x10\x00\x04\x00\x78\x00\x0f\x00\x07\x80\xf0\x00",
 ];
 
 const HEAD_FRONT_NEUTRAL_FILL_FRAMES: &[&[u8]] = &[
@@ -872,7 +872,7 @@ pub static HEAD_FRONT_NEUTRAL: CharHead = CharHead {
         fill_frames: Some(HEAD_FRONT_NEUTRAL_FILL_FRAMES),
     },
     anchor_x: 13,
-    anchor_y: 23,
+    anchor_y: 24,
     eye_x: 12,
     eye_y: 17,
     speed: 1.0,
@@ -999,7 +999,7 @@ const HEAD_SIDE_NEUTRAL_FRAMES: &[&[u8]] = &[
 ];
 
 const HEAD_SIDE_NEUTRAL_FILL_FRAMES: &[&[u8]] = &[
-    b"\x02\x02\x00\x03\x03\x00\x03\x83\x80\x03\xc3\xc0\x03\xe3\xe0\x03\xf3\xf0\x03\xff\xf8\x03\xff\xf8\x07\xff\xfc\x0f\xff\xfc\x1f\xff\xfc\x1f\xff\xfe\x3f\xff\xfe\x3f\xff\xfe\x3f\xff\xfe\x3f\xff\xfe\x7f\xff\xfe\xff\xff\xfc\xff\xff\xfc\xff\xff\xfc\x7f\xff\xf8\x3f\xff\xf8\x1f\xff\xf0\x07\x80\x00",
+    b"\x02\x02\x00\x03\x03\x00\x03\x83\x80\x03\xc3\xc0\x03\xe3\xe0\x03\xf3\xf0\x03\xff\xf8\x03\xff\xf8\x07\xff\xfc\x0f\xff\xfc\x1f\xff\xfc\x1f\xff\xfe\x3f\xff\xfe\x3f\xff\xfe\x3f\xff\xfe\x3f\xff\xfe\x7f\xff\xfe\xff\xff\xfc\xff\xff\xfc\xff\xff\xfc\x7f\xff\xf8\x3f\xff\xf8\x1f\xff\xe0\x07\x80\x00",
 ];
 
 pub static HEAD_SIDE_NEUTRAL: CharHead = CharHead {
@@ -1715,7 +1715,7 @@ pub static POSE_LAYING_SIDE_BORED: Pose = Pose {
     eyes: Some(&EYES_FRONT_NEUTRAL),
     head_first: false,
     tail_last: false,
-    head_offset: None,
+    head_offset: Some((1, 0)),
 };
 
 pub static POSE_LAYING_SIDE_CONTENT: Pose = Pose {
@@ -1725,7 +1725,7 @@ pub static POSE_LAYING_SIDE_CONTENT: Pose = Pose {
     eyes: Some(&EYES_FRONT_NEUTRAL),
     head_first: false,
     tail_last: false,
-    head_offset: None,
+    head_offset: Some((1, 0)),
 };
 
 pub static POSE_LAYING_SIDE_BLISS: Pose = Pose {
@@ -1735,7 +1735,7 @@ pub static POSE_LAYING_SIDE_BLISS: Pose = Pose {
     eyes: Some(&EYES_FRONT_HAPPY),
     head_first: false,
     tail_last: false,
-    head_offset: None,
+    head_offset: Some((1, 0)),
 };
 
 pub static POSE_LAYING_SIDE_SULKING: Pose = Pose {
@@ -1775,7 +1775,7 @@ pub static POSE_SLEEPING_SIDE_SPLOOT: Pose = Pose {
     eyes: Some(&EYES_SHUT),
     head_first: false,
     tail_last: false,
-    head_offset: None,
+    head_offset: Some((1, 0)),
 };
 
 pub static POSE_SLEEPING_SIDE_MODEST: Pose = Pose {
@@ -1795,7 +1795,7 @@ pub static POSE_SLEEPING_SIDE_CROSSED: Pose = Pose {
     eyes: Some(&EYES_SHUT),
     head_first: false,
     tail_last: false,
-    head_offset: None,
+    head_offset: Some((1, 0)),
 };
 
 pub static POSE_STANDING_SIDE_NEUTRAL: Pose = Pose {
@@ -1905,7 +1905,7 @@ pub static POSE_LEANING_FORWARD_SIDE_EATING: Pose = Pose {
     eyes: Some(&EYES_SIDE_HAPPY),
     head_first: true,
     tail_last: false,
-    head_offset: None,
+    head_offset: Some((1, 0)),
 };
 
 pub static POSE_LEANING_FORWARD_SIDE_POUNCE: Pose = Pose {
@@ -1915,7 +1915,7 @@ pub static POSE_LEANING_FORWARD_SIDE_POUNCE: Pose = Pose {
     eyes: Some(&EYES_SIDE_ANGRY),
     head_first: true,
     tail_last: false,
-    head_offset: None,
+    head_offset: Some((1, 0)),
 };
 
 pub static POSE_LEANING_FORWARD_SIDE_CRAZY: Pose = Pose {
@@ -1925,7 +1925,7 @@ pub static POSE_LEANING_FORWARD_SIDE_CRAZY: Pose = Pose {
     eyes: Some(&EYES_SIDE_HUGE),
     head_first: true,
     tail_last: false,
-    head_offset: None,
+    head_offset: Some((1, 0)),
 };
 
 pub static POSE_KNEADING_SIDE_NEUTRAL: Pose = Pose {
@@ -1955,7 +1955,7 @@ pub static POSE_KNEADING_SIDE_ANGRY: Pose = Pose {
     eyes: Some(&EYES_SIDE_ANGRY),
     head_first: true,
     tail_last: false,
-    head_offset: None,
+    head_offset: Some((1, 0)),
 };
 
 pub static POSE_WALKING_SIDE_NEUTRAL: Pose = Pose {
