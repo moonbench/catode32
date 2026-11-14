@@ -1075,11 +1075,15 @@ impl LocationScene {
                 );
             }
             LocationAction::Play(variant) => {
-                self.behaviors.trigger(
-                    NextBehavior::Playing(variant, false),
-                    ctx,
-                    &mut self.character,
-                );
+                if ctx.toy_is_broken(variant) {
+                    self.show_popup(t!("Too damaged! Buy a new one at the store."));
+                } else {
+                    self.behaviors.trigger(
+                        NextBehavior::Playing(variant, false),
+                        ctx,
+                        &mut self.character,
+                    );
+                }
             }
             LocationAction::Medicine => {
                 if ctx.medicine > 0 {

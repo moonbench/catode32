@@ -125,6 +125,22 @@ pub enum PlayVariant {
     Bubbles,
 }
 
+impl PlayVariant {
+    /// The inventory toy this play variant uses, or `None` for `Hand`.
+    pub const fn to_toy_variant(self) -> Option<crate::context::ToyVariant> {
+        use crate::context::ToyVariant;
+        match self {
+            PlayVariant::String => Some(ToyVariant::String_),
+            PlayVariant::Feather => Some(ToyVariant::Feather),
+            PlayVariant::Mouse => Some(ToyVariant::Mouse),
+            PlayVariant::Ball => Some(ToyVariant::Ball),
+            PlayVariant::Bubbles => Some(ToyVariant::Bubbles),
+            PlayVariant::Laser => Some(ToyVariant::Laser),
+            PlayVariant::Hand => None,
+        }
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum AffectionVariant {

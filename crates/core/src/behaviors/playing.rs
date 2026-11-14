@@ -1104,17 +1104,7 @@ impl Behavior for PlayingBehavior {
         if completed && !self.rejecting {
             ctx.milestone_played = true;
             // Decrement durability on the toy that was used.
-            let variant = self.variant;
-            let toy_variant = match variant {
-                PlayVariant::String => Some(crate::context::ToyVariant::String_),
-                PlayVariant::Feather => Some(crate::context::ToyVariant::Feather),
-                PlayVariant::Mouse => Some(crate::context::ToyVariant::Mouse),
-                PlayVariant::Ball => Some(crate::context::ToyVariant::Ball),
-                PlayVariant::Bubbles => Some(crate::context::ToyVariant::Bubbles),
-                PlayVariant::Laser => Some(crate::context::ToyVariant::Laser),
-                PlayVariant::Hand => None,
-            };
-            if let Some(tv) = toy_variant {
+            if let Some(tv) = self.variant.to_toy_variant() {
                 if let Some(idx) = ctx.find_toy(tv) {
                     let t = &mut ctx.toys[idx];
                     t.durability = t.durability.saturating_sub(1);

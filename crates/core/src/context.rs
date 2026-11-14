@@ -1042,6 +1042,15 @@ impl GameContext {
         self.toys.iter().position(|t| t.variant == variant)
     }
 
+    /// True when `variant` uses an owned toy whose durability has run out.
+    /// `Hand` and toys not in the inventory are never broken.
+    pub fn toy_is_broken(&self, variant: crate::behavior::PlayVariant) -> bool {
+        variant
+            .to_toy_variant()
+            .and_then(|tv| self.find_toy(tv))
+            .map_or(false, |idx| self.toys[idx].durability == 0)
+    }
+
     pub fn add_toy(&mut self, variant: ToyVariant) -> bool {
         if self.find_toy(variant).is_some() {
             return false;
