@@ -1,6 +1,6 @@
 use crate::{
     assets::character::PoseId,
-    behavior::{Behavior, BehaviorId, BehaviorState},
+    behavior::{Behavior, BehaviorId, BehaviorState, NextBehavior},
     behaviors::common,
     context::{GameContext, StatId},
     entities::character::Character,
@@ -21,10 +21,13 @@ pub struct SelfGroomingBehavior {
     groom_duration: f32,
     finish_duration: f32,
     pose_id: PoseId,
+    /// Pose held during the Grooming phase (leg or raised paw).
+    groom_pose: PoseId,
+    after_meal: bool,
 }
 
 impl SelfGroomingBehavior {
-    pub fn new() -> Self {
+    pub fn new(after_meal: bool) -> Self {
         Self {
             phase: Phase::Preparing,
             phase_timer: 0.0,
@@ -32,6 +35,8 @@ impl SelfGroomingBehavior {
             groom_duration: 25.0,
             finish_duration: 2.0,
             pose_id: PoseId::SittingSideNeutral,
+            groom_pose: PoseId::SittingLickingSideLickingLeg,
+            after_meal,
         }
     }
 
@@ -44,6 +49,22 @@ impl SelfGroomingBehavior {
         let extra = rand::rand_range_f32(rng, 0.0, (ctx.energy * 0.25).max(10.0));
         (bulk + extra).max(0.0) as u32
     }
+}
+
+/// Post-meal wash. Eating may set `ctx.post_meal_groom_in` to 1..=5; the
+/// manager ticks it down on each completed behavior. Once it reaches 0 this
+/// fires at the next unchained pick (bypassing the cleanliness gate, since
+/// the meal is the reason to groom), then clears.
+pub fn post_meal_groom(ctx: &mut GameContext) -> Option<NextBehavior> {
+    if ctx.post_meal_groom_in != Some(0) {
+        return None;
+    }
+    ctx.post_meal_groom_in = None;
+    if common::sick_blocks(BehaviorId::SelfGrooming, ctx) || ctx.energy <= 15.0 {
+        return None;
+    }
+    println!("[PostMeal] Grooming");
+    Some(NextBehavior::SelfGrooming(true))
 }
 
 impl Behavior for SelfGroomingBehavior {
@@ -68,6 +89,11 @@ impl Behavior for SelfGroomingBehavior {
         self.groom_duration = rand::rand_range_f32(&mut ctx.rng, 10.0, 45.0);
         self.finish_duration = rand::rand_range_f32(&mut ctx.rng, 1.0, 3.0);
         self.pose_id = PoseId::SittingSideNeutral;
+        self.groom_pose = if self.after_meal || rand::rand_bool(&mut ctx.rng, 0.5) {
+            PoseId::SittingLickingSideLickingPaw
+        } else {
+            PoseId::SittingLickingSideLickingLeg
+        };
     }
 
     fn update(&mut self, _ctx: &mut GameContext, _: &mut Character, dt: f32) -> BehaviorState {
@@ -76,7 +102,7 @@ impl Behavior for SelfGroomingBehavior {
             Phase::Preparing if self.phase_timer >= self.prepare_duration => {
                 self.phase = Phase::Grooming;
                 self.phase_timer = 0.0;
-                self.pose_id = PoseId::SittingLickingSideLickingLeg;
+                self.pose_id = self.groom_pose;
             }
             Phase::Grooming if self.phase_timer >= self.groom_duration => {
                 self.phase = Phase::Finishing;

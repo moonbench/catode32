@@ -1618,6 +1618,16 @@ pub static POSE_SITTING_LICKING_SIDE_LICKING_LEG: Pose = Pose {
     head_offset: None,
 };
 
+pub static POSE_SITTING_LICKING_SIDE_LICKING_PAW: Pose = Pose {
+    body: &BODY_SIDE_BEGGING,
+    head: &HEAD_SIDE_NEUTRAL2,
+    tail: &TAIL_NEUTRAL,
+    eyes: Some(&EYES_LICKING),
+    head_first: true,
+    tail_last: false,
+    head_offset: None,
+};
+
 pub static POSE_BEGGING_SIDE_ARM_UP: Pose = Pose {
     body: &BODY_SIDE_BEGGING,
     head: &HEAD_SIDE_NEUTRAL,
@@ -2098,6 +2108,7 @@ pub enum PoseId {
     SittingSillySideAngry,
     SittingSillySideAnnoyed,
     SittingLickingSideLickingLeg,
+    SittingLickingSideLickingPaw,
     BeggingSideArmUp,
     BeggingSideArmUp2,
     BeggingSideDemanding,
@@ -2167,6 +2178,7 @@ impl PoseId {
             PoseId::SittingSillySideAngry => &POSE_SITTING_SILLY_SIDE_ANGRY,
             PoseId::SittingSillySideAnnoyed => &POSE_SITTING_SILLY_SIDE_ANNOYED,
             PoseId::SittingLickingSideLickingLeg => &POSE_SITTING_LICKING_SIDE_LICKING_LEG,
+            PoseId::SittingLickingSideLickingPaw => &POSE_SITTING_LICKING_SIDE_LICKING_PAW,
             PoseId::BeggingSideArmUp => &POSE_BEGGING_SIDE_ARM_UP,
             PoseId::BeggingSideArmUp2 => &POSE_BEGGING_SIDE_ARM_UP2,
             PoseId::BeggingSideDemanding => &POSE_BEGGING_SIDE_DEMANDING,
@@ -2236,6 +2248,7 @@ impl PoseId {
             PoseId::SittingSillySideAngry => "sitting_silly.side.angry",
             PoseId::SittingSillySideAnnoyed => "sitting_silly.side.annoyed",
             PoseId::SittingLickingSideLickingLeg => "sitting_licking.side.licking_leg",
+            PoseId::SittingLickingSideLickingPaw => "sitting_licking.side.licking_paw",
             PoseId::BeggingSideArmUp => "begging.side.arm_up",
             PoseId::BeggingSideArmUp2 => "begging.side.arm_up2",
             PoseId::BeggingSideDemanding => "begging.side.demanding",
@@ -2305,6 +2318,7 @@ pub const ALL_POSES: &[PoseId] = &[
     PoseId::SittingSillySideAngry,
     PoseId::SittingSillySideAnnoyed,
     PoseId::SittingLickingSideLickingLeg,
+    PoseId::SittingLickingSideLickingPaw,
     PoseId::BeggingSideArmUp,
     PoseId::BeggingSideArmUp2,
     PoseId::BeggingSideDemanding,

@@ -149,7 +149,7 @@ impl Behavior for BeingGroomedBehavior {
             && ctx.energy > 30.0
             && rand::rand_f32(&mut rng) < 0.4
         {
-            Some(NextBehavior::SelfGrooming)
+            Some(NextBehavior::SelfGrooming(false))
         } else {
             None
         }

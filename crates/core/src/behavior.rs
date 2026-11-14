@@ -188,7 +188,8 @@ pub enum NextBehavior {
     Chattering,
     Zoomies,
     Vocalizing,
-    SelfGrooming,
+    /// bool: after_meal (post-eating wash; always uses the paw-licking pose).
+    SelfGrooming(bool),
     Hunting,
     Pacing,
     Sulking,
@@ -447,6 +448,9 @@ impl BehaviorManager {
         if completed {
             ctx.record_behavior(id);
             self.current.as_dyn().apply_completion_bonus(ctx, progress);
+            if let Some(n) = ctx.post_meal_groom_in.as_mut() {
+                *n = n.saturating_sub(1);
+            }
         }
 
         let next = if let Some(n) = chained {
@@ -461,6 +465,8 @@ impl BehaviorManager {
                 } else {
                     auto_select(ctx)
                 }
+            } else if let Some(g) = crate::behaviors::self_grooming::post_meal_groom(ctx) {
+                g
             } else {
                 auto_select(ctx)
             }

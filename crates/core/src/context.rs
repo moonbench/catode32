@@ -548,6 +548,8 @@ pub struct GameContext {
     pub recent_behaviors: Vec<BehaviorId, RECENT_HISTORY>,
     pub current_behavior_name: Option<&'static str>,
     pub pending_wake_greeting: bool,
+    /// Behaviors left until a post-meal groom (runtime only, not saved).
+    pub post_meal_groom_in: Option<u8>,
 
     // Scene-supplied bounds and props (set by scenes during enter()).
     pub scene_x_min: i32,
@@ -765,6 +767,7 @@ impl GameContext {
             recent_behaviors: Vec::new(),
             current_behavior_name: None,
             pending_wake_greeting: false,
+            post_meal_groom_in: None,
 
             scene_x_min: 10,
             scene_x_max: 118,

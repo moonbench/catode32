@@ -19,6 +19,8 @@ const FOOD_OFFSET_X: i32 = 34;
 const REJECTION_LOOK_DURATION: f32 = 4.5;
 const LOWER_DURATION: f32 = 1.0;
 const PAUSE_DURATION: f32 = 1.5;
+/// Chance a finished meal queues a post-meal groom (see self_grooming).
+const POST_MEAL_GROOM_CHANCE: f32 = 0.5;
 
 const REJECTION_POSES: &[PoseId] = &[
     PoseId::StandingSideNeutralLookingDown,
@@ -195,6 +197,11 @@ impl Behavior for EatingBehavior {
     fn apply_completion_bonus(&self, ctx: &mut GameContext, progress: f32) {
         if self.rejecting {
             return;
+        }
+
+        // Cats often wash up after a meal: sometimes groom within 1-5 behaviors.
+        if rand::rand_bool(&mut ctx.rng, POST_MEAL_GROOM_CHANCE) {
+            ctx.post_meal_groom_in = Some(rand::rand_range_u32(&mut ctx.rng, 1, 5) as u8);
         }
 
         let cfg = food_cfg(self.source);
