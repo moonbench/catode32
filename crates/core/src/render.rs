@@ -95,16 +95,49 @@ impl Renderer {
         &self.display
     }
 
-    /// Cut display panel power (~1-2 mA saving). Drawing still updates the
-    /// off-screen buffer; nothing reaches the panel until `power_on()`.
+    /// Cut display panel power. Drawing still updates the off-screen buffer;
+    /// nothing reaches the panel until `power_on()`. Follows the SSD1306
+    /// datasheet power-off order: display off (AEh), then charge pump off
+    /// (8Dh 10h), which drops the panel to its ~10 µA sleep current.
     pub fn power_off(&mut self) {
         self.display.set_display_on(false).ok();
+        self.set_charge_pump(false);
     }
 
-    /// Restore display panel power.
+    /// Restore display panel power: charge pump on (8Dh 14h), then display
+    /// on (AFh), per the datasheet.
     pub fn power_on(&mut self) {
+        self.set_charge_pump(true);
         self.display.set_display_on(true).ok();
     }
+
+    /// Send the SSD1306 charge pump command. The `ssd1306` crate has no API
+    /// for this and keeps its interface private, so we take the driver apart
+    /// (`release`), send the raw command, and rebuild it around the same bus.
+    /// Rebuilding only resets the driver's framebuffer, not the panel. Every
+    /// frame starts with `clear()`, which marks the whole buffer dirty, so
+    /// the next frame repaints everything.
+    #[cfg(not(feature = "desktop"))]
+    fn set_charge_pump(&mut self, on: bool) {
+        use ssd1306::command::Command;
+
+        // Safety: `self.display` is moved out by `read` and always written
+        // back by `write` before returning. Nothing in between can panic
+        // (`send` returns a `Result`, `new` is infallible), so it is never
+        // dropped twice or observed in a moved-from state. The firmware
+        // panics by resetting, not unwinding, in any case.
+        unsafe {
+            let display = core::ptr::read(&self.display);
+            let mut interface = display.release();
+            Command::ChargePump(on).send(&mut interface).ok();
+            let display = Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate0)
+                .into_buffered_graphics_mode();
+            core::ptr::write(&mut self.display, display);
+        }
+    }
+
+    #[cfg(feature = "desktop")]
+    fn set_charge_pump(&mut self, _on: bool) {}
 
     /// Drop the panel to its lowest contrast, or back to normal. OLED
     /// current scales with contrast, so this is the idle power saver short

@@ -5,8 +5,9 @@
 //!   - After `DIM_TIMEOUT` of no button activity, dim the display; the
 //!     next press restores it (and still acts as a normal press).
 //!   - After `SLEEP_TIMEOUT` of no button activity, power off the display.
-//!   - Continue ticking the game at `SLEEP_FPS` so needs/time advance while
-//!     invisible.
+//!   - Keep simulating while invisible so needs/time advance: the game is
+//!     stepped at a fixed `SLEEP_STEP_MS`, but in batches that run once per
+//!     `SLEEP_SIM_INTERVAL` (see "Power" below).
 //!   - Any button press wakes the device; the wake press is consumed so it
 //!     does not register as a game action.
 //!   - On wake, set `ctx.pending_wake_greeting` so the pet greets the
@@ -14,11 +15,14 @@
 //!     scene's behavior manager to wind down quickly so the greeting fires
 //!     promptly rather than at the next natural completion.
 //!
-//! While the screen is off the chip spends the gaps between slow ticks in
-//! true light sleep (timer + button GPIO wake), so the idle current is a
-//! fraction of a running CPU. If the radio is up (scan, ESP-NOW) it falls
-//! back to the scheduler idle loop, since light sleep would stall the
-//! radio.
+//! Power: while the screen is off the chip spends the gaps between batches
+//! in true light sleep (timer + button GPIO wake). Each batch replays the
+//! elapsed time as `SLEEP_STEP_MS` sub-steps. The sim isn't dt-invariant
+//! (behavior phases drop leftover time, walkers overshoot their targets),
+//! so one big step would not be equivalent. Batching only saves the fixed
+//! per-wake cost of leaving and re-entering light sleep. If the radio is up
+//! (scan, ESP-NOW) it falls back to the scheduler idle loop and steps as
+//! soon as each step is due, since light sleep would stall the radio.
 //!
 //! TODO(deep_sleep): implement a "deep" mode for basic auto-sleep (the
 //! Power debug menu already has a one-way deep sleep).
@@ -59,6 +63,33 @@ pub fn wait_buttons_stable_released_mask(
     }
 }
 
+/// Run every whole `SLEEP_STEP_MS` step between `sim_time` and now, advancing
+/// `sim_time` by the steps taken. Leftover time under one step carries to the
+/// next call. Capped at `MAX_CATCH_UP_STEPS`.
+fn catch_up(
+    ctx: &mut GameContext,
+    buttons: &mut Buttons,
+    scene_manager: &mut SceneManager,
+    time_system: &mut TimeSystem,
+    sim_time: &mut Instant,
+) {
+    let step = Duration::from_millis(SLEEP_STEP_MS);
+    let mut steps = 0;
+    while sim_time.elapsed() >= step {
+        if steps == MAX_CATCH_UP_STEPS {
+            println!("[Sleep] Catch-up backlog dropped");
+            *sim_time = Instant::now();
+            break;
+        }
+        watchdog::feed();
+        let dt = (SLEEP_STEP_MS as f32) / 1000.0 * ctx.time_speed;
+        time_system.advance(ctx, dt);
+        scene_manager.sleep_update(ctx, buttons, dt);
+        *sim_time = *sim_time + step;
+        steps += 1;
+    }
+}
+
 /// Inactivity before the display dims.
 pub const DIM_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -72,9 +103,17 @@ const STABLE_POLL: Duration = Duration::from_millis(10);
 /// Short enough that a tap wakes the device; the CPU idles between polls.
 const WAKE_POLL: Duration = Duration::from_millis(50);
 
-/// Game update rate while in basic sleep.
-pub const SLEEP_FPS: u64 = 2;
-pub const SLEEP_FRAME_TIME_MS: u64 = 1000 / SLEEP_FPS;
+/// Simulation step while in basic sleep (real time, before `time_speed`).
+pub const SLEEP_STEP_MS: u64 = 500;
+
+/// How often the chip leaves light sleep to run a batch of sim steps. The
+/// screen stays off; this is not a wake.
+pub const SLEEP_SIM_INTERVAL: Duration = Duration::from_secs(15);
+
+/// Most steps one batch will run. A batch normally covers one
+/// `SLEEP_SIM_INTERVAL` (30 steps); anything past this is dropped rather
+/// than stalling the wake on a huge backlog.
+const MAX_CATCH_UP_STEPS: u32 = 120;
 
 pub struct SleepManager {
     sleeping: bool,
@@ -156,35 +195,37 @@ impl SleepManager {
         // an instant wake.
         wait_buttons_stable_released(buttons, Duration::from_millis(500));
 
-        let mut last_tick = Instant::now();
+        // Sim time simulated so far. Advanced in exact steps (never reset
+        // to `now()`) so no fraction of a step is lost between batches.
+        let mut sim_time = Instant::now();
         loop {
             watchdog::feed();
             if buttons.any_pressed() {
                 break;
             }
-            let elapsed_ms = last_tick.elapsed().as_millis();
-            if elapsed_ms >= SLEEP_FRAME_TIME_MS {
-                last_tick = Instant::now();
-                let dt = (elapsed_ms as f32) / 1000.0 * ctx.time_speed;
-                time_system.advance(ctx, dt);
-                scene_manager.sleep_update(ctx, buttons, dt);
-            }
 
             if ctx.radio_users == 0 {
-                // Sleep through to the next slow tick unless a button
-                // wakes us first.
-                let next_tick = last_tick + Duration::from_millis(SLEEP_FRAME_TIME_MS);
+                if sim_time.elapsed() >= SLEEP_SIM_INTERVAL {
+                    catch_up(ctx, buttons, scene_manager, time_system, &mut sim_time);
+                }
+                // Sleep through to the next batch unless a button wakes
+                // us first.
                 buttons.arm_wakeup();
-                power::light_sleep_until(next_tick);
+                power::light_sleep_until(sim_time + SLEEP_SIM_INTERVAL);
                 buttons.disarm_wakeup();
                 // A quick tap can be released before we read the pins.
                 if buttons.caused_wakeup() {
                     break;
                 }
             } else {
+                catch_up(ctx, buttons, scene_manager, time_system, &mut sim_time);
                 time::delay(WAKE_POLL);
             }
         }
+
+        // Simulate the partial interval since the last batch, so the time
+        // before the press isn't lost.
+        catch_up(ctx, buttons, scene_manager, time_system, &mut sim_time);
 
         println!("[Sleep] Waking from basic sleep");
         self.sleeping = false;
