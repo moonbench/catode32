@@ -281,6 +281,8 @@ pub fn end_visit(ctx: &mut GameContext, notify_peer: bool) {
     let Some(visit) = ctx.visit.take() else {
         return;
     };
+    // Remember how long we played together so the pets grow familiar.
+    ctx.record_visit_end(&visit);
     if notify_peer {
         if let Some(espnow) = ctx.espnow.as_mut() {
             let frame = encode_empty(TAG_VBYE);

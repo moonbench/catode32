@@ -85,6 +85,36 @@ const GREETING_APPROACH_GAP: i32 = 8;
 /// Inviter to invitee environment-sync broadcast interval.
 const VENV_INTERVAL: f32 = 1.0;
 
+/// Approximate length of the greeting sniff, used to size the
+/// familiarity bubble shown over the visitor while it sniffs back.
+const SNIFF_DURATION: f32 = 3.5;
+
+/// How long the familiarity bubble stays above the visitor.
+const VISITOR_BUBBLE_DURATION: f32 = SNIFF_DURATION + 0.5;
+
+/// How long a peer's vocalize bubble stays above the visitor.
+const VISITOR_VOCALIZE_DURATION: f32 = 4.0;
+
+/// Chance the local cat answers a visiting peer's vocalization, and the
+/// delay range (seconds) before it does.
+const VOC_REPLY_CHANCE: f32 = 0.5;
+const VOC_REPLY_DELAY_MIN: f32 = 1.0;
+const VOC_REPLY_DELAY_MAX: f32 = 4.0;
+
+/// Friendship level at or above which the visitor greets with a heart
+/// instead of a question mark.
+const FAMILIAR_THRESHOLD: f32 = 0.5;
+
+/// Bubble drawn above the visitor cat during a playdate: a heart or
+/// question mark (familiarity) on greetings/sniffs, or the icon of a
+/// sound the visitor just made.
+#[derive(Clone, Copy)]
+struct VisitorBubble {
+    icon: BubbleIcon,
+    remaining: f32,
+    max: f32,
+}
+
 #[derive(Clone, Copy)]
 struct HeardFlash {
     icon: BubbleIcon,
@@ -125,6 +155,11 @@ pub struct LocationScene {
     /// when `ctx.visit.is_some()`; destroyed on `exit`. Position and
     /// pose come from inbound `vst ` frames.
     visitor: Option<VisitorCat>,
+    /// Familiarity bubble above the visitor, set on greetings/sniffs.
+    visitor_bubble: Option<VisitorBubble>,
+    /// Countdown to the local cat answering the visitor's vocalization.
+    /// 0.0 means no reply is pending.
+    voc_reply_timer: f32,
     /// Last broadcast `vst ` state, used to throttle outbound traffic
     /// to only when something material changed.
     last_vst_x: i32,
@@ -171,6 +206,8 @@ impl LocationScene {
             popup_active: false,
             heard_flash: None,
             visitor: None,
+            visitor_bubble: None,
+            voc_reply_timer: 0.0,
             last_vst_x: i32::MIN,
             last_vst_pose: PoseId::SittingSideNeutral,
             last_vst_vx: 0.0,
@@ -220,7 +257,8 @@ impl LocationScene {
         // velocity from the per-frame delta, then broadcast if pose
         // changed, position drifted past the delta threshold, or the
         // heartbeat fired.
-        if let Some(visit) = ctx.visit.as_ref() {
+        if let Some(visit) = ctx.visit.as_mut() {
+            visit.play_time += dt;
             let peer_mac = visit.peer_mac;
             let role = visit.role;
             self.broadcast_vst(ctx, peer_mac, dt);
@@ -288,7 +326,14 @@ impl LocationScene {
         let peer_mac = ctx.visit.as_ref().map(|v| v.peer_mac);
         for item in inbox.iter() {
             if let Some(icon) = espnow_msg::decode_vocalize(&item.data) {
-                self.handle_heard_vocalize(ctx, icon);
+                if Some(item.src) == peer_mac && self.visitor.is_some() {
+                    // The visiting pet made the sound: show it over
+                    // their head rather than as a distant corner flash.
+                    self.visit_silence_timer = 0.0;
+                    self.handle_visitor_vocalize(ctx, icon);
+                } else {
+                    self.handle_heard_vocalize(ctx, icon);
+                }
                 continue;
             }
             if let Some(vst) = espnow_msg::decode_vst(&item.data) {
@@ -376,12 +421,24 @@ impl LocationScene {
         // timeout, or someone else flipped `ctx.visit` to None).
         if ctx.visit.is_none() && self.visitor.is_some() {
             self.visitor = None;
+            self.visitor_bubble = None;
+            self.voc_reply_timer = 0.0;
         }
 
         // Extrapolate the visitor between packets + tick its
         // animation.
         if let Some(visitor) = self.visitor.as_mut() {
             visitor.update(dt);
+        }
+
+        self.tick_voc_reply(ctx, dt);
+
+        // Tick the visitor's bubble.
+        if let Some(b) = self.visitor_bubble.as_mut() {
+            b.remaining -= dt;
+            if b.remaining <= 0.0 {
+                self.visitor_bubble = None;
+            }
         }
 
         // Tick the active flash.
@@ -488,6 +545,25 @@ impl LocationScene {
             espnow.send_to(peer_mac, &frame);
         }
         self.sniff_cooldown = SNIFF_COOLDOWN;
+        self.show_visitor_bubble(ctx, peer_mac);
+    }
+
+    /// Pop a heart (familiar friend) or question mark (stranger) above
+    /// the visitor, based on accumulated playtime with this peer.
+    fn show_visitor_bubble(&mut self, ctx: &GameContext, peer_mac: [u8; 6]) {
+        if self.visitor.is_none() {
+            return;
+        }
+        let icon = if ctx.friendship_level(&peer_mac) >= FAMILIAR_THRESHOLD {
+            BubbleIcon::Heart
+        } else {
+            BubbleIcon::Question
+        };
+        self.visitor_bubble = Some(VisitorBubble {
+            icon,
+            remaining: VISITOR_BUBBLE_DURATION,
+            max: VISITOR_BUBBLE_DURATION,
+        });
     }
 
     fn handle_peer_vbeh(&mut self, ctx: &mut GameContext, peer: BehaviorId) {
@@ -501,6 +577,9 @@ impl LocationScene {
     }
 
     fn handle_peer_vgreet(&mut self, ctx: &mut GameContext) {
+        if let Some(mac) = ctx.visit.as_ref().map(|v| v.peer_mac) {
+            self.show_visitor_bubble(ctx, mac);
+        }
         // Invitee receives the inviter's greeting kickoff. Walk
         // toward the inviter's spawn position.
         let target_x = self
@@ -519,10 +598,53 @@ impl LocationScene {
         if self.behaviors.current_id() == BehaviorId::Greeting {
             return;
         }
+        if let Some(mac) = ctx.visit.as_ref().map(|v| v.peer_mac) {
+            self.show_visitor_bubble(ctx, mac);
+        }
         // Sniff in place.
         ctx.pending_greeting_target_x = None;
         self.behaviors
             .trigger(NextBehavior::Greeting, ctx, &mut self.character);
+    }
+
+    /// The visiting pet vocalized: bubble above them, and maybe have our
+    /// cat answer after a short pause.
+    fn handle_visitor_vocalize(&mut self, ctx: &mut GameContext, icon: BubbleIcon) {
+        use crate::rand::{rand_bool, rand_range_f32};
+        self.visitor_bubble = Some(VisitorBubble {
+            icon,
+            remaining: VISITOR_VOCALIZE_DURATION,
+            max: VISITOR_VOCALIZE_DURATION,
+        });
+        if self.voc_reply_timer <= 0.0 && rand_bool(&mut ctx.rng, VOC_REPLY_CHANCE) {
+            self.voc_reply_timer =
+                rand_range_f32(&mut ctx.rng, VOC_REPLY_DELAY_MIN, VOC_REPLY_DELAY_MAX);
+        }
+    }
+
+    fn tick_voc_reply(&mut self, ctx: &mut GameContext, dt: f32) {
+        if self.voc_reply_timer <= 0.0 {
+            return;
+        }
+        self.voc_reply_timer -= dt;
+        if self.voc_reply_timer > 0.0 {
+            return;
+        }
+        self.voc_reply_timer = 0.0;
+        if ctx.visit.is_none() {
+            return;
+        }
+        if matches!(
+            self.behaviors.current_id(),
+            BehaviorId::Sleeping
+                | BehaviorId::Eating
+                | BehaviorId::BeingGroomed
+                | BehaviorId::Vocalizing
+        ) {
+            return;
+        }
+        self.behaviors
+            .trigger(NextBehavior::Vocalizing, ctx, &mut self.character);
     }
 
     fn handle_heard_vocalize(&mut self, ctx: &mut GameContext, icon: BubbleIcon) {
@@ -623,12 +745,15 @@ impl LocationScene {
             let mut v = VisitorCat::new(pos);
             v.mirror_h = visitor_face_right;
             self.visitor = Some(v);
+            self.visitor_bubble = None;
+            self.voc_reply_timer = 0.0;
             // Camera was set from the (pre-visit) character x above.
             // Re-center on the new x.
             self.environment
                 .set_camera(self.character.pos.x - DISPLAY_WIDTH / 2);
         } else {
             self.visitor = None;
+            self.visitor_bubble = None;
         }
         // Reset the vst broadcast throttles so the very first frame
         // after enter is guaranteed to broadcast our pose+position
@@ -1260,6 +1385,17 @@ impl LocationScene {
         // the same layer.
         if let Some(visitor) = self.visitor.as_ref() {
             visitor.draw(renderer, camera_offset);
+            if let Some(b) = self.visitor_bubble {
+                let progress = if b.max > 0.0 { 1.0 - b.remaining / b.max } else { 0.0 };
+                bubble::draw_above_char(
+                    renderer,
+                    b.icon,
+                    visitor.pos.x - camera_offset,
+                    visitor.pos.y,
+                    progress,
+                    visitor.mirror_h,
+                );
+            }
         }
         let screen = Point::new(
             self.character.pos.x - camera_offset,

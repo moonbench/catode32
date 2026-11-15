@@ -13,7 +13,7 @@ use crate::{
     assets::plants::{PlantStage, PotKind},
     context::{
         FavWeather, FoodItem, GameContext, PotSize, SeedKind, ToolKind, ToyEntry, ToyVariant,
-        WifiEntry, FOOD_ITEM_COUNT, MAX_PLANTS, PET_NAME_MAX, RECENT_HISTORY, TOY_VARIANT_COUNT,
+        FriendEntry, WifiEntry, FOOD_ITEM_COUNT, FRIENDS_MAX, MAX_PLANTS, PET_NAME_MAX, RECENT_HISTORY, TOY_VARIANT_COUNT,
         WIFI_FAMILIAR_MAX, WIFI_RECENT_MAX, WIFI_SSID_MAX,
     },
     pet_seed::{PetGender, StarSign},
@@ -397,19 +397,89 @@ struct WifiEntryData {
     count: f32,
 }
 
-/// Placeholder for the friends map (not yet implemented). Serialises as an
-/// empty JSON object; deserialise is a no-op accept-anything.
+#[derive(Default, Serialize, Deserialize)]
+struct FriendData {
+    #[serde(default, rename = "n")]
+    name: NameStr,
+    #[serde(default, rename = "t")]
+    total_secs: f32,
+    #[serde(default, rename = "c")]
+    visits: u16,
+}
+
+/// Playdate friends, keyed by peer MAC. Serialises as a JSON object
+/// `{"aa:bb:cc:dd:ee:ff": {"n": .., "t": .., "c": ..}}`, matching the
+/// MicroPython save format. Entries with unparseable keys, or past
+/// `FRIENDS_MAX`, are dropped on load.
 #[derive(Default)]
-struct StubMap;
-impl Serialize for StubMap {
+struct FriendsMap(Vec<([u8; 6], FriendData), FRIENDS_MAX>);
+
+impl Serialize for FriendsMap {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeMap;
-        s.serialize_map(Some(0))?.end()
+        let mut map = s.serialize_map(Some(self.0.len()))?;
+        for (mac, data) in self.0.iter() {
+            map.serialize_entry(wifi_tracker::format_bssid(mac).as_str(), data)?;
+        }
+        map.end()
     }
 }
-impl<'de> Deserialize<'de> for StubMap {
+
+impl<'de> Deserialize<'de> for FriendsMap {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        serde::de::IgnoredAny::deserialize(d).map(|_| StubMap)
+        struct V;
+        impl<'de> serde::de::Visitor<'de> for V {
+            type Value = FriendsMap;
+            fn expecting(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+                f.write_str("a map of MAC -> friend")
+            }
+            fn visit_map<A: serde::de::MapAccess<'de>>(
+                self,
+                mut access: A,
+            ) -> Result<FriendsMap, A::Error> {
+                let mut out = FriendsMap::default();
+                while let Some(key) = access.next_key::<String<17>>()? {
+                    match wifi_tracker::parse_bssid(&key) {
+                        Some(mac) if !out.0.is_full() => {
+                            let data = access.next_value::<FriendData>()?;
+                            let _ = out.0.push((mac, data));
+                        }
+                        _ => {
+                            access.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(out)
+            }
+        }
+        d.deserialize_map(V)
+    }
+}
+
+fn build_friends(src: &Vec<FriendEntry, FRIENDS_MAX>) -> FriendsMap {
+    let mut out = FriendsMap::default();
+    for f in src.iter() {
+        let _ = out.0.push((
+            f.mac,
+            FriendData {
+                name: f.name.clone(),
+                total_secs: f.total_secs,
+                visits: f.visits,
+            },
+        ));
+    }
+    out
+}
+
+fn apply_friends(src: &FriendsMap, dst: &mut Vec<FriendEntry, FRIENDS_MAX>) {
+    dst.clear();
+    for (mac, data) in src.0.iter() {
+        let _ = dst.push(FriendEntry {
+            mac: *mac,
+            name: data.name.clone(),
+            total_secs: data.total_secs,
+            visits: data.visits,
+        });
     }
 }
 
@@ -445,7 +515,7 @@ struct SaveData {
     /// True when this save was written immediately before a wifi scan.
     #[serde(default)] scan_started: bool,
     #[serde(default)] pet_name: Option<NameStr>,
-    #[serde(default)] friends: StubMap,
+    #[serde(default)] friends: FriendsMap,
     #[serde(default)] recent_meals: Vec<SStr, RECENT_HISTORY>,
     #[serde(default)] milestones: MilestonesData,
 
@@ -613,7 +683,7 @@ fn build(ctx: &GameContext) -> SaveData {
             let _ = n.push_str(ctx.pet_name.as_str());
             Some(n)
         },
-        friends: StubMap,
+        friends: build_friends(&ctx.friends),
         recent_meals,
         milestones: MilestonesData {
             fed: ctx.milestone_fed,
@@ -830,6 +900,7 @@ fn apply(data: &SaveData, ctx: &mut GameContext) {
     // (e.g. saves from before wifi was wired up).
     apply_wifi_list(&data.wifi_familiar, &mut ctx.wifi_familiar);
     apply_wifi_list(&data.wifi_recent, &mut ctx.wifi_recent);
+    apply_friends(&data.friends, &mut ctx.friends);
     ctx.scan_started = data.scan_started;
 
     ctx.first_impressions = false;

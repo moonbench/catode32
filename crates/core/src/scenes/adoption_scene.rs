@@ -233,6 +233,8 @@ impl AdoptionScene {
             return;
         };
         ctx.reseed(cand.seed);
+        // A newly adopted cat hasn't met anyone yet.
+        ctx.friends.clear();
 
         // Pet name (trimmed; fallback to "Cat" when empty).
         let trimmed = name.trim();

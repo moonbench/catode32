@@ -28,6 +28,27 @@ pub const WIFI_RECENT_MAX: usize = 8;
 /// time so saves round-trip cleanly.
 pub const WIFI_SSID_MAX: usize = 16;
 
+/// Max peers remembered in `GameContext::friends`. When full, the peer
+/// with the least total playtime is evicted to make room.
+pub const FRIENDS_MAX: usize = 10;
+
+/// Total playtime (seconds, summed across visits) at which a peer counts
+/// as fully familiar.
+pub const FRIEND_FULL_SECS: f32 = 900.0;
+
+/// Visits shorter than this (seconds) aren't recorded as friendship.
+const FRIEND_MIN_VISIT_SECS: f32 = 5.0;
+
+/// A remembered playdate peer. Persisted as
+/// `"friends": {"aa:bb:cc:dd:ee:ff": {"n": name, "t": secs, "c": visits}}`.
+#[derive(Clone, Debug)]
+pub struct FriendEntry {
+    pub mac: [u8; 6],
+    pub name: heapless::String<PET_NAME_MAX>,
+    pub total_secs: f32,
+    pub visits: u16,
+}
+
 /// One tracked access point. `b` is the BSSID (6 raw bytes; rendered as
 /// `aa:bb:cc:dd:ee:ff` in JSON), `s` is the SSID, `n` is the running
 /// "times seen" count subject to per-scan decay.
@@ -115,8 +136,9 @@ pub struct VisitState {
     pub peer_mac: [u8; 6],
     pub peer_name: heapless::String<PET_NAME_MAX>,
     pub role: VisitRole,
-    /// Wall-clock seconds the visit has been running. Bumped each
-    /// frame by the visit manager once Phase 5 lands.
+    /// Seconds the visit has been running in a location scene. Bumped
+    /// each frame by `LocationScene::update`; folded into
+    /// `GameContext::friends` when the visit ends.
     pub play_time: f32,
     /// Becomes true after the greeting ritual has fired on local-cat
     /// scene entry. Phase-5 hook.
@@ -611,6 +633,8 @@ pub struct GameContext {
     /// Short-lived AP list. Entries here are candidates that haven't been
     /// seen enough times yet to count as "familiar".
     pub wifi_recent: Vec<WifiEntry, WIFI_RECENT_MAX>,
+    /// Playdate peers this pet has spent time with. Drives familiarity.
+    pub friends: Vec<FriendEntry, FRIENDS_MAX>,
     /// Set by the debug scene's "Scan" action; Game::update consumes it
     /// next frame and drives a synchronous scan. Out-of-band from the
     /// hourly midpoint scan so the debug UI can force a fresh result.
@@ -791,6 +815,7 @@ impl GameContext {
             in_familiar_location: true,
             wifi_familiar: Vec::new(),
             wifi_recent: Vec::new(),
+            friends: Vec::new(),
             wifi_scan_requested: false,
             scan_started: false,
             last_reset_reason: heapless::String::new(),
@@ -1011,6 +1036,67 @@ impl GameContext {
             self.recent_meals.pop();
         }
         let _ = self.recent_meals.insert(0, entry);
+    }
+
+    /// Familiarity with a playdate peer, 0.0 (stranger) to 1.0. Reaches
+    /// 1.0 after `FRIEND_FULL_SECS` of total playtime across visits.
+    pub fn friendship_level(&self, mac: &[u8; 6]) -> f32 {
+        self.friends
+            .iter()
+            .find(|f| &f.mac == mac)
+            .map(|f| (f.total_secs / FRIEND_FULL_SECS).clamp(0.0, 1.0))
+            .unwrap_or(0.0)
+    }
+
+    /// Record `secs` of playtime with a peer, creating the entry if
+    /// needed. When the list is full, a newcomer only takes the slot of
+    /// the least-played friend if it has already spent longer with us
+    /// than that friend has; otherwise the newcomer isn't remembered.
+    pub fn update_friend(&mut self, mac: [u8; 6], name: &str, secs: f32) {
+        let mut new_name: heapless::String<PET_NAME_MAX> = heapless::String::new();
+        for c in name.chars() {
+            if new_name.push(c).is_err() {
+                break;
+            }
+        }
+        if let Some(f) = self.friends.iter_mut().find(|f| f.mac == mac) {
+            f.name = new_name;
+            f.total_secs += secs;
+            f.visits = f.visits.saturating_add(1);
+            return;
+        }
+        if self.friends.is_full() {
+            let weakest = self
+                .friends
+                .iter()
+                .enumerate()
+                .min_by(|a, b| {
+                    a.1.total_secs
+                        .partial_cmp(&b.1.total_secs)
+                        .unwrap_or(core::cmp::Ordering::Equal)
+                })
+                .map(|(i, f)| (i, f.total_secs));
+            match weakest {
+                Some((i, weakest_secs)) if secs > weakest_secs => {
+                    self.friends.swap_remove(i);
+                }
+                _ => return,
+            }
+        }
+        let _ = self.friends.push(FriendEntry {
+            mac,
+            name: new_name,
+            total_secs: secs,
+            visits: 1,
+        });
+    }
+
+    /// Fold a finished visit's playtime into `friends`. Very short
+    /// visits (dropped connections, immediate exits) are ignored.
+    pub fn record_visit_end(&mut self, visit: &VisitState) {
+        if visit.play_time > FRIEND_MIN_VISIT_SECS {
+            self.update_friend(visit.peer_mac, visit.peer_name.as_str(), visit.play_time);
+        }
     }
 
     /// Recency index of `id` in the recent-behaviors ring, or None.
