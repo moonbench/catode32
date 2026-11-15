@@ -40,7 +40,7 @@ enum State {
 pub struct PetInfoScene {
     state: State,
     keyboard: OnScreenKeyboard,
-    portrait_poses: Vec<PoseId, 64>,
+    portrait_poses: Vec<PoseId, 80>,
     portrait: Option<PoseId>,
     lines: Vec<String<LINE_CAP>, LINES_CAP>,
     scroll: usize,
@@ -66,7 +66,7 @@ impl PetInfoScene {
         }
     }
 
-    fn build_portrait_poses(out: &mut Vec<PoseId, 64>) {
+    fn build_portrait_poses(out: &mut Vec<PoseId, 80>) {
         out.clear();
         for &id in ALL_POSES {
             let name = id.name();

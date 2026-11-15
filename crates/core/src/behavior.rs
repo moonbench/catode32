@@ -52,6 +52,7 @@ pub enum BehaviorId {
     GoTo,
     Hearing,
     Greeting,
+    Pawing,
 }
 
 crate::enum_str_method! {
@@ -85,6 +86,7 @@ crate::enum_str_method! {
     GoTo          => "go_to",
     Hearing       => "hearing",
     Greeting      => "greeting",
+    Pawing        => "pawing",
 }
 
 #[allow(dead_code)]
@@ -194,6 +196,7 @@ pub enum NextBehavior {
     Pacing,
     Sulking,
     Mischief,
+    Pawing,
     Hiding,
     Meandering,
     Hearing(Option<&'static str>),

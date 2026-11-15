@@ -19,6 +19,7 @@ pub mod mischief;
 pub mod napping;
 pub mod observing;
 pub mod pacing;
+pub mod pawing;
 pub mod playing;
 pub mod self_grooming;
 pub mod sleeping;
@@ -48,6 +49,7 @@ pub use hiding::HidingBehavior;
 pub use hunting::HuntingBehavior;
 pub use idle::IdleBehavior;
 pub use investigating::InvestigatingBehavior;
+pub use pawing::PawingBehavior;
 pub use kneading::KneadingBehavior;
 pub use lounging::LoungingBehavior;
 pub use meandering::MeanderingBehavior;
@@ -81,6 +83,7 @@ crate::dispatch_enum! {
         Kneading(KneadingBehavior)                      = KneadingBehavior::new(),
         Lounging(LoungingBehavior)                      = LoungingBehavior::new(),
         Investigating(InvestigatingBehavior)            = InvestigatingBehavior::new(),
+        Pawing(PawingBehavior)                          = PawingBehavior::new(),
         Observing(ObservingBehavior)                    = ObservingBehavior::new(),
         Chattering(ChatteringBehavior)                  = ChatteringBehavior::new(),
         Zoomies(ZoomiesBehavior)                        = ZoomiesBehavior::new(),
@@ -118,6 +121,7 @@ const AUTO_SELECT_NAMES: &[BehaviorId] = &[
     BehaviorId::Hunting,
     BehaviorId::Playing,
     BehaviorId::Investigating,
+    BehaviorId::Pawing,
     BehaviorId::Observing,
     BehaviorId::SelfGrooming,
     BehaviorId::Stretching,
@@ -291,6 +295,10 @@ fn print_skip_reason(id: BehaviorId, ctx: &GameContext) {
         ),
         BehaviorId::Playing => println!("Skipping playing. Playfulness: {:6.4} or no solo toys.", ctx.playfulness),
         BehaviorId::Investigating => println!("Skipping investigating. Curiosity: {:6.4}", ctx.curiosity),
+        BehaviorId::Pawing => println!(
+            "Skipping pawing. Energy: {:6.4}, Playfulness: {:6.4}, Mischievousness: {:6.4} or nothing to paw at.",
+            ctx.energy, ctx.playfulness, ctx.mischievousness
+        ),
         BehaviorId::Observing => println!("Skipping observing. Curiosity: {:6.4}", ctx.curiosity),
         BehaviorId::SelfGrooming => println!(
             "Skipping self grooming. Cleanliness: {:6.4}, Energy: {:6.4}",
@@ -331,6 +339,7 @@ fn to_next_default(id: BehaviorId) -> NextBehavior {
         BehaviorId::Vocalizing => NextBehavior::Vocalizing,
         BehaviorId::Hunting => NextBehavior::Hunting,
         BehaviorId::Investigating => NextBehavior::Investigating,
+        BehaviorId::Pawing => NextBehavior::Pawing,
         BehaviorId::Observing => NextBehavior::Observing,
         BehaviorId::SelfGrooming => NextBehavior::SelfGrooming(false),
         BehaviorId::Stretching => NextBehavior::Stretching,
@@ -356,6 +365,7 @@ fn can_trigger(id: BehaviorId, ctx: &GameContext) -> bool {
         BehaviorId::Vocalizing => VocalizingBehavior::can_trigger(ctx),
         BehaviorId::Hunting => HuntingBehavior::can_trigger(ctx),
         BehaviorId::Investigating => InvestigatingBehavior::can_trigger(ctx),
+        BehaviorId::Pawing => PawingBehavior::can_trigger(ctx),
         BehaviorId::Observing => ObservingBehavior::can_trigger(ctx),
         BehaviorId::SelfGrooming => SelfGroomingBehavior::can_trigger(ctx),
         BehaviorId::Stretching => StretchingBehavior::can_trigger(ctx),
@@ -384,6 +394,7 @@ fn priority(id: BehaviorId, ctx: &GameContext) -> u32 {
         BehaviorId::Vocalizing => VocalizingBehavior::priority(ctx, &mut rng),
         BehaviorId::Hunting => HuntingBehavior::priority(ctx, &mut rng),
         BehaviorId::Investigating => InvestigatingBehavior::priority(ctx, &mut rng),
+        BehaviorId::Pawing => PawingBehavior::priority(ctx, &mut rng),
         BehaviorId::Observing => ObservingBehavior::priority(ctx, &mut rng),
         BehaviorId::SelfGrooming => SelfGroomingBehavior::priority(ctx, &mut rng),
         BehaviorId::Stretching => StretchingBehavior::priority(ctx, &mut rng),

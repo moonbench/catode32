@@ -272,6 +272,7 @@ pub fn sick_blocks(id: BehaviorId, ctx: &GameContext) -> bool {
             | BehaviorId::Mischief
             | BehaviorId::Hunting
             | BehaviorId::Investigating
+            | BehaviorId::Pawing
             | BehaviorId::Observing
             | BehaviorId::Playing
     );

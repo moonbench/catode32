@@ -107,8 +107,13 @@ impl InsideScene {
 }
 
 impl Scene for InsideScene {
+    fn exit(&mut self, ctx: &mut GameContext) {
+        ctx.bookshelf_right_x = None;
+    }
+
     fn enter(&mut self, ctx: &mut GameContext) {
         self.base.enter(ctx, SceneId::Inside, PLANT_SURFACES);
+        ctx.bookshelf_right_x = Some(BOOKSHELF.width as i32);
         let bookshelf_y = 63 - BOOKSHELF.height as i32;
         self.base.environment.add_object(
             Layer::Foreground,

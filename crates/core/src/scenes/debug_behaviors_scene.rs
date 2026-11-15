@@ -36,6 +36,7 @@ const ENTRIES: &[Entry] = &[
     Entry { label: t!("Kneading"),          next: NextBehavior::Kneading,                                      target: BehaviorId::Kneading },
     Entry { label: t!("Lounging"),          next: NextBehavior::Lounging,                                      target: BehaviorId::Lounging },
     Entry { label: t!("Investigating"),     next: NextBehavior::Investigating,                                 target: BehaviorId::Investigating },
+    Entry { label: "Pawing",              next: NextBehavior::Pawing,                                        target: BehaviorId::Pawing },
     Entry { label: t!("Startled"),          next: NextBehavior::Startled,                                      target: BehaviorId::Startled },
     Entry { label: t!("Observing"),         next: NextBehavior::Observing,                                     target: BehaviorId::Observing },
     Entry { label: t!("Chattering"),        next: NextBehavior::Chattering,                                    target: BehaviorId::Chattering },

@@ -1,7 +1,10 @@
 use embedded_graphics::prelude::{Point, Size};
 
 use crate::{
-    assets::{furniture::draw_cat_bed_rim, nature::COBWEB},
+    assets::{
+        furniture::{draw_cat_bed_rim, CAT_BED_RIM_WIDTH},
+        nature::COBWEB,
+    },
     context::GameContext,
     environment::Layer,
     gardening_ui::PlantSurface,
@@ -92,6 +95,7 @@ impl Scene for TreehouseScene {
         ctx.scene_x_min = 20;
         ctx.scene_x_max = 236;
         ctx.cat_bed_x = Some(CAT_BED_X);
+        ctx.cat_bed_span = Some((CAT_BED_WORLD_X, CAT_BED_WORLD_X + CAT_BED_RIM_WIDTH));
         // Acquire the radio for passive ESP-NOW listening. Phase 4
         // will gate this on "not currently visiting" once visits exist.
         crate::espnow_manager::start_session(ctx);
@@ -99,6 +103,7 @@ impl Scene for TreehouseScene {
 
     fn exit(&mut self, ctx: &mut GameContext) {
         ctx.cat_bed_x = None;
+        ctx.cat_bed_span = None;
         crate::espnow_manager::stop_session(ctx);
     }
 

@@ -2,7 +2,7 @@ use embedded_graphics::prelude::{Point, Size};
 
 use crate::{
     assets::{
-        furniture::{draw_cat_bed_rim, BOOKSHELF, PILLOW},
+        furniture::{draw_cat_bed_rim, BOOKSHELF, CAT_BED_RIM_WIDTH, PILLOW},
         items::YARN_BALL,
     },
     context::GameContext,
@@ -103,6 +103,8 @@ impl Scene for BedroomScene {
         ctx.scene_x_min = 10;
         ctx.scene_x_max = 182;
         ctx.cat_bed_x = Some(CAT_BED_X);
+        ctx.cat_bed_span = Some((CAT_BED_WORLD_X, CAT_BED_WORLD_X + CAT_BED_RIM_WIDTH));
+        ctx.bookshelf_right_x = Some(BOOKSHELF.width as i32);
         let bookshelf_y = 63 - BOOKSHELF.height as i32;
         self.base.environment.add_object(
             Layer::Foreground,
@@ -118,6 +120,8 @@ impl Scene for BedroomScene {
 
     fn exit(&mut self, ctx: &mut GameContext) {
         ctx.cat_bed_x = None;
+        ctx.cat_bed_span = None;
+        ctx.bookshelf_right_x = None;
     }
 
     fn update(

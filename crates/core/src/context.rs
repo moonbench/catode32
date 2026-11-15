@@ -577,6 +577,11 @@ pub struct GameContext {
     pub scene_x_min: i32,
     pub scene_x_max: i32,
     pub cat_bed_x: Option<i32>,
+    /// Foreground world-x span (left, right) of the cat bed rim, for
+    /// behaviors that interact with the bed's edge (e.g. pawing at it).
+    pub cat_bed_span: Option<(i32, i32)>,
+    /// Foreground world-x of the bookshelf's right edge, when the scene has one.
+    pub bookshelf_right_x: Option<i32>,
     pub in_cat_bed: bool,
     /// Foreground-layer camera offset, refreshed by LocationScene each frame
     /// so behaviors can convert character world-x into screen-x without
@@ -796,6 +801,8 @@ impl GameContext {
             scene_x_min: 10,
             scene_x_max: 118,
             cat_bed_x: None,
+            cat_bed_span: None,
+            bookshelf_right_x: None,
             in_cat_bed: false,
             scene_camera_x: 0,
             input: InputSnapshot::default(),

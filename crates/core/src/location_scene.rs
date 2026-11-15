@@ -1461,6 +1461,7 @@ fn mirror_for_peer(peer: BehaviorId, ctx: &mut GameContext) -> Option<NextBehavi
         BehaviorId::SelfGrooming if roll < 0.40 => Some(NextBehavior::SelfGrooming(false)),
         BehaviorId::Lounging if roll < 0.40 => Some(NextBehavior::Lounging),
         BehaviorId::Investigating if roll < 0.40 => Some(NextBehavior::Investigating),
+        BehaviorId::Pawing if roll < 0.30 => Some(NextBehavior::Pawing),
         BehaviorId::Observing if roll < 0.35 => Some(NextBehavior::Observing),
         BehaviorId::Chattering if roll < 0.35 => Some(NextBehavior::Chattering),
         _ => None,

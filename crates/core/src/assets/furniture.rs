@@ -75,6 +75,9 @@ pub static PARK_BENCH: Sprite = Sprite {
 /// Draw the two CAT_BED_SIDE sprites plus the masked rim that joins them.
 /// `bed_x` is the screen-space x of the left rim sprite (callers subtract the
 /// foreground camera offset from their world x).
+/// Total width drawn by `draw_cat_bed_rim`: two bed sides plus the 20px middle.
+pub const CAT_BED_RIM_WIDTH: i32 = CAT_BED_SIDE.width as i32 * 2 + 20;
+
 pub fn draw_cat_bed_rim(renderer: &mut Renderer, bed_x: i32) {
     let w = CAT_BED_SIDE.width as i32;
     renderer.draw_sprite(&CAT_BED_SIDE, Point::new(bed_x, 52), SpriteOpts::default());

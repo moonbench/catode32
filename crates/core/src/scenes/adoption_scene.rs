@@ -68,7 +68,7 @@ pub struct AdoptionScene {
     selected: usize,
     viewing: usize,
     candidates: Vec<Candidate, 4>,
-    portrait_poses: Vec<PoseId, 64>,
+    portrait_poses: Vec<PoseId, 80>,
     popup: Popup,
     keyboard: OnScreenKeyboard,
     moment_phase: MomentPhase,
@@ -103,7 +103,7 @@ impl AdoptionScene {
         }
     }
 
-    fn build_portrait_poses(out: &mut Vec<PoseId, 64>) {
+    fn build_portrait_poses(out: &mut Vec<PoseId, 80>) {
         out.clear();
         for &id in crate::assets::character::ALL_POSES {
             let name = id.name();

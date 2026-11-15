@@ -94,6 +94,13 @@ impl PoseAnim {
         };
     }
 
+    /// Body frame currently shown for `pose`. Lets behaviors react to a
+    /// specific animation beat (e.g. the paw reaching out) even though pose
+    /// changes start the animation at a random offset.
+    pub fn body_frame(&self, pose: &Pose) -> usize {
+        frame_index(self.body, pose.body.sprite.frames.len(), pose.body.extra_frames)
+    }
+
     pub fn update(&mut self, pose: &Pose, dt: f32) {
         self.body = advance(self.body, pose.body.speed, dt, pose.body.sprite.frames.len(), pose.body.extra_frames);
         self.head = advance(self.head, pose.head.speed, dt, pose.head.sprite.frames.len(), pose.head.extra_frames);

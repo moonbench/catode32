@@ -26,7 +26,7 @@ use crate::{
         },
     },
     behavior::{Behavior, BehaviorId, BehaviorState, NextBehavior, PlayVariant},
-    behaviors::common,
+    behaviors::{common, pawing},
     context::{GameContext, StatId, ToyVariant},
     entities::character::Character,
     rand,
@@ -134,6 +134,35 @@ const BUBBLE_WANDER_MAX: f32 = 1.6;
 const BUBBLE_POP_FPS: f32 = 7.0;
 const BUBBLE_POP_DURATION: f32 = 4.0 / BUBBLE_POP_FPS;
 
+// Pawing: when the toy is within a paw's reach the cat sometimes bats at it
+// instead of sliding into a pounce.
+/// Toy-center distance from the cat's x where the cat considers pawing.
+const PAW_REACH_MIN: f32 = 4.0;
+const PAW_REACH_MAX: f32 = 24.0;
+/// Height band (px above the floor) a dangling tip or bubble must be in.
+const PAW_BAND_BOTTOM: f32 = 4.0;
+const PAW_BAND_TOP: f32 = 22.0;
+/// Chance to paw rather than pounce when the pounce timer fires in reach.
+const PAW_CHANCE: f32 = 0.6;
+/// Chance to keep pawing straight out of a pounce when it landed facing the toy.
+const PAW_AFTER_POUNCE_CHANCE: f32 = 0.5;
+/// Per-second chance to bat at a bubble that drifts into reach.
+const PAW_BUBBLE_RATE: f32 = 0.8;
+const PAW_DURATION_MIN: f32 = 1.2;
+const PAW_DURATION_MAX: f32 = 2.5;
+/// Velocity a floor-level swipe adds to a sliding toy, away from the cat.
+const PAW_NUDGE: f32 = 35.0;
+/// How far a swipe knocks a dangling string/feather tip, in px.
+const PAW_TIP_NUDGE: f32 = 3.0;
+
+fn in_paw_reach(offset_x: f32) -> bool {
+    (PAW_REACH_MIN..=PAW_REACH_MAX).contains(&offset_x.abs())
+}
+
+fn in_paw_band(height: f32) -> bool {
+    (PAW_BAND_BOTTOM..=PAW_BAND_TOP).contains(&height)
+}
+
 const BUBBLE_SURPRISED_POSES: &[PoseId] = &[
     PoseId::LeaningForwardSideCrazy,
     PoseId::PlayfulForwardWowed,
@@ -176,6 +205,8 @@ enum Phase {
     Pouncing,
     Recovering,
     Catching,
+    /// Sitting and batting at a toy within reach (alternative to Pouncing).
+    Pawing,
 }
 
 // -- Behavior ------------------------------------------------------------
@@ -210,6 +241,10 @@ pub struct PlayingBehavior {
     pounce_timer: f32,
     pounces_total: u32,
     pounces_done: u32,
+
+    // Pawing.
+    paw_duration: f32,
+    last_paw_frame: Option<usize>,
 
     // Laser.
     laser_base_x: f32,
@@ -273,6 +308,9 @@ impl PlayingBehavior {
             pounce_timer: 0.0,
             pounces_total: 3,
             pounces_done: 0,
+
+            paw_duration: PAW_DURATION_MIN,
+            last_paw_frame: None,
 
             laser_base_x: 64.0,
             laser_wobble_phase: 0.0,
@@ -430,21 +468,32 @@ impl PlayingBehavior {
     ) {
         let offset = self.toy_x - self.play_char_x;
         match self.phase {
-            Phase::Watching => self.update_watching(ctx, dt, offset),
+            Phase::Watching => self.update_watching(ctx, character, dt, offset),
             Phase::Pouncing => self.update_pounce(ctx, character, dt, true),
-            Phase::Recovering => self.update_recovering(ctx, dt, offset),
+            Phase::Recovering => self.update_recovering(ctx, character, dt, offset),
             Phase::Catching => self.update_catching(ctx, character),
+            Phase::Pawing => self.update_paw_sliding(ctx, character, offset),
             _ => {}
         }
     }
 
-    fn update_watching(&mut self, ctx: &mut GameContext, dt: f32, offset_x: f32) {
+    fn update_watching(
+        &mut self,
+        ctx: &mut GameContext,
+        character: &mut Character,
+        dt: f32,
+        offset_x: f32,
+    ) {
         let (lo, hi) = self.pounce_delay_range();
         self.pounce_timer -= dt;
         if self.pounce_timer <= 0.0 {
             if !self.rejecting {
                 self.pounces_done += 1;
-                self.begin_pounce(offset_x);
+                if in_paw_reach(offset_x) && rand::rand_bool(&mut ctx.rng, PAW_CHANCE) {
+                    self.begin_paw(ctx, character, offset_x);
+                } else {
+                    self.begin_pounce(offset_x);
+                }
                 return;
             }
             self.pounce_timer = rand::rand_range_f32(&mut ctx.rng, lo, hi);
@@ -481,11 +530,19 @@ impl PlayingBehavior {
         }
     }
 
-    fn update_recovering(&mut self, ctx: &mut GameContext, dt: f32, offset_x: f32) {
+    fn update_recovering(
+        &mut self,
+        ctx: &mut GameContext,
+        character: &mut Character,
+        dt: f32,
+        offset_x: f32,
+    ) {
         if self.phase_timer >= POUNCE_RECOVER_DURATION {
             if self.pounces_done >= self.pounces_total {
                 self.phase = Phase::Catching;
                 self.phase_timer = 0.0;
+            } else if self.try_paw_from_recovery(ctx, character, offset_x) {
+                // Landed right next to the toy and facing it: bat at it.
             } else {
                 let (lo, hi) = self.pounce_delay_range();
                 self.pounce_timer = rand::rand_range_f32(&mut ctx.rng, lo, hi);
@@ -496,6 +553,89 @@ impl PlayingBehavior {
             }
         }
         let _ = dt;
+    }
+
+    // -- Pawing -------------------------------------------------------------
+
+    /// Sit facing the toy and bat at it. Counts as one of the session's
+    /// pounces; the caller has already bumped `pounces_done`.
+    fn begin_paw(&mut self, ctx: &mut GameContext, character: &mut Character, offset_x: f32) {
+        character.mirror_h = offset_x > 0.0;
+        self.pose_id = pawing::paw_pose(ctx, true);
+        self.eye_frame = None;
+        self.phase = Phase::Pawing;
+        self.phase_timer = 0.0;
+        self.paw_duration = rand::rand_range_f32(&mut ctx.rng, PAW_DURATION_MIN, PAW_DURATION_MAX);
+        self.last_paw_frame = None;
+    }
+
+    /// After a pounce the cat sits side-on, facing the way it slid. If the
+    /// toy ended up within reach on that side, sometimes paw at it right away.
+    fn try_paw_from_recovery(
+        &mut self,
+        ctx: &mut GameContext,
+        character: &mut Character,
+        offset_x: f32,
+    ) -> bool {
+        let facing_toy = (offset_x > 0.0) == character.mirror_h;
+        if self.rejecting
+            || !facing_toy
+            || !in_paw_reach(offset_x)
+            || !rand::rand_bool(&mut ctx.rng, PAW_AFTER_POUNCE_CHANCE)
+        {
+            return false;
+        }
+        self.pounces_done += 1;
+        self.begin_paw(ctx, character, offset_x);
+        true
+    }
+
+    /// Advance the paw animation tracking. Returns the reach frame the paw
+    /// just swung into (once per swipe beat) and the facing sign (+1 right).
+    fn paw_swipe(&mut self, character: &Character) -> (Option<usize>, f32) {
+        let frame = pawing::current_paw_frame(character);
+        let hit = pawing::swipe_edge(self.last_paw_frame, frame);
+        self.last_paw_frame = frame;
+        let dir = if character.mirror_h { 1.0 } else { -1.0 };
+        (hit, dir)
+    }
+
+    fn end_paw_if_done(&mut self) {
+        if self.phase_timer >= self.paw_duration {
+            self.phase = Phase::Recovering;
+            self.phase_timer = 0.0;
+            self.pose_id = PoseId::SittingSillySideHappy;
+        }
+    }
+
+    fn toy_height(&self) -> f32 {
+        match self.variant {
+            PlayVariant::Ball => BALL_Y_OFFSET as f32,
+            PlayVariant::Mouse => MOUSE_Y_OFFSET as f32,
+            PlayVariant::Hand => HAND_Y_OFFSET as f32,
+            _ => LASER_Y_OFFSET as f32,
+        }
+    }
+
+    fn update_paw_sliding(&mut self, _ctx: &mut GameContext, character: &mut Character, offset_x: f32) {
+        // update_ball & co. set the forward-pose gaze tracker every frame;
+        // let the side pose's own eyes play instead.
+        self.eye_frame = None;
+        let (hit, dir) = self.paw_swipe(character);
+        // Player yanked the toy away (or behind the cat): give up early.
+        let ahead = offset_x * dir;
+        if ahead < 0.0 || ahead > PAW_REACH_MAX + 16.0 {
+            self.phase_timer = self.paw_duration;
+        }
+        // The floor-level swipe is the one that connects with a sliding toy.
+        // A laser dot can be batted at but not pushed.
+        if hit == Some(pawing::PAW_FRAME_LOW)
+            && !matches!(self.variant, PlayVariant::Laser)
+            && pawing::paw_hits(pawing::PAW_FRAME_LOW, offset_x * dir, self.toy_height())
+        {
+            self.toy_vel_x += dir * PAW_NUDGE;
+        }
+        self.end_paw_if_done();
     }
 
     fn update_catching(&mut self, ctx: &mut GameContext, character: &mut Character) {
@@ -724,7 +864,11 @@ impl PlayingBehavior {
                 if !self.rejecting {
                     self.pounces_done += 1;
                     let offset = self.str_px[self.str_node_count - 1] - char_x;
-                    self.begin_pounce(offset);
+                    if self.string_tip_in_reach() && rand::rand_bool(&mut ctx.rng, PAW_CHANCE) {
+                        self.begin_paw(ctx, character, offset);
+                    } else {
+                        self.begin_pounce(offset);
+                    }
                     return;
                 }
                 let (lo, hi) = self.pounce_delay_range();
@@ -760,9 +904,14 @@ impl PlayingBehavior {
     ) {
         self.update_string_physics(ctx, character, dt);
         if self.phase_timer >= POUNCE_RECOVER_DURATION {
+            let tip_offset = self.str_px[self.str_node_count - 1] - self.play_char_x;
             if self.pounces_done >= self.pounces_total {
                 self.phase = Phase::Catching;
                 self.phase_timer = 0.0;
+            } else if self.string_tip_in_reach()
+                && self.try_paw_from_recovery(ctx, character, tip_offset)
+            {
+                // Tip is dangling right in front of the cat: bat at it.
             } else {
                 let (lo, hi) = self.pounce_delay_range();
                 self.pounce_timer = rand::rand_range_f32(&mut ctx.rng, lo, hi);
@@ -773,12 +922,38 @@ impl PlayingBehavior {
         }
     }
 
+    fn string_tip_in_reach(&self) -> bool {
+        let n = self.str_node_count;
+        in_paw_reach(self.str_px[n - 1] - self.play_char_x)
+            && in_paw_band(self.play_char_y - self.str_py[n - 1])
+    }
+
+    fn update_string_paw(&mut self, ctx: &mut GameContext, character: &mut Character, dt: f32) {
+        self.update_string_physics(ctx, character, dt);
+        // Let the pose's own side-eyes play instead of the forward gaze tracker.
+        self.eye_frame = None;
+        let (hit, dir) = self.paw_swipe(character);
+        if let Some(frame) = hit {
+            let n = self.str_node_count;
+            let ahead = (self.str_px[n - 1] - self.play_char_x) * dir;
+            let height = self.play_char_y - self.str_py[n - 1];
+            if pawing::paw_hits(frame, ahead, height) {
+                // Verlet: shifting the position (not the previous position)
+                // turns the knock into velocity.
+                self.str_px[n - 1] += dir * PAW_TIP_NUDGE;
+                self.str_px[n - 2] += dir * PAW_TIP_NUDGE * 0.5;
+            }
+        }
+        self.end_paw_if_done();
+    }
+
     fn update_string(&mut self, ctx: &mut GameContext, character: &mut Character, dt: f32) {
         match self.phase {
             Phase::Watching => self.update_string_physics(ctx, character, dt),
             Phase::Pouncing => self.update_string_pounce(ctx, character, dt),
             Phase::Recovering => self.update_string_recovering(ctx, character, dt),
             Phase::Catching => self.update_catching(ctx, character),
+            Phase::Pawing => self.update_string_paw(ctx, character, dt),
             _ => {}
         }
     }
@@ -821,7 +996,47 @@ impl PlayingBehavior {
         }
     }
 
-    fn update_bubbles_watching(&mut self, ctx: &mut GameContext, dt: f32) {
+    /// Offset (bubble x - cat x) of the closest falling bubble within paw reach.
+    fn bubble_in_reach(&self) -> Option<f32> {
+        self.bubbles
+            .iter()
+            .filter(|b| b.pop_timer < 0.0)
+            .map(|b| (b.x - self.play_char_x, self.play_char_y - b.y))
+            .filter(|&(off, h)| in_paw_reach(off) && in_paw_band(h))
+            .map(|(off, _)| off)
+            .min_by(|a, b| a.abs().total_cmp(&b.abs()))
+    }
+
+    fn update_bubbles_paw(&mut self, character: &mut Character) {
+        let (hit, dir) = self.paw_swipe(character);
+        if let Some(frame) = hit {
+            let (cx, cy) = (self.play_char_x, self.play_char_y);
+            for b in self.bubbles.iter_mut() {
+                if b.pop_timer < 0.0 && pawing::paw_hits(frame, (b.x - cx) * dir, cy - b.y) {
+                    b.pop_timer = 0.0;
+                }
+            }
+        }
+        self.end_paw_if_done();
+    }
+
+    fn update_bubbles_watching(
+        &mut self,
+        ctx: &mut GameContext,
+        character: &mut Character,
+        dt: f32,
+    ) {
+        // A bubble drifting into reach is hard to resist.
+        if !self.rejecting && self.pounces_done < self.pounces_total {
+            if let Some(off) = self.bubble_in_reach() {
+                if rand::rand_bool(&mut ctx.rng, PAW_BUBBLE_RATE * dt) {
+                    self.pounces_done += 1;
+                    self.begin_paw(ctx, character, off);
+                    return;
+                }
+            }
+        }
+
         let has_bubbles = !self.bubbles.is_empty();
         if has_bubbles && !self.had_bubbles {
             let idx = rand::rand_range_u32(
@@ -852,6 +1067,12 @@ impl PlayingBehavior {
         if self.pounce_timer <= 0.0 {
             if !self.rejecting {
                 self.pounces_done += 1;
+                if let Some(off) = self.bubble_in_reach() {
+                    if rand::rand_bool(&mut ctx.rng, PAW_CHANCE) {
+                        self.begin_paw(ctx, character, off);
+                        return;
+                    }
+                }
                 let target = rand::rand_range_f32(
                     &mut ctx.rng,
                     -WAND_RANGE * 0.7,
@@ -951,9 +1172,10 @@ impl PlayingBehavior {
         }
 
         match self.phase {
-            Phase::Watching => self.update_bubbles_watching(ctx, dt),
+            Phase::Watching => self.update_bubbles_watching(ctx, character, dt),
             Phase::Pouncing => self.update_pounce(ctx, character, dt, false),
             Phase::Recovering => self.update_bubbles_recovering(ctx, dt),
+            Phase::Pawing => self.update_bubbles_paw(character),
             _ => {}
         }
     }
@@ -1186,7 +1408,7 @@ impl PlayingBehavior {
     fn in_visible_phase(&self) -> bool {
         matches!(
             self.phase,
-            Phase::Watching | Phase::Pouncing | Phase::Recovering
+            Phase::Watching | Phase::Pouncing | Phase::Recovering | Phase::Pawing
         )
     }
 
@@ -1342,7 +1564,11 @@ impl PlayingBehavior {
     fn draw_bubbles(&self, renderer: &mut Renderer) {
         if !matches!(
             self.phase,
-            Phase::Watching | Phase::Pouncing | Phase::Recovering | Phase::Catching
+            Phase::Watching
+                | Phase::Pouncing
+                | Phase::Recovering
+                | Phase::Catching
+                | Phase::Pawing
         ) {
             return;
         }
