@@ -92,14 +92,17 @@ fn stage_water_mult(stage: PlantStage) -> f32 {
     }
 }
 
-/// Maximum growth stage permitted per pot type.
-fn pot_cap(pot: PotKind) -> PlantStage {
+/// Maximum growth stage permitted per pot type and plant type. Smaller
+/// plants (grass, freesia) can thrive from a medium pot up; bigger ones
+/// (rose, sunflower) need a large pot or planter. Thriving still requires
+/// fertilizer (see `can_advance`).
+fn pot_cap(pot: PotKind, seed: SeedKind) -> PlantStage {
+    let small_plant = matches!(seed, SeedKind::CatGrass | SeedKind::Freesia);
     match pot {
         PotKind::Small => PlantStage::Young,
+        PotKind::Medium if small_plant => PlantStage::Thriving,
         PotKind::Medium => PlantStage::Growing,
-        PotKind::Large => PlantStage::Mature,
-        PotKind::Planter => PlantStage::Mature,
-        PotKind::Ground => PlantStage::Thriving,
+        PotKind::Large | PotKind::Planter | PotKind::Ground => PlantStage::Thriving,
     }
 }
 
@@ -204,7 +207,7 @@ impl PlantLayer {
 // Internal advance / wilt / death logic
 // ---------------------------------------------------------------------------
 
-fn can_advance(plant: &Plant, spec: &PlantTypeSpec) -> bool {
+fn can_advance(plant: &Plant, seed: SeedKind, spec: &PlantTypeSpec) -> bool {
     let cur_idx = match stage_index(plant.stage) {
         Some(i) if i + 1 < 5 => i,
         _ => return false,
@@ -212,7 +215,7 @@ fn can_advance(plant: &Plant, spec: &PlantTypeSpec) -> bool {
     let next_idx = cur_idx + 1;
     let next_stage = stage_from_index(next_idx);
 
-    let cap_idx = stage_index(pot_cap(plant.pot)).unwrap_or(0);
+    let cap_idx = stage_index(pot_cap(plant.pot, seed)).unwrap_or(0);
     if next_idx > cap_idx {
         return false;
     }
@@ -337,7 +340,7 @@ pub fn tick_plant(plant: &mut Plant, season: Season, weather: Weather) {
             return;
         }
         if let Some(idx) = stage_index(stage) {
-            if can_advance(plant, &spec) {
+            if can_advance(plant, seed, &spec) {
                 let threshold = maturation_threshold(&spec, idx);
                 if plant.age_hours >= threshold {
                     plant.stage = stage_from_index(idx + 1);
