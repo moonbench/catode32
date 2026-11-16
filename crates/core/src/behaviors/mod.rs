@@ -23,6 +23,7 @@ pub mod pawing;
 pub mod playing;
 pub mod self_grooming;
 pub mod sleeping;
+pub mod sniffing;
 pub mod startled;
 pub mod stretching;
 pub mod sulking;
@@ -50,6 +51,7 @@ pub use hunting::HuntingBehavior;
 pub use idle::IdleBehavior;
 pub use investigating::InvestigatingBehavior;
 pub use pawing::PawingBehavior;
+pub use sniffing::SniffingBehavior;
 pub use kneading::KneadingBehavior;
 pub use lounging::LoungingBehavior;
 pub use meandering::MeanderingBehavior;
@@ -84,6 +86,7 @@ crate::dispatch_enum! {
         Lounging(LoungingBehavior)                      = LoungingBehavior::new(),
         Investigating(InvestigatingBehavior)            = InvestigatingBehavior::new(),
         Pawing(PawingBehavior)                          = PawingBehavior::new(),
+        Sniffing(SniffingBehavior)                      = SniffingBehavior::new(),
         Observing(ObservingBehavior)                    = ObservingBehavior::new(),
         Chattering(ChatteringBehavior)                  = ChatteringBehavior::new(),
         Zoomies(ZoomiesBehavior)                        = ZoomiesBehavior::new(),
@@ -122,6 +125,7 @@ const AUTO_SELECT_NAMES: &[BehaviorId] = &[
     BehaviorId::Playing,
     BehaviorId::Investigating,
     BehaviorId::Pawing,
+    BehaviorId::Sniffing,
     BehaviorId::Observing,
     BehaviorId::SelfGrooming,
     BehaviorId::Stretching,
@@ -184,7 +188,7 @@ pub fn auto_select(ctx: &mut GameContext) -> NextBehavior {
     );
 
     // Gather eligible candidates.
-    let mut candidates: heapless::Vec<(BehaviorId, u32), 16> = heapless::Vec::new();
+    let mut candidates: heapless::Vec<(BehaviorId, u32), { AUTO_SELECT_NAMES.len() }> = heapless::Vec::new();
     for &id in AUTO_SELECT_NAMES {
         if common::sick_blocks(id, ctx) {
             println!(
@@ -299,6 +303,7 @@ fn print_skip_reason(id: BehaviorId, ctx: &GameContext) {
             "Skipping pawing. Energy: {:6.4}, Playfulness: {:6.4}, Mischievousness: {:6.4} or nothing to paw at.",
             ctx.energy, ctx.playfulness, ctx.mischievousness
         ),
+        BehaviorId::Sniffing => println!("Skipping sniffing. Curiosity: {:6.4}", ctx.curiosity),
         BehaviorId::Observing => println!("Skipping observing. Curiosity: {:6.4}", ctx.curiosity),
         BehaviorId::SelfGrooming => println!(
             "Skipping self grooming. Cleanliness: {:6.4}, Energy: {:6.4}",
@@ -340,6 +345,7 @@ fn to_next_default(id: BehaviorId) -> NextBehavior {
         BehaviorId::Hunting => NextBehavior::Hunting,
         BehaviorId::Investigating => NextBehavior::Investigating,
         BehaviorId::Pawing => NextBehavior::Pawing,
+        BehaviorId::Sniffing => NextBehavior::Sniffing,
         BehaviorId::Observing => NextBehavior::Observing,
         BehaviorId::SelfGrooming => NextBehavior::SelfGrooming(false),
         BehaviorId::Stretching => NextBehavior::Stretching,
@@ -366,6 +372,7 @@ fn can_trigger(id: BehaviorId, ctx: &GameContext) -> bool {
         BehaviorId::Hunting => HuntingBehavior::can_trigger(ctx),
         BehaviorId::Investigating => InvestigatingBehavior::can_trigger(ctx),
         BehaviorId::Pawing => PawingBehavior::can_trigger(ctx),
+        BehaviorId::Sniffing => SniffingBehavior::can_trigger(ctx),
         BehaviorId::Observing => ObservingBehavior::can_trigger(ctx),
         BehaviorId::SelfGrooming => SelfGroomingBehavior::can_trigger(ctx),
         BehaviorId::Stretching => StretchingBehavior::can_trigger(ctx),
@@ -395,6 +402,7 @@ fn priority(id: BehaviorId, ctx: &GameContext) -> u32 {
         BehaviorId::Hunting => HuntingBehavior::priority(ctx, &mut rng),
         BehaviorId::Investigating => InvestigatingBehavior::priority(ctx, &mut rng),
         BehaviorId::Pawing => PawingBehavior::priority(ctx, &mut rng),
+        BehaviorId::Sniffing => SniffingBehavior::priority(ctx, &mut rng),
         BehaviorId::Observing => ObservingBehavior::priority(ctx, &mut rng),
         BehaviorId::SelfGrooming => SelfGroomingBehavior::priority(ctx, &mut rng),
         BehaviorId::Stretching => StretchingBehavior::priority(ctx, &mut rng),

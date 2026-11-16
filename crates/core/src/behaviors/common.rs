@@ -283,6 +283,7 @@ pub fn sick_blocks(id: BehaviorId, ctx: &GameContext) -> bool {
         let clear = matches!(
             id,
             BehaviorId::Lounging
+                | BehaviorId::Sniffing
                 | BehaviorId::SelfGrooming
                 | BehaviorId::Pacing
                 | BehaviorId::Vocalizing

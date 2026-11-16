@@ -193,6 +193,7 @@ impl Game {
             // repeated flash writes. The hourly clock still restarts.
             self.wifi_next_scan = Some(Instant::now() + wifi_tracker::SCAN_INTERVAL);
             wifi_tracker::scan_now(&mut self.context);
+            self.context.pending_scan_sniff = true;
         }
 
         self.draw();
@@ -344,6 +345,9 @@ impl Game {
         self.context.scan_started = false;
 
         wifi_tracker::scan_now(&mut self.context);
+        // The pet "smells" the airwaves. Set regardless of the result so the
+        // sniff also plays on desktop, where scans are a no-op.
+        self.context.pending_scan_sniff = true;
     }
 
     fn draw(&mut self) {

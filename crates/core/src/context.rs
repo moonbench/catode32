@@ -624,6 +624,10 @@ pub struct GameContext {
     /// `vgrt` / `vprx` packet arrives; read-and-cleared by
     /// `GreetingBehavior::enter`. `None` means "sniff in place".
     pub pending_greeting_target_x: Option<i32>,
+    /// Set by `Game` after every wifi scan. `LocationScene` starts a sniff
+    /// right away if the cat is doing something calm; otherwise the behavior
+    /// manager picks it up at the next behavior boundary. Runtime only.
+    pub pending_scan_sniff: bool,
 
     /// Aggregate plant-health score for the current scene. Recomputed every
     /// frame by LocationScene from `ctx.plants` (thriving +2, healthy +1,
@@ -816,6 +820,7 @@ impl GameContext {
             pending_popup_icon: None,
             pending_vocalize_broadcast: None,
             pending_greeting_target_x: None,
+            pending_scan_sniff: false,
             pending_power: None,
 
             scene_plant_health: 0,

@@ -1048,6 +1048,34 @@ pub static HEAD_SIDE_NEUTRAL: CharHead = CharHead {
     extra_frames: 0,
 };
 
+const HEAD_SIDE_SNIFF_FRAMES: &[&[u8]] = &[
+    b"\x02\x02\x00\x03\x03\x00\x02\x82\x80\x02\x42\x40\x02\x22\x20\x02\x12\x90\x02\x0e\x48\x02\x00\x28\x04\x00\x44\x08\x00\x04\x10\x00\x04\x10\x00\x02\x20\x00\x02\x20\x00\x02\x20\x00\x02\x20\x00\x02\x40\x00\x02\x80\x00\x04\x80\x00\x04\x80\x00\x04\x40\x00\x08\x20\x00\x08\x18\x00\x00\x07\x80\x00",
+    b"\x02\x02\x00\x03\x03\x00\x02\x82\x80\x02\x42\x40\x02\x22\x20\x02\x12\x90\x02\x0e\x48\x02\x00\x28\x04\x00\x44\x08\x00\x04\x10\x00\x04\x10\x00\x02\x20\x00\x02\x20\x00\x02\x20\x00\x02\x40\x00\x02\x80\x00\x02\x80\x00\x04\x80\x00\x04\x40\x00\x04\x40\x00\x08\x20\x00\x08\x18\x00\x00\x07\x80\x00",
+];
+
+const HEAD_SIDE_SNIFF_FILL_FRAMES: &[&[u8]] = &[
+    b"\x02\x02\x00\x03\x03\x00\x03\x83\x80\x03\xc3\xc0\x03\xe3\xe0\x03\xf3\xf0\x03\xff\xf8\x03\xff\xf8\x07\xff\xfc\x0f\xff\xfc\x1f\xff\xfc\x1f\xff\xfe\x3f\xff\xfe\x3f\xff\xfe\x3f\xff\xfe\x3f\xff\xfe\x7f\xff\xfe\xff\xff\xfc\xff\xff\xfc\xff\xff\xfc\x7f\xff\xf8\x3f\xff\xf8\x1f\xff\xe0\x07\x80\x00",
+    b"\x02\x02\x00\x03\x03\x00\x03\x83\x80\x03\xc3\xc0\x03\xe3\xe0\x03\xf3\xf0\x03\xff\xf8\x03\xff\xf8\x07\xff\xfc\x0f\xff\xfc\x1f\xff\xfc\x1f\xff\xfe\x3f\xff\xfe\x3f\xff\xfe\x3f\xff\xfe\x7f\xff\xfe\xff\xff\xfe\xff\xff\xfc\xff\xff\xfc\x7f\xff\xfc\x7f\xff\xf8\x3f\xff\xf8\x1f\xff\xe0\x07\x80\x00",
+];
+
+/// Neutral side head with a twitching nose. Same geometry as
+/// `HEAD_SIDE_NEUTRAL`. The extra frames hold frame 0, so the nose goes
+/// twitch, twitch, pause.
+pub static HEAD_SIDE_SNIFF: CharHead = CharHead {
+    sprite: Sprite {
+        width: 23,
+        height: 24,
+        frames: HEAD_SIDE_SNIFF_FRAMES,
+        fill_frames: Some(HEAD_SIDE_SNIFF_FILL_FRAMES),
+    },
+    anchor_x: 15,
+    anchor_y: 23,
+    eye_x: 11,
+    eye_y: 15,
+    speed: 5.0,
+    extra_frames: 2,
+};
+
 const HEAD_SIDE_NEUTRAL2_FRAMES: &[&[u8]] = &[
     b"\x00\x40\x00\x00\x00\x60\x00\x00\x00\x50\x00\x00\x00\x48\x00\x00\x00\x84\x00\x7c\x00\x82\x0f\x84\x00\x81\xf0\x08\x00\x80\x00\x08\x01\x00\x01\x90\x02\x00\x0e\x10\x04\x00\x10\x20\x04\x00\x08\x20\x08\x00\x00\x40\x08\x00\x00\x40\x08\x00\x00\x80\x08\x00\x00\x80\x10\x00\x00\x80\x20\x00\x00\x80\xe0\x00\x00\x80\x20\x00\x01\x00\x70\x00\x02\x00\x08\x00\x02\x00\x06\x00\x01\x00\x03\xf8\x00\x00",
 ];
@@ -1519,6 +1547,16 @@ pub static POSE_SITTING_SIDE_ANNOYED: Pose = Pose {
     head_offset: None,
 };
 
+pub static POSE_SITTING_SIDE_SNIFFING: Pose = Pose {
+    body: &BODY_SIDE_SITTING,
+    head: &HEAD_SIDE_SNIFF,
+    tail: &TAIL_NEUTRAL,
+    eyes: Some(&EYES_SIDE_NEUTRAL),
+    head_first: false,
+    tail_last: false,
+    head_offset: None,
+};
+
 pub static POSE_SITTING_SIDE_LOOKING_DOWN: Pose = Pose {
     body: &BODY_SIDE_SITTING,
     head: &HEAD_SIDE_NEUTRAL2,
@@ -1901,7 +1939,7 @@ pub static POSE_STANDING_SIDE_ANNOYED: Pose = Pose {
 
 pub static POSE_STANDING_SIDE_SNIFFING: Pose = Pose {
     body: &BODY_SIDE_STANDING,
-    head: &HEAD_SIDE_AIRPLANE2,
+    head: &HEAD_SIDE_SNIFF,
     tail: &TAIL_NEUTRAL,
     eyes: Some(&EYES_SIDE_DOWN),
     head_first: false,
@@ -1962,6 +2000,16 @@ pub static POSE_STANDING_SIDE_CRAZY: Pose = Pose {
 pub static POSE_LEANING_FORWARD_SIDE_NEUTRAL: Pose = Pose {
     body: &BODY_SIDE_LEANING,
     head: &HEAD_SIDE_NEUTRAL,
+    tail: &TAIL_UP_NEUTRAL2,
+    eyes: Some(&EYES_SIDE_DOWN),
+    head_first: true,
+    tail_last: false,
+    head_offset: None,
+};
+
+pub static POSE_LEANING_FORWARD_SIDE_SNIFFING: Pose = Pose {
+    body: &BODY_SIDE_LEANING,
+    head: &HEAD_SIDE_SNIFF,
     tail: &TAIL_UP_NEUTRAL2,
     eyes: Some(&EYES_SIDE_DOWN),
     head_first: true,
@@ -2166,6 +2214,7 @@ pub enum PoseId {
     SittingSideHappy,
     SittingSideAloof,
     SittingSideAnnoyed,
+    SittingSideSniffing,
     SittingSideLookingDown,
     SittingForwardNeutral,
     SittingForwardSleepy,
@@ -2211,6 +2260,7 @@ pub enum PoseId {
     StandingSideNeutralLookingDown,
     StandingSideCrazy,
     LeaningForwardSideNeutral,
+    LeaningForwardSideSniffing,
     LeaningForwardSideStretch,
     LeaningForwardSideEating,
     LeaningForwardSidePounce,
@@ -2240,6 +2290,7 @@ impl PoseId {
             PoseId::SittingSideHappy => &POSE_SITTING_SIDE_HAPPY,
             PoseId::SittingSideAloof => &POSE_SITTING_SIDE_ALOOF,
             PoseId::SittingSideAnnoyed => &POSE_SITTING_SIDE_ANNOYED,
+            PoseId::SittingSideSniffing => &POSE_SITTING_SIDE_SNIFFING,
             PoseId::SittingSideLookingDown => &POSE_SITTING_SIDE_LOOKING_DOWN,
             PoseId::SittingForwardNeutral => &POSE_SITTING_FORWARD_NEUTRAL,
             PoseId::SittingForwardSleepy => &POSE_SITTING_FORWARD_SLEEPY,
@@ -2285,6 +2336,7 @@ impl PoseId {
             PoseId::StandingSideNeutralLookingDown => &POSE_STANDING_SIDE_NEUTRAL_LOOKING_DOWN,
             PoseId::StandingSideCrazy => &POSE_STANDING_SIDE_CRAZY,
             PoseId::LeaningForwardSideNeutral => &POSE_LEANING_FORWARD_SIDE_NEUTRAL,
+            PoseId::LeaningForwardSideSniffing => &POSE_LEANING_FORWARD_SIDE_SNIFFING,
             PoseId::LeaningForwardSideStretch => &POSE_LEANING_FORWARD_SIDE_STRETCH,
             PoseId::LeaningForwardSideEating => &POSE_LEANING_FORWARD_SIDE_EATING,
             PoseId::LeaningForwardSidePounce => &POSE_LEANING_FORWARD_SIDE_POUNCE,
@@ -2314,6 +2366,7 @@ impl PoseId {
             PoseId::SittingSideHappy => "sitting.side.happy",
             PoseId::SittingSideAloof => "sitting.side.aloof",
             PoseId::SittingSideAnnoyed => "sitting.side.annoyed",
+            PoseId::SittingSideSniffing => "sitting.side.sniffing",
             PoseId::SittingSideLookingDown => "sitting.side.looking_down",
             PoseId::SittingForwardNeutral => "sitting.forward.neutral",
             PoseId::SittingForwardSleepy => "sitting.forward.sleepy",
@@ -2359,6 +2412,7 @@ impl PoseId {
             PoseId::StandingSideNeutralLookingDown => "standing.side.neutral_looking_down",
             PoseId::StandingSideCrazy => "standing.side.crazy",
             PoseId::LeaningForwardSideNeutral => "leaning_forward.side.neutral",
+            PoseId::LeaningForwardSideSniffing => "leaning_forward.side.sniffing",
             PoseId::LeaningForwardSideStretch => "leaning_forward.side.stretch",
             PoseId::LeaningForwardSideEating => "leaning_forward.side.eating",
             PoseId::LeaningForwardSidePounce => "leaning_forward.side.pounce",
@@ -2454,4 +2508,7 @@ pub const ALL_POSES: &[PoseId] = &[
     PoseId::PawingSideNeutral,
     PoseId::PawingSideHappy,
     PoseId::PawingSideHappy2,
+    // Appended (not inserted) so existing vst wire indices stay stable.
+    PoseId::SittingSideSniffing,
+    PoseId::LeaningForwardSideSniffing,
 ];

@@ -84,7 +84,7 @@ impl Behavior for InvestigatingBehavior {
             Phase::Approaching if self.phase_timer >= self.approach_duration => {
                 self.phase = Phase::Sniffing;
                 self.phase_timer = 0.0;
-                self.pose_id = PoseId::LeaningForwardSideNeutral;
+                self.pose_id = PoseId::LeaningForwardSideSniffing;
             }
             Phase::Sniffing if self.phase_timer >= self.sniff_duration => {
                 self.phase = Phase::Reacting;
@@ -101,8 +101,13 @@ impl Behavior for InvestigatingBehavior {
 
     fn next(&self, ctx: &GameContext) -> Option<NextBehavior> {
         let mut rng = ctx.rng;
-        if rand::rand_f32(&mut rng) < 0.3 {
+        let r = rand::rand_f32(&mut rng);
+        // Head of the history is whatever preceded this investigation.
+        let after_sniff = ctx.recent_behaviors.first() == Some(&BehaviorId::Sniffing);
+        if r < 0.3 {
             Some(NextBehavior::Observing)
+        } else if r < 0.55 && !after_sniff {
+            Some(NextBehavior::Sniffing)
         } else {
             None
         }

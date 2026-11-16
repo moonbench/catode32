@@ -7,7 +7,7 @@ use heapless::Vec;
 
 use crate::{
     assets::{character::PoseId, plants::pot_sprite},
-    behavior::{Behavior, BehaviorId, BehaviorState},
+    behavior::{Behavior, BehaviorId, BehaviorState, NextBehavior},
     behaviors::common,
     context::{GameContext, StatId},
     entities::character::Character,
@@ -373,6 +373,20 @@ impl Behavior for PawingBehavior {
             }
         }
         BehaviorState::Running
+    }
+
+    fn next(&self, ctx: &GameContext) -> Option<NextBehavior> {
+        // Sometimes sniff whatever was just batted at. The head of the
+        // history is whatever preceded this pawing; don't bounce back.
+        if ctx.recent_behaviors.first() == Some(&BehaviorId::Sniffing) {
+            return None;
+        }
+        let mut rng = ctx.rng;
+        if rand::rand_f32(&mut rng) < 0.25 {
+            Some(NextBehavior::Sniffing)
+        } else {
+            None
+        }
     }
 
     fn apply_completion_bonus(&self, ctx: &mut GameContext, progress: f32) {

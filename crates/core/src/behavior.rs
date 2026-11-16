@@ -53,6 +53,7 @@ pub enum BehaviorId {
     Hearing,
     Greeting,
     Pawing,
+    Sniffing,
 }
 
 crate::enum_str_method! {
@@ -87,6 +88,7 @@ crate::enum_str_method! {
     Hearing       => "hearing",
     Greeting      => "greeting",
     Pawing        => "pawing",
+    Sniffing      => "sniffing",
 }
 
 #[allow(dead_code)]
@@ -197,6 +199,7 @@ pub enum NextBehavior {
     Sulking,
     Mischief,
     Pawing,
+    Sniffing,
     Hiding,
     Meandering,
     Hearing(Option<&'static str>),
@@ -468,6 +471,11 @@ impl BehaviorManager {
                 } else {
                     auto_select(ctx)
                 }
+            } else if core::mem::take(&mut ctx.pending_scan_sniff)
+                && !crate::behaviors::common::sick_blocks(BehaviorId::Sniffing, ctx)
+            {
+                println!("[WiFi] Deferred scan sniff");
+                NextBehavior::Sniffing
             } else if let Some(g) = crate::behaviors::self_grooming::post_meal_groom(ctx) {
                 g
             } else {

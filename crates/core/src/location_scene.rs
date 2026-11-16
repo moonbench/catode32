@@ -594,6 +594,38 @@ impl LocationScene {
         }
     }
 
+    /// React to a just-finished wifi scan. Calm behaviors are interrupted
+    /// with a sniff right away (it plays as the scene fades in). Busy
+    /// behaviors leave the flag set for `BehaviorManager::advance` to
+    /// pick up at the next boundary. Sleeping cats and cats too sick to
+    /// sniff just drop it.
+    fn maybe_scan_sniff(&mut self, ctx: &mut GameContext) {
+        if !ctx.pending_scan_sniff {
+            return;
+        }
+        let current = self.behaviors.current_id();
+        if crate::behaviors::common::sick_blocks(BehaviorId::Sniffing, ctx)
+            || matches!(current, BehaviorId::Sleeping | BehaviorId::Napping)
+        {
+            ctx.pending_scan_sniff = false;
+            return;
+        }
+        let calm = matches!(
+            current,
+            BehaviorId::Idle
+                | BehaviorId::Lounging
+                | BehaviorId::Observing
+                | BehaviorId::Meandering
+                | BehaviorId::Pacing
+        );
+        if calm {
+            ctx.pending_scan_sniff = false;
+            println!("[WiFi] Scan sniff");
+            self.behaviors
+                .trigger(NextBehavior::Sniffing, ctx, &mut self.character);
+        }
+    }
+
     fn handle_peer_vprox(&mut self, ctx: &mut GameContext) {
         if self.behaviors.current_id() == BehaviorId::Greeting {
             return;
@@ -858,6 +890,7 @@ impl LocationScene {
 
         self.sky.update(ctx, dt);
         tick_plants(ctx);
+        self.maybe_scan_sniff(ctx);
         let prev_x = self.character.pos.x;
         self.behaviors.update(ctx, &mut self.character, dt);
         let pose = self.behaviors.current_pose();
@@ -923,6 +956,7 @@ impl LocationScene {
         // and emit our own pending broadcast. No-op when the scene has
         // not acquired the radio (see outside/treehouse `enter`).
         self.tick_espnow(ctx, dt);
+        self.maybe_scan_sniff(ctx);
         let prev_x = self.character.pos.x;
         self.behaviors.update(ctx, &mut self.character, dt);
         let pose = self.behaviors.current_pose();
@@ -1462,6 +1496,7 @@ fn mirror_for_peer(peer: BehaviorId, ctx: &mut GameContext) -> Option<NextBehavi
         BehaviorId::Lounging if roll < 0.40 => Some(NextBehavior::Lounging),
         BehaviorId::Investigating if roll < 0.40 => Some(NextBehavior::Investigating),
         BehaviorId::Pawing if roll < 0.30 => Some(NextBehavior::Pawing),
+        BehaviorId::Sniffing if roll < 0.35 => Some(NextBehavior::Sniffing),
         BehaviorId::Observing if roll < 0.35 => Some(NextBehavior::Observing),
         BehaviorId::Chattering if roll < 0.35 => Some(NextBehavior::Chattering),
         _ => None,

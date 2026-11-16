@@ -368,6 +368,7 @@ wire_enum_option! {
     Hearing       => 27,
     Greeting      => 28,
     Pawing        => 29,
+    Sniffing      => 30,
 }
 
 /// Encode a `venv` frame. Weather/season pass through as `as u8`;
