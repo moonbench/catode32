@@ -5,7 +5,7 @@ use heapless::Vec;
 use micromath::F32Ext;
 
 use crate::{
-    assets::nature::{CLOUD1, CLOUD2, CLOUD3, HOT_AIR_BALLOON, MOON, PLANE_TINY, SUN, SUN_HOT},
+    assets::nature::{CLOUD1, CLOUD2, CLOUD3, CLOUD4, CLOUD5, HOT_AIR_BALLOON, MOON, PLANE_TINY, SUN, SUN_HOT},
     context::GameContext,
     rand::xorshift32,
     render::{Renderer, Sprite, SpriteOpts},
@@ -40,9 +40,18 @@ const TWINKLE_PERIOD: f32 = 0.3;
 
 const DISPLAY_WIDTH: i32 = 128;
 
-const MAX_CLOUDS: usize = 11;
+const MAX_CLOUDS: usize = 18;
 const CLOUD_WRAP_BUFFER: i32 = 65;
-const CLOUD_RESPAWN_X: f32 = -60.0;
+// Wider than the widest cloud sprite (CLOUD5, 80px) so wrapping clouds
+// never pop in already partially on screen.
+const CLOUD_RESPAWN_X: f32 = -85.0;
+// Per-cloud parallax is derived from drift speed: the slowest clouds sit
+// furthest back (matching the sun/moon at SKY_PARALLAX_BG) and the fastest
+// sit nearest the camera.
+const CLOUD_SPEED_MIN: f32 = 2.0;
+const CLOUD_SPEED_MAX: f32 = 8.0;
+const CLOUD_PARALLAX_FAR: f32 = SKY_PARALLAX_BG;
+const CLOUD_PARALLAX_NEAR: f32 = 0.5;
 
 const MAX_PARTICLES: usize = 16;
 const SS_MAX_LIFETIME: f32 = 3.1;
@@ -55,9 +64,9 @@ const METEOR_BASE_RATE: f32 = 0.0005;
 const METEOR_SHOWER_MULT: f32 = 16.0;
 const SKY_EVENT_SPAWN_RATE: f32 = 0.001;
 
-const RAIN_PARTICLE_COUNT: usize = 20;
-const SNOW_PARTICLE_COUNT: usize = 15;
-const PRECIP_MAX: usize = 20;
+const RAIN_PARTICLE_COUNT: usize = 48;
+const SNOW_PARTICLE_COUNT: usize = 40;
+const PRECIP_MAX: usize = 48;
 const RAIN_SPEED_Y: f32 = 100.0;
 const RAIN_SPEED_X: f32 = 10.0;
 const RAIN_STREAK_LENGTH: i32 = 3;
@@ -97,6 +106,17 @@ const CLOUD_TEMPLATES: &[CloudTemplate] = &[
     CloudTemplate { sprite: &CLOUD1, y: -12, base_speed: 3.5 },
     CloudTemplate { sprite: &CLOUD3, y: -3,  base_speed: 3.0 },
     CloudTemplate { sprite: &CLOUD3, y: -14, base_speed: 5.5 },
+    // Heavier-weather extras: only reached at higher cloud counts, so the
+    // big CLOUD4/CLOUD5 banks mostly show up when it's overcast or worse.
+    CloudTemplate { sprite: &CLOUD4, y: -4,  base_speed: 3.0 },
+    CloudTemplate { sprite: &CLOUD5, y: -10, base_speed: 2.2 },
+    CloudTemplate { sprite: &CLOUD3, y: -8,  base_speed: 4.5 },
+    CloudTemplate { sprite: &CLOUD4, y: -9,  base_speed: 5.0 },
+    CloudTemplate { sprite: &CLOUD5, y: -13, base_speed: 2.8 },
+    CloudTemplate { sprite: &CLOUD2, y: -2,  base_speed: 6.5 },
+    CloudTemplate { sprite: &CLOUD4, y: -1,  base_speed: 3.8 },
+    CloudTemplate { sprite: &CLOUD5, y: -7,  base_speed: 2.0 },
+    CloudTemplate { sprite: &CLOUD1, y: -14, base_speed: 4.2 },
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -146,11 +166,11 @@ fn weather_cloud_config(weather: Weather) -> (u8, u8, f32) {
     match weather {
         Weather::Clear => (1, 2, 0.7),
         Weather::Cloudy => (3, 5, 1.0),
-        Weather::Overcast => (5, 7, 0.8),
-        Weather::Rain => (5, 8, 1.0),
-        Weather::Storm => (8, 11, 1.3),
-        Weather::Snow => (5, 8, 0.6),
-        Weather::Windy => (3, 4, 1.5),
+        Weather::Overcast => (10, 14, 0.8),
+        Weather::Rain => (11, 15, 1.0),
+        Weather::Storm => (14, 18, 1.3),
+        Weather::Snow => (10, 14, 0.6),
+        Weather::Windy => (5, 8, 1.5),
     }
 }
 
@@ -411,7 +431,13 @@ struct Cloud {
     sprite: &'static Sprite,
     y: i16,
     base_speed: f32,
+    parallax: f32,
     x: f32,
+}
+
+fn cloud_parallax(base_speed: f32) -> f32 {
+    let t = ((base_speed - CLOUD_SPEED_MIN) / (CLOUD_SPEED_MAX - CLOUD_SPEED_MIN)).clamp(0.0, 1.0);
+    CLOUD_PARALLAX_FAR + t * (CLOUD_PARALLAX_NEAR - CLOUD_PARALLAX_FAR)
 }
 
 pub struct SkyRenderer {
@@ -695,9 +721,9 @@ impl SkyRenderer {
         self.rain_particles.clear();
         self.snow_particles.clear();
         let (kind, intensity) = match weather {
-            Weather::Rain => (Some(PrecipType::Rain), 0.3),
+            Weather::Rain => (Some(PrecipType::Rain), 0.4),
             Weather::Storm => (Some(PrecipType::Rain), 1.0),
-            Weather::Snow => (Some(PrecipType::Snow), 0.7),
+            Weather::Snow => (Some(PrecipType::Snow), 0.8),
             _ => (None, 0.0),
         };
         self.precip_type = kind;
@@ -802,10 +828,15 @@ impl SkyRenderer {
                 sprite: template.sprite,
                 y: template.y,
                 base_speed: template.base_speed,
+                parallax: cloud_parallax(template.base_speed),
                 x: (i as i32 * spacing - 30) as f32,
             };
             let _ = self.clouds.push(cloud);
         }
+        // Slow clouds are the distant layer (lower parallax), so draw them
+        // first and let faster, nearer clouds layer on top.
+        self.clouds
+            .sort_unstable_by(|a, b| a.base_speed.partial_cmp(&b.base_speed).unwrap_or(core::cmp::Ordering::Equal));
         self.last_weather = Some(weather);
     }
 
@@ -826,7 +857,7 @@ impl SkyRenderer {
             se.draw(renderer, bg_offset);
         }
         // Clouds sit in front of celestial bodies so they pass over the sun/moon.
-        self.draw_clouds(renderer, bg_offset);
+        self.draw_clouds(renderer, camera_x);
         // Precipitation falls in front of clouds.
         let precip_offset = (camera_x as f32 * PRECIP_PARALLAX) as i32;
         self.draw_precipitation(renderer, precip_offset);
@@ -979,9 +1010,9 @@ impl SkyRenderer {
         );
     }
 
-    fn draw_clouds(&self, renderer: &mut Renderer, camera_offset: i32) {
+    fn draw_clouds(&self, renderer: &mut Renderer, camera_x: i32) {
         for cloud in &self.clouds {
-            let screen_x = cloud.x as i32 - camera_offset;
+            let screen_x = cloud.x as i32 - (camera_x as f32 * cloud.parallax) as i32;
             if screen_x + cloud.sprite.width as i32 <= 0 || screen_x >= DISPLAY_WIDTH {
                 continue;
             }
