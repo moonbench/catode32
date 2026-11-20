@@ -79,17 +79,16 @@ const DEBUG: &[MenuItem<SceneId>] = &[
 
 // TODO: Filter items based on config.WIFI_ENABLED (hides Social) and
 // config.SHOW_DEBUG_MENUS (hides Debug). We always show everything for now.
-// TODO: Wrap every label in `t()` for i18n. Strings are hardcoded English here.
 const BIG_MENU: &[MenuItem<SceneId>] = &[
     MenuItem { label: t!("Pet stats"),  icon: Some(icons::STATS),     submenu: None,             action: Some(SceneId::Stats),          confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Locations"),  icon: Some(icons::HOUSE),     submenu: Some(LOCATIONS),  action: None,                          confirm: None, confirm_on_vacation: None },
-    MenuItem { label: t!("Forecast"),   icon: Some(icons::SUN),       submenu: None,             action: Some(SceneId::Forecast),       confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Games"),      icon: Some(icons::MINIGAMES), submenu: Some(MINIGAMES),  action: None,                          confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Store"),      icon: Some(icons::STORE),     submenu: None,             action: Some(SceneId::Store),          confirm: None, confirm_on_vacation: None },
-    MenuItem { label: t!("Social"),     icon: Some(icons::CAT),       submenu: None,             action: Some(SceneId::Social),         confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Pet info"),   icon: Some(icons::CAT),       submenu: None,             action: Some(SceneId::PetInfo),        confirm: None, confirm_on_vacation: None },
-    MenuItem { label: t!("Debug"),      icon: Some(icons::WRENCH),    submenu: Some(DEBUG),      action: None,                          confirm: None, confirm_on_vacation: None },
+    MenuItem { label: t!("Forecast"),   icon: Some(icons::SUN),       submenu: None,             action: Some(SceneId::Forecast),       confirm: None, confirm_on_vacation: None },
+    MenuItem { label: t!("Social"),     icon: Some(icons::CAT),       submenu: None,             action: Some(SceneId::Social),         confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Credits"),    icon: Some(icons::CREDITS),   submenu: None,             action: Some(SceneId::Credits),        confirm: None, confirm_on_vacation: None },
+    MenuItem { label: t!("Debug"),      icon: Some(icons::WRENCH),    submenu: Some(DEBUG),      action: None,                          confirm: None, confirm_on_vacation: None },
 ];
 
 pub struct MenuScene {

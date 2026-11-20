@@ -1,5 +1,5 @@
 //! Pet interaction menu opened with Menu2 on any location scene. Tree:
-//! Affection / Train / Feed / Play / Gardening. Items, counts and inventory
+//! Affection / Feed / Play / Train / Gardening. Items, counts and inventory
 //! are recomputed every time the player navigates a page so labels like
 //! "Tuna (3)" and "Small pot (2)" stay accurate and out-of-stock entries
 //! disappear.
@@ -418,9 +418,9 @@ fn build_page(
                 );
             }
             push_item(items, t!("Affection"), Some(icons::HEART), None, Some(Page::Affection), None);
-            push_item(items, t!("Train"), Some(icons::HAND), None, Some(Page::Train), None);
             push_item(items, t!("Feed"), Some(icons::MEAL), None, Some(Page::Feed), None);
             push_item(items, t!("Play"), Some(icons::TOYS), None, Some(Page::Play), None);
+            push_item(items, t!("Train"), Some(icons::HAND), None, Some(Page::Train), None);
             if has_surfaces {
                 push_item(items, t!("Gardening"), Some(icons::TREES), None, Some(Page::Gardening), None);
             }
