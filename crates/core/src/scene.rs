@@ -64,11 +64,12 @@ pub enum SceneId {
     Life,
     Meowteor,
     Scratch,
+    CatTree,
 }
 
 impl SceneId {
     /// Every variant in declaration order, so `ALL[id as usize] == id`.
-    const ALL: [SceneId; 56] = [
+    const ALL: [SceneId; 57] = [
         SceneId::Inside,
         SceneId::Outside,
         SceneId::Bedroom,
@@ -125,6 +126,7 @@ impl SceneId {
         SceneId::Life,
         SceneId::Meowteor,
         SceneId::Scratch,
+        SceneId::CatTree,
     ];
 
     pub fn to_u8(self) -> u8 {

@@ -134,3 +134,59 @@ pub static LOCK: Sprite = Sprite {
     frames: LOCK_FRAMES,
     fill_frames: None,
 };
+
+// Cat Tree pickups. Placeholder art.
+
+// Spring sitting on a perch, coiled, and sprung after the cat lands on it.
+// Different heights, so they're separate sprites; both sit on their bottom
+// row.
+pub static CATTREE_SPRING: Sprite = Sprite {
+    width: 8,
+    height: 4,
+    frames: &[b"\x7e\x8d\x30\x0c"],
+    fill_frames: None,
+};
+
+pub static CATTREE_SPRING_SPRUNG: Sprite = Sprite {
+    width: 8,
+    height: 11,
+    frames: &[b"\xff\x0c\x30\x0c\x30\x0c\x30\x0c\x30\x0c\xff"],
+    fill_frames: None,
+};
+
+// Propeller hat, two spin frames. The brim is the bottom row.
+const CATTREE_PROPELLER_HAT_FRAMES: &[&[u8]] = &[
+    b"\xff\x80\x08\x00\x1c\x00\x3e\x00\x55\x00",
+    b"\x1c\x00\x08\x00\x1c\x00\x3e\x00\x55\x00",
+];
+const CATTREE_PROPELLER_HAT_FILL: &[&[u8]] = &[
+    b"\xff\x80\x08\x00\x1c\x00\x3e\x00\x7f\x00",
+    b"\x1c\x00\x08\x00\x1c\x00\x3e\x00\x7f\x00",
+];
+
+pub static CATTREE_PROPELLER_HAT: Sprite = Sprite {
+    width: 9,
+    height: 5,
+    frames: CATTREE_PROPELLER_HAT_FRAMES,
+    fill_frames: Some(CATTREE_PROPELLER_HAT_FILL),
+};
+
+// Jetpack: frame 0 unlit (the pickup), frames 1-2 flicker while worn. The
+// tank is the top 7 rows, the flame the bottom 3.
+const CATTREE_JETPACK_FRAMES: &[&[u8]] = &[
+    b"\x70\x88\xa8\xa8\x88\xf8\x50\x00\x00\x00",
+    b"\x70\x88\xa8\xa8\x88\xf8\x50\x50\xd8\x50",
+    b"\x70\x88\xa8\xa8\x88\xf8\x50\x50\x50\x00",
+];
+const CATTREE_JETPACK_FILL: &[&[u8]] = &[
+    b"\x70\xf8\xf8\xf8\xf8\xf8\x70\x00\x00\x00",
+    b"\x70\xf8\xf8\xf8\xf8\xf8\x70\x50\xd8\x50",
+    b"\x70\xf8\xf8\xf8\xf8\xf8\x70\x50\x50\x00",
+];
+
+pub static CATTREE_JETPACK: Sprite = Sprite {
+    width: 5,
+    height: 10,
+    frames: CATTREE_JETPACK_FRAMES,
+    fill_frames: Some(CATTREE_JETPACK_FILL),
+};

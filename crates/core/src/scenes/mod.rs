@@ -3,6 +3,7 @@ pub mod bedroom_scene;
 pub mod balancing_scene;
 pub mod boxedin_scene;
 pub mod breakout_scene;
+pub mod cattree_scene;
 pub mod credits_scene;
 pub mod debug_behaviors_scene;
 pub mod debug_context_scene;
@@ -63,6 +64,7 @@ use bedroom_scene::BedroomScene;
 use balancing_scene::BalancingScene;
 use boxedin_scene::BoxedInScene;
 use breakout_scene::BreakoutScene;
+use cattree_scene::CatTreeScene;
 use credits_scene::CreditsScene;
 use debug_behaviors_scene::DebugBehaviorsScene;
 use debug_context_scene::DebugContextScene;
@@ -161,6 +163,7 @@ crate::dispatch_enum! {
         LuckyLanding(LuckyLandingScene)           = LuckyLandingScene::new(),
         Yarnball(YarnballScene)                   = YarnballScene::new(),
         BalancingAct(BalancingScene)              = BalancingScene::new(),
+        CatTree(CatTreeScene)                     = CatTreeScene::new(),
         SleepingDogs(SleepingDogsScene)           = SleepingDogsScene::new(),
         MiniGolf(MiniGolfScene)                   = MiniGolfScene::new(),
         LaserBounce(LaserBounceScene)             = LaserBounceScene::new(),
