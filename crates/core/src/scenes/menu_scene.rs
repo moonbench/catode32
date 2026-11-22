@@ -36,6 +36,7 @@ const MINIGAMES: &[MenuItem<SceneId>] = &[
     MenuItem { label: "Scratch",       icon: Some(icons::SCRATCH),    submenu: None, action: Some(SceneId::Scratch),    confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("TicTacToe"), icon: Some(icons::TICTACTOE),  submenu: None, action: Some(SceneId::TicTacToe),  confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Reversi"),   icon: Some(icons::REVERSI),    submenu: None, action: Some(SceneId::Reversi),    confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Hide & Seek"), icon: Some(icons::HIDE_SEEK), submenu: None, action: Some(SceneId::HideSeek), confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Purrimeter"), icon: Some(icons::PURRIMETER), submenu: None, action: Some(SceneId::Purrimeter), confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Memory"),    icon: Some(icons::MEMORY),     submenu: None, action: Some(SceneId::Memory),     confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Maze"),      icon: Some(icons::MAZE),       submenu: None, action: Some(SceneId::Maze),       confirm: None, confirm_on_vacation: END_VAC },

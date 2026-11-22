@@ -18,6 +18,7 @@ pub mod debug_wifi_scene;
 pub mod forecast_scene;
 pub mod hanjie_scene;
 pub mod herding_scene;
+pub mod hideseek_scene;
 pub mod inside_scene;
 pub mod kitchen_scene;
 pub mod life_scene;
@@ -79,6 +80,7 @@ use debug_wifi_scene::DebugWifiScene;
 use forecast_scene::ForecastScene;
 use hanjie_scene::HanjieScene;
 use herding_scene::HerdingScene;
+use hideseek_scene::HideSeekScene;
 use inside_scene::InsideScene;
 use kitchen_scene::KitchenScene;
 use life_scene::LifeScene;
@@ -158,6 +160,7 @@ crate::dispatch_enum! {
         Meowltiply(MeowltiplyScene)               = MeowltiplyScene::new(),
         Sudokat(SudokatScene)                     = SudokatScene::new(),
         Reversi(ReversiScene)                     = ReversiScene::new(),
+        HideSeek(HideSeekScene)                   = HideSeekScene::new(),
         SunnySpot(SunnySpotScene)                 = SunnySpotScene::new(),
         Purrimeter(PurrimeterScene)               = PurrimeterScene::new(),
         LuckyLanding(LuckyLandingScene)           = LuckyLandingScene::new(),
