@@ -1557,3 +1557,61 @@ fn icon_to_name(icon: BubbleIcon) -> Option<&'static str> {
         BubbleIcon::Cold => "cold",
     })
 }
+
+/// A window in a wall looking out on the sky. Call it right after
+/// `draw_sky`: it blacks out everything outside the opening (tall sky
+/// sprites such as the balloon or plane included), then draws the frame and a
+/// filled sill. `win_sx` is the opening's left edge on screen.
+pub fn draw_window_cutout(renderer: &mut Renderer, win_sx: i32, win_y: i32, win_w: i32, win_h: i32) {
+    use embedded_graphics::prelude::Size;
+    const DISPLAY_WIDTH: i32 = 128;
+    const DISPLAY_HEIGHT: i32 = 64;
+    let wall_bottom = win_y + win_h;
+    let screen_left = win_sx.max(0);
+    let screen_right = (win_sx + win_w).min(DISPLAY_WIDTH);
+
+    if screen_left > 0 {
+        renderer.fill_rect_off(
+            Point::new(0, 0),
+            Size::new(screen_left as u32, DISPLAY_HEIGHT as u32),
+        );
+    }
+    if screen_right < DISPLAY_WIDTH {
+        renderer.fill_rect_off(
+            Point::new(screen_right, 0),
+            Size::new((DISPLAY_WIDTH - screen_right) as u32, DISPLAY_HEIGHT as u32),
+        );
+    }
+    if win_y > 0 && screen_right > screen_left {
+        renderer.fill_rect_off(
+            Point::new(screen_left, 0),
+            Size::new((screen_right - screen_left) as u32, win_y as u32),
+        );
+    }
+    if wall_bottom < DISPLAY_HEIGHT && screen_right > screen_left {
+        renderer.fill_rect_off(
+            Point::new(screen_left, wall_bottom),
+            Size::new(
+                (screen_right - screen_left) as u32,
+                (DISPLAY_HEIGHT - wall_bottom) as u32,
+            ),
+        );
+    }
+
+    // Inner outline, outer outline, and a filled sill.
+    renderer.draw_rect(
+        Point::new(win_sx, win_y),
+        Size::new(win_w as u32, win_h as u32),
+        false,
+    );
+    renderer.draw_rect(
+        Point::new(win_sx - 4, win_y - 4),
+        Size::new((win_w + 8) as u32, (win_h + 8) as u32),
+        false,
+    );
+    renderer.draw_rect(
+        Point::new(win_sx - 6, win_y + win_h + 4),
+        Size::new((win_w + 12) as u32, 3),
+        true,
+    );
+}

@@ -36,6 +36,7 @@ use crate::{
     behavior::{Behavior, BehaviorId, NextBehavior},
     context::GameContext,
     rand,
+    scene::SceneId,
 };
 
 pub use affection::AffectionBehavior;
@@ -391,7 +392,36 @@ fn can_trigger(id: BehaviorId, ctx: &GameContext) -> bool {
     }
 }
 
+/// How the room itself nudges a behavior's priority (lower wins, so < 1.0
+/// makes it more likely). The garage is cold and cluttered: a poor place to
+/// settle down, a great one to poke around in.
+fn scene_priority_scale(id: BehaviorId, scene: SceneId) -> f32 {
+    match scene {
+        SceneId::Garage => match id {
+            BehaviorId::Sleeping | BehaviorId::Napping | BehaviorId::Lounging => 1.8,
+            BehaviorId::Investigating
+            | BehaviorId::Hunting
+            | BehaviorId::Sniffing
+            | BehaviorId::Pawing => 0.7,
+            // Plenty of dust motes to watch.
+            BehaviorId::Observing => 0.85,
+            _ => 1.0,
+        },
+        _ => 1.0,
+    }
+}
+
 fn priority(id: BehaviorId, ctx: &GameContext) -> u32 {
+    let base = base_priority(id, ctx);
+    let scale = scene_priority_scale(id, ctx.last_main_scene);
+    if scale == 1.0 {
+        base
+    } else {
+        (base as f32 * scale) as u32
+    }
+}
+
+fn base_priority(id: BehaviorId, ctx: &GameContext) -> u32 {
     // The same `ctx.rng` is borrowed mutably by each priority fn via interior
     // copy. They take `&GameContext` and roll using a local RNG view. We use
     // the global rng field via a tiny mutation helper to keep priorities

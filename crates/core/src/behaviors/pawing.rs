@@ -102,7 +102,7 @@ const CORNER_INSET: i32 = 6;
 /// A room edge within this distance of the bed is "the bed", not a corner.
 const CORNER_BED_CLEARANCE: i32 = 40;
 
-const INDOOR_SCENES: &[SceneId] = &[SceneId::Inside, SceneId::Bedroom, SceneId::Kitchen];
+const INDOOR_SCENES: &[SceneId] = &[SceneId::Inside, SceneId::Bedroom, SceneId::Kitchen, SceneId::Garage];
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum TargetKind {

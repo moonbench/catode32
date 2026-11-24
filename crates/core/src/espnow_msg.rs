@@ -488,6 +488,7 @@ wire_enum_subset_option! {
     Treehouse => 2,
     Bedroom   => 3,
     Kitchen   => 4,
+    Garage    => 5,
 }
 
 /// Encode a `vloc` frame. Returns `None` if the scene isn't

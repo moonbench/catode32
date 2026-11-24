@@ -1024,3 +1024,119 @@ impl SkyRenderer {
         }
     }
 }
+
+// -- Light through a window --------------------------------------------------
+
+/// Where light falls from, for indoor scenes that let it in through a window
+/// (the garage's sunbeam). Follows the same arcs the sun and moon are drawn on,
+/// so the beam always agrees with what the window shows.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct SkyLight {
+    /// Horizontal travel of the light: +1 means it comes from a body low on
+    /// the left (rising) and heads right, -1 from the setting side heading left.
+    pub dir_x: f32,
+    /// 0 on the horizon, 1 at the top of the arc.
+    pub elevation: f32,
+    /// 0..1: how much light gets through, after moon phase and weather.
+    pub strength: f32,
+}
+
+/// Below this the room is effectively dark and nothing is lit.
+const MIN_LIGHT: f32 = 0.02;
+/// The full moon's brightness relative to the sun.
+const MOON_LIGHT: f32 = 0.45;
+
+fn weather_light(weather: Weather) -> f32 {
+    match weather {
+        Weather::Clear => 1.0,
+        Weather::Windy => 0.9,
+        Weather::Cloudy => 0.6,
+        Weather::Overcast | Weather::Snow => 0.25,
+        Weather::Rain => 0.15,
+        Weather::Storm => 0.0,
+    }
+}
+
+/// Fraction of the moon's disc that's lit for a 0-7 phase (0 new, 4 full).
+fn moon_illumination(moon_phase: u8) -> f32 {
+    let a = (moon_phase % 8) as f32 * core::f32::consts::PI / 4.0;
+    (1.0 - a.cos()) / 2.0
+}
+
+/// The light from whichever body is up at `hours_f` (0..24). The sun wins
+/// in the evening overlap where both arcs are in the sky.
+pub fn sky_light(hours_f: f32, moon_phase: u8, weather: Weather) -> Option<SkyLight> {
+    let (t, base) = if (SUN_RISE..SUN_SET).contains(&hours_f) {
+        ((hours_f - SUN_RISE) / (SUN_SET - SUN_RISE), 1.0)
+    } else {
+        let mh = if hours_f >= MOON_RISE { hours_f } else { hours_f + 24.0 };
+        let t = (mh - MOON_RISE) / (MOON_SET - MOON_RISE);
+        if !(0.0..=1.0).contains(&t) {
+            return None;
+        }
+        (t, MOON_LIGHT * moon_illumination(moon_phase))
+    };
+    let elevation = 4.0 * t * (1.0 - t);
+    let strength = base * (0.35 + 0.65 * elevation) * weather_light(weather);
+    if strength < MIN_LIGHT {
+        return None;
+    }
+    Some(SkyLight {
+        dir_x: ((0.5 - t) * 2.0).clamp(-1.0, 1.0),
+        elevation,
+        strength: strength.min(1.0),
+    })
+}
+
+/// `sky_light` for the current game time.
+pub fn sky_light_now(ctx: &GameContext) -> Option<SkyLight> {
+    let hours_f = ctx.time_hours as f32 + ctx.time_minutes as f32 / 60.0;
+    sky_light(hours_f, ctx.moon_phase, ctx.weather)
+}
+
+#[cfg(test)]
+mod light_tests {
+    use super::*;
+
+    #[test]
+    fn morning_sun_shines_right_and_evening_left() {
+        let am = sky_light(8.0, 0, Weather::Clear).unwrap();
+        let pm = sky_light(16.0, 0, Weather::Clear).unwrap();
+        assert!(am.dir_x > 0.0);
+        assert!(pm.dir_x < 0.0);
+        assert!((am.dir_x + pm.dir_x).abs() < 1e-4);
+    }
+
+    #[test]
+    fn noon_is_brightest_and_overhead() {
+        let noon = sky_light(12.0, 0, Weather::Clear).unwrap();
+        let am = sky_light(7.0, 0, Weather::Clear).unwrap();
+        assert!(noon.dir_x.abs() < 0.01);
+        assert!(noon.elevation > 0.99);
+        assert!(noon.strength > am.strength);
+    }
+
+    #[test]
+    fn new_moon_and_storms_are_dark() {
+        assert!(sky_light(23.0, 0, Weather::Clear).is_none());
+        assert!(sky_light(12.0, 4, Weather::Storm).is_none());
+    }
+
+    #[test]
+    fn full_moon_is_dimmer_than_sun_and_brighter_than_crescent() {
+        let full = sky_light(23.0, 4, Weather::Clear).unwrap();
+        let cres = sky_light(23.0, 1, Weather::Clear).unwrap();
+        let sun = sky_light(12.0, 4, Weather::Clear).unwrap();
+        assert!(full.strength < sun.strength);
+        assert!(cres.strength < full.strength);
+    }
+
+    #[test]
+    fn clouds_dim_the_light() {
+        let clear = sky_light(12.0, 0, Weather::Clear).unwrap();
+        let cloudy = sky_light(12.0, 0, Weather::Cloudy).unwrap();
+        let overcast = sky_light(12.0, 0, Weather::Overcast).unwrap();
+        assert!(cloudy.strength < clear.strength);
+        assert!(overcast.strength < cloudy.strength);
+    }
+}

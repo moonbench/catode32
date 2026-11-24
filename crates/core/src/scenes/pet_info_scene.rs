@@ -632,6 +632,7 @@ fn location_label(loc: Option<SceneId>) -> &'static str {
         Some(SceneId::Kitchen) => t!("Kitchen"),
         Some(SceneId::Outside) => t!("Outside"),
         Some(SceneId::Treehouse) => t!("Treehouse"),
+        Some(SceneId::Garage) => t!("Garage"),
         _ => "?",
     }
 }

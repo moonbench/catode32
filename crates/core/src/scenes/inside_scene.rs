@@ -1,4 +1,4 @@
-use embedded_graphics::prelude::{Point, Size};
+use embedded_graphics::prelude::Point;
 
 use crate::{
     assets::{
@@ -12,7 +12,7 @@ use crate::{
     environment::Layer,
     gardening_ui::PlantSurface,
     input::Buttons,
-    location_scene::LocationScene,
+    location_scene::{draw_window_cutout, LocationScene},
     plant_system::PlantLayer,
     render::Renderer,
     scene::{Scene, SceneId},
@@ -35,9 +35,6 @@ const PLANT_SURFACES: &[PlantSurface] = &[
 const WORLD_WIDTH: i32 = 388;
 const CHAR_WORLD_X: i32 = 100;
 const CHAR_WORLD_Y: i32 = 64;
-
-const DISPLAY_WIDTH: i32 = 128;
-const DISPLAY_HEIGHT: i32 = 64;
 
 // Window cutout.
 const WINDOW_WORLD_X: i32 = 98;
@@ -85,61 +82,7 @@ impl InsideScene {
 
     fn draw_window(&self, renderer: &mut Renderer) {
         let mg_offset = self.base.environment.camera_offset(Layer::Midground);
-        let win_sx = WINDOW_WORLD_X - mg_offset;
-        let wall_bottom = WINDOW_Y + WINDOW_H;
-        let screen_left = win_sx.max(0);
-        let screen_right = (win_sx + WINDOW_W).min(DISPLAY_WIDTH);
-
-        // Mask everything outside the window opening with black. Tall sprites
-        // (balloon, plane) that extend below the window get covered by the
-        // side and bottom rects.
-        if screen_left > 0 {
-            renderer.fill_rect_off(
-                Point::new(0, 0),
-                Size::new(screen_left as u32, DISPLAY_HEIGHT as u32),
-            );
-        }
-        if screen_right < DISPLAY_WIDTH {
-            renderer.fill_rect_off(
-                Point::new(screen_right, 0),
-                Size::new(
-                    (DISPLAY_WIDTH - screen_right) as u32,
-                    DISPLAY_HEIGHT as u32,
-                ),
-            );
-        }
-        if WINDOW_Y > 0 {
-            renderer.fill_rect_off(
-                Point::new(screen_left, 0),
-                Size::new((screen_right - screen_left) as u32, WINDOW_Y as u32),
-            );
-        }
-        if wall_bottom < DISPLAY_HEIGHT && screen_right > screen_left {
-            renderer.fill_rect_off(
-                Point::new(screen_left, wall_bottom),
-                Size::new(
-                    (screen_right - screen_left) as u32,
-                    (DISPLAY_HEIGHT - wall_bottom) as u32,
-                ),
-            );
-        }
-
-        // Window frame: inner outline, outer outline, and a filled sill.
-        renderer.draw_rect(
-            Point::new(win_sx, WINDOW_Y),
-            Size::new(WINDOW_W as u32, WINDOW_H as u32),
-            false,
-        );
-        renderer.draw_rect(
-            Point::new(win_sx - 4, WINDOW_Y - 4),
-            Size::new((WINDOW_W + 8) as u32, (WINDOW_H + 8) as u32),
-            false,
-        );
-        renderer.draw_rect(
-            Point::new(win_sx - 6, WINDOW_Y + WINDOW_H + 4),
-            Size::new((WINDOW_W + 12) as u32, 3),
-            true,
-        );
+        draw_window_cutout(renderer, WINDOW_WORLD_X - mg_offset, WINDOW_Y, WINDOW_W, WINDOW_H);
     }
 }
 

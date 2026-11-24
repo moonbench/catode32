@@ -17,6 +17,7 @@ const LOCATIONS: &[MenuItem<SceneId>] = &[
     MenuItem { label: t!("Kitchen"),     icon: Some(icons::MEAL),  submenu: None, action: Some(SceneId::Kitchen),   confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Outside"),     icon: Some(icons::SUN),   submenu: None, action: Some(SceneId::Outside),   confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Treehouse"),   icon: Some(icons::TREES), submenu: None, action: Some(SceneId::Treehouse), confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Garage"),      icon: Some(icons::GARAGE), submenu: None, action: Some(SceneId::Garage),    confirm: None, confirm_on_vacation: END_VAC },
 ];
 
 const MINIGAMES: &[MenuItem<SceneId>] = &[

@@ -377,6 +377,7 @@ fn scene_label(s: SceneId) -> &'static str {
         SceneId::Bedroom => t!("To Bedroom"),
         SceneId::Kitchen => t!("To Kitchen"),
         SceneId::Treehouse => t!("To Treehouse"),
+        SceneId::Garage => t!("To Garage"),
         _ => "To ???",
     }
 }
@@ -394,6 +395,7 @@ const PLANTABLE_SCENES: &[SceneId] = &[
     SceneId::Bedroom,
     SceneId::Kitchen,
     SceneId::Treehouse,
+    SceneId::Garage,
 ];
 
 fn build_page(

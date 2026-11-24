@@ -128,11 +128,12 @@ pub fn distance_to(character: &Character, target_x: i32) -> i32 {
 /// Scene transition table for auto scene-exit selection.
 fn transitions_for(scene: SceneId) -> &'static [SceneId] {
     match scene {
-        SceneId::Inside => &[SceneId::Bedroom, SceneId::Kitchen, SceneId::Outside],
+        SceneId::Inside => &[SceneId::Bedroom, SceneId::Kitchen, SceneId::Outside, SceneId::Garage],
         SceneId::Bedroom => &[SceneId::Inside, SceneId::Kitchen],
         SceneId::Kitchen => &[SceneId::Inside, SceneId::Bedroom],
-        SceneId::Outside => &[SceneId::Inside, SceneId::Treehouse],
+        SceneId::Outside => &[SceneId::Inside, SceneId::Treehouse, SceneId::Garage],
         SceneId::Treehouse => &[SceneId::Outside],
+        SceneId::Garage => &[SceneId::Inside, SceneId::Outside],
         _ => &[],
     }
 }
@@ -200,6 +201,10 @@ pub fn auto_select_scene_exit(ctx: &mut GameContext) -> Option<NextBehavior> {
         let mut w = 1.0_f32;
         if dest == SceneId::Kitchen {
             w += (50.0 - ctx.fullness).max(0.0) * 0.04;
+        }
+        if dest == SceneId::Garage {
+            // Not somewhere to settle; mostly a curious cat's detour.
+            w = 0.6 + (ctx.curiosity - 50.0).max(0.0) * 0.02;
         }
         if dest == SceneId::Bedroom {
             w += (50.0 - ctx.comfort).max(0.0) * 0.02;

@@ -210,6 +210,10 @@ impl Behavior for NappingBehavior {
             common::bonus_scale(&mut bonus, StatId::Energy, 1.2);
             common::bonus_scale(&mut bonus, StatId::Comfort, 1.2);
         }
+        // Cold concrete floor.
+        if scene == SceneId::Garage {
+            common::bonus_scale(&mut bonus, StatId::Comfort, 0.85);
+        }
         if matches!(scene, SceneId::Outside | SceneId::Treehouse)
             && matches!(ctx.weather, Weather::Rain | Weather::Storm | Weather::Snow)
         {

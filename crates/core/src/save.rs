@@ -135,6 +135,7 @@ fn scene_save_key(s: SceneId) -> &'static str {
         SceneId::Bedroom => "bedroom",
         SceneId::Kitchen => "kitchen",
         SceneId::Treehouse => "treehouse",
+        SceneId::Garage => "garage",
         // Non-main scenes never appear on a saved plant, but keep the mapping
         // exhaustive so the compiler catches future SceneId additions.
         _ => "inside",
@@ -147,6 +148,7 @@ fn scene_from_key(s: &str) -> SceneId {
         "bedroom" => SceneId::Bedroom,
         "kitchen" => SceneId::Kitchen,
         "treehouse" => SceneId::Treehouse,
+        "garage" => SceneId::Garage,
         _ => SceneId::Inside,
     }
 }
@@ -266,6 +268,7 @@ fn fav_location_save_key(s: SceneId) -> &'static str {
         SceneId::Kitchen => "kitchen",
         SceneId::Treehouse => "treehouse",
         SceneId::Bedroom => "bedroom",
+        SceneId::Garage => "garage",
         _ => "inside",
     }
 }
@@ -276,6 +279,7 @@ fn fav_location_from_key(s: &str) -> Option<SceneId> {
         "kitchen" => SceneId::Kitchen,
         "treehouse" => SceneId::Treehouse,
         "bedroom" => SceneId::Bedroom,
+        "garage" => SceneId::Garage,
         "inside" => SceneId::Inside,
         _ => return None,
     })
