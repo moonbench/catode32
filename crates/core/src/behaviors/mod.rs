@@ -2,6 +2,7 @@ pub mod affection;
 pub mod attention;
 pub mod being_groomed;
 pub mod chattering;
+pub mod climbing;
 pub mod common;
 pub mod eating;
 pub mod gift_bringing;
@@ -41,6 +42,7 @@ pub use affection::AffectionBehavior;
 pub use attention::AttentionBehavior;
 pub use being_groomed::BeingGroomedBehavior;
 pub use chattering::ChatteringBehavior;
+pub use climbing::ClimbingBehavior;
 pub use eating::EatingBehavior;
 pub use gift_bringing::GiftBringingBehavior;
 pub use go_to::GoToBehavior;
@@ -109,6 +111,7 @@ crate::dispatch_enum! {
         GoTo(GoToBehavior)(params)                      = GoToBehavior::new(params),
         Hearing(HearingBehavior)(icon)                  = HearingBehavior::new(icon),
         Greeting(GreetingBehavior)                      = GreetingBehavior::new(),
+        Climbing(ClimbingBehavior)(up)                  = ClimbingBehavior::new(up),
     }
 }
 

@@ -54,6 +54,7 @@ pub enum BehaviorId {
     Greeting,
     Pawing,
     Sniffing,
+    Climbing,
 }
 
 crate::enum_str_method! {
@@ -89,6 +90,7 @@ crate::enum_str_method! {
     Greeting      => "greeting",
     Pawing        => "pawing",
     Sniffing      => "sniffing",
+    Climbing      => "climbing",
 }
 
 #[allow(dead_code)]
@@ -214,6 +216,47 @@ pub enum NextBehavior {
     GiftBringing(GiftKind),
     Training(TrainingKind),
     GoTo(GoToParams),
+    /// bool: up (onto one of `ctx.perches`) or back down to the floor.
+    Climbing(bool),
+}
+
+impl NextBehavior {
+    pub fn id(&self) -> BehaviorId {
+        match self {
+            NextBehavior::Idle => BehaviorId::Idle,
+            NextBehavior::Sleeping => BehaviorId::Sleeping,
+            NextBehavior::Napping => BehaviorId::Napping,
+            NextBehavior::Stretching => BehaviorId::Stretching,
+            NextBehavior::Kneading => BehaviorId::Kneading,
+            NextBehavior::Lounging => BehaviorId::Lounging,
+            NextBehavior::Investigating => BehaviorId::Investigating,
+            NextBehavior::Observing => BehaviorId::Observing,
+            NextBehavior::Chattering => BehaviorId::Chattering,
+            NextBehavior::Zoomies => BehaviorId::Zoomies,
+            NextBehavior::Vocalizing => BehaviorId::Vocalizing,
+            NextBehavior::SelfGrooming(_) => BehaviorId::SelfGrooming,
+            NextBehavior::Hunting => BehaviorId::Hunting,
+            NextBehavior::Pacing => BehaviorId::Pacing,
+            NextBehavior::Sulking => BehaviorId::Sulking,
+            NextBehavior::Mischief => BehaviorId::Mischief,
+            NextBehavior::Pawing => BehaviorId::Pawing,
+            NextBehavior::Sniffing => BehaviorId::Sniffing,
+            NextBehavior::Hiding => BehaviorId::Hiding,
+            NextBehavior::Meandering => BehaviorId::Meandering,
+            NextBehavior::Hearing(_) => BehaviorId::Hearing,
+            NextBehavior::Startled => BehaviorId::Startled,
+            NextBehavior::Greeting => BehaviorId::Greeting,
+            NextBehavior::Playing(..) => BehaviorId::Playing,
+            NextBehavior::Affection(_) => BehaviorId::Affection,
+            NextBehavior::Attention(_) => BehaviorId::Attention,
+            NextBehavior::BeingGroomed => BehaviorId::BeingGroomed,
+            NextBehavior::Eating(_) => BehaviorId::Eating,
+            NextBehavior::GiftBringing(_) => BehaviorId::GiftBringing,
+            NextBehavior::Training(_) => BehaviorId::Training,
+            NextBehavior::GoTo(_) => BehaviorId::GoTo,
+            NextBehavior::Climbing(_) => BehaviorId::Climbing,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -308,6 +351,8 @@ pub struct BehaviorManager {
     started: bool,
     /// Sickness accrued from exposure/neglect but not yet applied to ctx.
     sickness_pending: f32,
+    /// What to start once the current hop onto or off the furniture lands.
+    after_climb: Option<NextBehavior>,
 }
 
 #[allow(dead_code)]
@@ -317,6 +362,7 @@ impl BehaviorManager {
             current: ActiveBehavior::from_next(NextBehavior::Idle),
             started: false,
             sickness_pending: 0.0,
+            after_climb: None,
         }
     }
 
@@ -381,12 +427,14 @@ impl BehaviorManager {
         character: &mut Character,
     ) {
         self.current.as_dyn_mut().exit(ctx, false);
+        self.after_climb = None;
         self.swap_to(next, ctx, character);
     }
 
     /// Skip the current behavior (debug / dev hook). Falls back to auto-select.
     pub fn skip(&mut self, ctx: &mut GameContext, character: &mut Character) {
         self.current.as_dyn_mut().exit(ctx, false);
+        self.after_climb = None;
         let next = auto_select(ctx);
         self.swap_to(next, ctx, character);
     }
@@ -433,6 +481,17 @@ impl BehaviorManager {
 
     fn advance(&mut self, ctx: &mut GameContext, character: &mut Character, completed: bool) {
         let id = self.current.as_dyn().id();
+        // A hop isn't a behavior of its own: no history or bonuses, just
+        // start whatever it was clearing the way for.
+        if id == BehaviorId::Climbing {
+            self.current.as_dyn_mut().exit(ctx, completed);
+            let next = match self.after_climb.take() {
+                Some(n) => n,
+                None => auto_select(ctx),
+            };
+            self.swap_to(next, ctx, character);
+            return;
+        }
         let progress = self.current.as_dyn().progress();
         // Caught outside in bad weather: head for shelter, overriding any chain.
         let shelter = if completed && id != BehaviorId::GoTo && ctx.pending_scene.is_none() {
@@ -496,10 +555,16 @@ impl BehaviorManager {
     ) {
         ctx.in_cat_bed = false;
         character.draw_y_offset = 0;
-        let next = maybe_redirect_to_bed(next, ctx, character);
+        // Already up on the furniture is as good as the cat bed.
+        let next = if ctx.perch.is_some() {
+            next
+        } else {
+            maybe_redirect_to_bed(next, ctx, character)
+        };
+        let next = self.route_via_perch(next, ctx, character);
         self.current = ActiveBehavior::from_next(next);
         let id = self.current.as_dyn().id();
-        if matches!(id, BehaviorId::Sleeping | BehaviorId::Napping) {
+        if matches!(id, BehaviorId::Sleeping | BehaviorId::Napping) && ctx.perch.is_none() {
             if let Some(bx) = ctx.cat_bed_x {
                 if (character.pos.x - bx).abs() < 8 {
                     ctx.in_cat_bed = true;
@@ -511,6 +576,47 @@ impl BehaviorManager {
         ctx.current_behavior_name = Some(name);
         println!("[\x1b[32mBehavior started\x1b[0m] {}", name);
         self.current.as_dyn_mut().enter(ctx, character);
+    }
+}
+
+impl BehaviorManager {
+    /// Hop down before anything that moves around, and sometimes hop up
+    /// before something settled. The hop runs first and `next` is kept in
+    /// `after_climb` for when it lands.
+    fn route_via_perch(
+        &mut self,
+        next: NextBehavior,
+        ctx: &mut GameContext,
+        character: &Character,
+    ) -> NextBehavior {
+        use crate::behaviors::climbing::{climb_chance, perch_safe};
+        let id = next.id();
+        if id == BehaviorId::Climbing {
+            return next;
+        }
+        if ctx.perch.is_some() {
+            if perch_safe(id) {
+                return next;
+            }
+            self.after_climb = Some(next);
+            return NextBehavior::Climbing(false);
+        }
+        // Stay on the floor during a playdate (the other device draws this
+        // cat on its floor) and when the cat has just walked to its bed.
+        if ctx.perches.is_empty() || ctx.visit.is_some() {
+            return next;
+        }
+        if let Some(bx) = ctx.cat_bed_x {
+            if (character.pos.x - bx).abs() < 8 {
+                return next;
+            }
+        }
+        let p = climb_chance(id);
+        if p <= 0.0 || !crate::rand::rand_bool(&mut ctx.rng, p) {
+            return next;
+        }
+        self.after_climb = Some(next);
+        NextBehavior::Climbing(true)
     }
 }
 

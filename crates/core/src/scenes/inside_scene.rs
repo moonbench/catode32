@@ -1,8 +1,12 @@
 use embedded_graphics::prelude::{Point, Size};
 
 use crate::{
-    assets::{furniture::BOOKSHELF, items::BOX_SMALL_1},
+    assets::{
+        furniture::{draw_bookshelf, draw_couch, draw_floor_lamp, CABINET_H, CABINET_W, COUCH_H, COUCH_SEAT_Y},
+        items::BOX_SMALL_1,
+    },
     behavior::NextBehavior,
+    behaviors::climbing::Perch,
     clock::ClockWidget,
     context::GameContext,
     environment::Layer,
@@ -14,24 +18,55 @@ use crate::{
     scene::{Scene, SceneId},
 };
 
+// Everything here sits 36px further right on the floor than it used to (and
+// 22px / 11px on the slower layers) to fit the whole bookshelf on the left.
+// The spawn moved with it, so the room opens on the same view as before.
 const PLANT_SURFACES: &[PlantSurface] = &[
-    PlantSurface { y_snap: 63, layer: PlantLayer::Foreground, x_min: 26, x_max: 182 },
-    PlantSurface { y_snap: 60, layer: PlantLayer::Midground,  x_min: 26, x_max: 150 },
-    PlantSurface { y_snap: 29, layer: PlantLayer::Midground,  x_min: 95, x_max: 150 },
+    PlantSurface { y_snap: 63, layer: PlantLayer::Foreground, x_min: 62,  x_max: WORLD_WIDTH - 10 },
+    // Top of the bookshelf, right of the box.
+    PlantSurface { y_snap: BOOKSHELF_Y, layer: PlantLayer::Foreground, x_min: BOX_X + 13, x_max: 52 },
+    // Back wall, up to the couch.
+    PlantSurface { y_snap: MIDGROUND_FLOOR, layer: PlantLayer::Midground, x_min: 48, x_max: COUCH_WORLD_X - 18 },
+    // Window sill.
+    PlantSurface { y_snap: 29, layer: PlantLayer::Midground,  x_min: 93, x_max: 148 },
 ];
 
-const WORLD_WIDTH: i32 = 192;
-const CHAR_WORLD_X: i32 = 64;
+/// Wide enough to pan the couch fully into view at the far right.
+const WORLD_WIDTH: i32 = 388;
+const CHAR_WORLD_X: i32 = 100;
 const CHAR_WORLD_Y: i32 = 64;
 
 const DISPLAY_WIDTH: i32 = 128;
 const DISPLAY_HEIGHT: i32 = 64;
 
 // Window cutout.
-const WINDOW_WORLD_X: i32 = 100;
+const WINDOW_WORLD_X: i32 = 98;
 const WINDOW_Y: i32 = -10;
 const WINDOW_W: i32 = 56;
 const WINDOW_H: i32 = 36;
+
+const BOOKSHELF_X: i32 = 0;
+const BOOKSHELF_Y: i32 = 63 - CABINET_H;
+/// The cardboard box at the left end of the bookshelf's top.
+const BOX_X: i32 = BOOKSHELF_X + 2;
+const CLOCK_WORLD_X: i32 = 58;
+
+/// The midground's floor line: higher up than the cat's, so the back wall
+/// furniture reads as further away. Plants there snap to the same line.
+const MIDGROUND_FLOOR: i32 = 60;
+
+/// Couch against the wall, just right of the window sill.
+const COUCH_WORLD_X: i32 = 170;
+const COUCH_Y: i32 = MIDGROUND_FLOOR - COUCH_H;
+/// Floor lamp beside the couch, at the right end of the room.
+const LAMP_WORLD_X: i32 = 268;
+/// The middle of the seat cushions.
+const PERCHES: &[Perch] = &[Perch {
+    layer: Layer::Midground,
+    x_min: COUCH_WORLD_X + 24,
+    x_max: COUCH_WORLD_X + 60,
+    top_y: COUCH_Y + COUCH_SEAT_Y + 1,
+}];
 
 pub struct InsideScene {
     base: LocationScene,
@@ -40,9 +75,11 @@ pub struct InsideScene {
 
 impl InsideScene {
     pub fn new() -> Self {
+        let mut base = LocationScene::new(WORLD_WIDTH, Point::new(CHAR_WORLD_X, CHAR_WORLD_Y));
+        base.visit_anchor_x = CHAR_WORLD_X;
         Self {
-            base: LocationScene::new(WORLD_WIDTH, Point::new(CHAR_WORLD_X, CHAR_WORLD_Y)),
-            clock: ClockWidget::new(36, 0),
+            base,
+            clock: ClockWidget::new(CLOCK_WORLD_X, 0),
         }
     }
 
@@ -113,20 +150,13 @@ impl Scene for InsideScene {
 
     fn enter(&mut self, ctx: &mut GameContext) {
         self.base.enter(ctx, SceneId::Inside, PLANT_SURFACES);
-        ctx.bookshelf_right_x = Some(BOOKSHELF.width as i32);
-        let bookshelf_y = 63 - BOOKSHELF.height as i32;
-        self.base.environment.add_object(
-            Layer::Foreground,
-            &BOOKSHELF,
-            0,
-            bookshelf_y,
-            false,
-        );
-        let box_y = bookshelf_y - BOX_SMALL_1.height as i32;
+        ctx.bookshelf_right_x = Some(BOOKSHELF_X + CABINET_W);
+        ctx.perches = PERCHES;
+        let box_y = BOOKSHELF_Y - BOX_SMALL_1.height as i32;
         self.base.environment.add_object(
             Layer::Foreground,
             &BOX_SMALL_1,
-            2,
+            BOX_X,
             box_y,
             false,
         );
@@ -181,8 +211,12 @@ impl Scene for InsideScene {
         self.base.draw_plants(ctx, renderer, PlantLayer::Background);
         let mg_offset = self.base.environment.camera_offset(Layer::Midground);
         self.clock.draw(renderer, mg_offset);
+        draw_couch(renderer, COUCH_WORLD_X - mg_offset, COUCH_Y);
+        draw_floor_lamp(renderer, LAMP_WORLD_X - mg_offset, MIDGROUND_FLOOR - 1);
         self.base.environment.draw_layer(renderer, Layer::Midground);
         self.base.draw_plants(ctx, renderer, PlantLayer::Midground);
+        let fg_offset = self.base.environment.camera_offset(Layer::Foreground);
+        draw_bookshelf(renderer, BOOKSHELF_X - fg_offset, BOOKSHELF_Y);
         self.base.environment.draw_layer(renderer, Layer::Foreground);
         self.base.draw_plants(ctx, renderer, PlantLayer::Foreground);
         self.base.draw_character(renderer, ctx);

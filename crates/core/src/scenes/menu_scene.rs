@@ -31,6 +31,7 @@ const MINIGAMES: &[MenuItem<SceneId>] = &[
     MenuItem { label: t!("Lucky Landing"), icon: Some(icons::LUCKY_LANDING), submenu: None, action: Some(SceneId::LuckyLanding), confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Balancing Act"), icon: Some(icons::BALANCING_ACT), submenu: None, action: Some(SceneId::BalancingAct), confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Cat Tree"),  icon: Some(icons::CAT_TREE),   submenu: None, action: Some(SceneId::CatTree),    confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Treat Toss"), icon: Some(icons::TREAT_TOSS), submenu: None, action: Some(SceneId::TreatToss), confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Mini Golf"), icon: Some(icons::MINI_GOLF),  submenu: None, action: Some(SceneId::MiniGolf),   confirm: None, confirm_on_vacation: END_VAC },
     // Untranslated, like the other game names: t!("Scratch") is the verb.
     MenuItem { label: "Scratch",       icon: Some(icons::SCRATCH),    submenu: None, action: Some(SceneId::Scratch),    confirm: None, confirm_on_vacation: END_VAC },

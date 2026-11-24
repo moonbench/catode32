@@ -462,7 +462,7 @@ pub fn starter_plants() -> Vec<Plant, MAX_PLANTS> {
     };
     let _ = v.push(push(
         Some(SeedKind::Rose), SceneId::Inside, PlantLayer::Midground,
-        110, 29, PotKind::Small, PlantStage::Growing, 200, false,
+        108, 29, PotKind::Small, PlantStage::Growing, 200, false,
     ));
     let _ = v.push(push(
         Some(SeedKind::CatGrass), SceneId::Kitchen, PlantLayer::Midground,
@@ -583,6 +583,10 @@ pub struct GameContext {
     /// Foreground world-x of the bookshelf's right edge, when the scene has one.
     pub bookshelf_right_x: Option<i32>,
     pub in_cat_bed: bool,
+    /// Furniture in this scene the cat can hop up onto (couch, bed).
+    pub perches: &'static [crate::behaviors::climbing::Perch],
+    /// Set while the cat is up on one of `perches`.
+    pub perch: Option<crate::behaviors::climbing::Perched>,
     /// Foreground-layer camera offset, refreshed by LocationScene each frame
     /// so behaviors can convert character world-x into screen-x without
     /// plumbing the environment through every call.
@@ -808,6 +812,8 @@ impl GameContext {
             cat_bed_span: None,
             bookshelf_right_x: None,
             in_cat_bed: false,
+            perches: &[],
+            perch: None,
             scene_camera_x: 0,
             input: InputSnapshot::default(),
 

@@ -10,7 +10,7 @@ use crate::{
     espnow_msg,
     gardening_ui::{
         PlacementKind, PlacementMode, PlacementResult, PlantBursts, PlantSelectionMode,
-        PlantSurface, SelectionFilter, SelectionResult,
+        rehome_stranded_plants, PlantSurface, SelectionFilter, SelectionResult,
     },
     input::{Button, Buttons},
     plant_renderer::draw_plants_layer,
@@ -183,6 +183,11 @@ pub struct LocationScene {
     sniff_cooldown: f32,
     /// Inviter-only: seconds since the last `venv` broadcast.
     venv_timer: f32,
+    /// The cat's `pos.y` standing on the floor.
+    floor_y: i32,
+    /// Where the two pets meet at the start of a visit. Scenes with
+    /// furniture over the default spot move it to their own spawn point.
+    pub visit_anchor_x: i32,
 }
 
 impl LocationScene {
@@ -217,6 +222,8 @@ impl LocationScene {
             last_vbeh: None,
             sniff_cooldown: 0.0,
             venv_timer: 0.0,
+            floor_y: character_pos.y,
+            visit_anchor_x: VISIT_ANCHOR_X,
         }
     }
 
@@ -740,12 +747,19 @@ impl LocationScene {
         ctx.last_main_scene = scene_id;
         self.scene_id = scene_id;
         self.plant_surfaces = plant_surfaces;
+        if !plant_surfaces.is_empty() {
+            rehome_stranded_plants(ctx, scene_id, plant_surfaces, self.environment.world_width);
+        }
         self.sky.reseed_stars(ctx.pet_seed);
         // Default walkable strip. Scenes that need tighter bounds (e.g.
         // treehouse's tree trunks, bedroom's bed) overwrite these after
         // calling `base.enter`.
         ctx.scene_x_min = 10;
         ctx.scene_x_max = (self.environment.world_width - 10).max(10);
+        // Every scene starts with the cat on the floor; scenes with furniture
+        // to climb set `perches` after this.
+        ctx.perches = &[];
+        ctx.perch = None;
         self.character.reseed_anim();
         self.character.randomize_facing(&mut ctx.rng);
         self.environment
@@ -765,11 +779,11 @@ impl LocationScene {
         // other (cats face left by default; `mirror_h = true` flips
         // to face right).
         if let Some(visit) = ctx.visit.as_ref() {
-            const INVITER_X: i32 = VISIT_ANCHOR_X - VISIT_HALF_GAP;
-            const INVITEE_X: i32 = VISIT_ANCHOR_X + VISIT_HALF_GAP;
+            let inviter_x = self.visit_anchor_x - VISIT_HALF_GAP;
+            let invitee_x = self.visit_anchor_x + VISIT_HALF_GAP;
             let (local_x, visitor_x, local_face_right, visitor_face_right) = match visit.role {
-                crate::context::VisitRole::Inviter => (INVITER_X, INVITEE_X, true, false),
-                crate::context::VisitRole::Invitee => (INVITEE_X, INVITER_X, false, true),
+                crate::context::VisitRole::Inviter => (inviter_x, invitee_x, true, false),
+                crate::context::VisitRole::Invitee => (invitee_x, inviter_x, false, true),
             };
             self.character.pos.x = local_x;
             self.character.mirror_h = local_face_right;
@@ -819,10 +833,10 @@ impl LocationScene {
             if !visit.greeted {
                 let target_x = match visit.role {
                     crate::context::VisitRole::Inviter => {
-                        VISIT_ANCHOR_X - GREETING_APPROACH_GAP
+                        self.visit_anchor_x - GREETING_APPROACH_GAP
                     }
                     crate::context::VisitRole::Invitee => {
-                        VISIT_ANCHOR_X + GREETING_APPROACH_GAP
+                        self.visit_anchor_x + GREETING_APPROACH_GAP
                     }
                 };
                 let peer_mac = visit.peer_mac;
@@ -891,6 +905,7 @@ impl LocationScene {
         self.sky.update(ctx, dt);
         tick_plants(ctx);
         self.maybe_scan_sniff(ctx);
+        self.sync_perch(ctx);
         let prev_x = self.character.pos.x;
         self.behaviors.update(ctx, &mut self.character, dt);
         let pose = self.behaviors.current_pose();
@@ -917,6 +932,21 @@ impl LocationScene {
                 self.environment
                     .set_camera(self.character.pos.x - (DISPLAY_WIDTH - FOLLOW_MARGIN));
             }
+        }
+    }
+
+    /// Keep a perched cat on its furniture as the layers scroll at their
+    /// own speeds, and put the cat back on the floor if a hop down was cut
+    /// short. Runs before the behavior update so the camera follow doesn't
+    /// mistake the shift for the cat walking.
+    fn sync_perch(&mut self, ctx: &GameContext) {
+        if let Some(at) = ctx.perch {
+            if let Some(p) = ctx.perches.get(at.idx as usize) {
+                self.character.pos.x = p.fg_x(at.x, self.environment.camera_x);
+                self.character.pos.y = p.top_y;
+            }
+        } else if self.behaviors.current_id() != BehaviorId::Climbing {
+            self.character.pos.y = self.floor_y;
         }
     }
 
@@ -957,6 +987,7 @@ impl LocationScene {
         // not acquired the radio (see outside/treehouse `enter`).
         self.tick_espnow(ctx, dt);
         self.maybe_scan_sniff(ctx);
+        self.sync_perch(ctx);
         let prev_x = self.character.pos.x;
         self.behaviors.update(ctx, &mut self.character, dt);
         let pose = self.behaviors.current_pose();
@@ -1041,6 +1072,9 @@ impl LocationScene {
             if buttons.is_pressed(Button::Right) {
                 self.environment.pan(PAN_SPEED);
             }
+            // Re-pin a perched cat to the camera it'll be drawn with, or it
+            // lags the furniture by a frame while panning.
+            self.sync_perch(ctx);
         }
 
         if let Some(next) = ctx.pending_scene.take() {

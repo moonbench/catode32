@@ -48,6 +48,75 @@ fn surface_x_max(surf: &PlantSurface, world_width: i32) -> i32 {
     (DISPLAY_WIDTH as f32 * (1.0 - p) + world_width as f32 * p) as i32
 }
 
+/// Whether `x` on `layer` at `y_snap` is somewhere `surfaces` allows a plant.
+fn on_a_surface(surfaces: &[PlantSurface], world_width: i32, layer: PlantLayer, x: i32, y_snap: i32) -> bool {
+    surfaces.iter().any(|s| {
+        s.layer == layer && s.y_snap == y_snap && x >= s.x_min && x <= surface_x_max(s, world_width)
+    })
+}
+
+/// Move any plant in `scene` that is no longer on one of the scene's
+/// surfaces down to the foreground floor. Lets a scene's layout change (a
+/// counter moved, a shelf removed) without a save migration: plants left
+/// floating in old spots land on the ground the next time the scene opens.
+///
+/// The plant keeps roughly the same place on screen. If another plant
+/// already stands at exactly that spot on the floor, it shuffles over two
+/// pixels at a time, right then left, until it finds a free one.
+pub fn rehome_stranded_plants(
+    ctx: &mut GameContext,
+    scene: SceneId,
+    surfaces: &[PlantSurface],
+    world_width: i32,
+) {
+    let Some(floor) = surfaces
+        .iter()
+        .filter(|s| s.layer == PlantLayer::Foreground)
+        .max_by_key(|s| s.y_snap)
+        .copied()
+    else {
+        return;
+    };
+    let (lo, hi) = (floor.x_min, surface_x_max(&floor, world_width));
+    let max_cam = (world_width - DISPLAY_WIDTH).max(0);
+    for i in 0..ctx.plants.len() {
+        let p = ctx.plants[i];
+        if p.scene != scene || on_a_surface(surfaces, world_width, p.layer, p.x, p.y_snap) {
+            continue;
+        }
+        // Where the plant shows on screen with the camera centred on it,
+        // then the floor x that shows in the same place.
+        let par = p.layer.parallax();
+        let cam = ((p.x - DISPLAY_WIDTH / 2) as f32 / par).clamp(0.0, max_cam as f32);
+        let want = (p.x as f32 + cam * (1.0 - par)) as i32;
+        let want = want.clamp(lo, hi);
+        let taken = |x: i32| {
+            ctx.plants.iter().any(|q| {
+                q.id != p.id
+                    && q.scene == scene
+                    && q.layer == PlantLayer::Foreground
+                    && q.y_snap == floor.y_snap
+                    && q.x == x
+            })
+        };
+        let mut x = want;
+        for step in 1..=(hi - lo + 2) {
+            if !taken(x) {
+                break;
+            }
+            let off = 2 * ((step + 1) / 2);
+            let cand = if step % 2 == 1 { want + off } else { want - off };
+            if cand >= lo && cand <= hi {
+                x = cand;
+            }
+        }
+        let q = &mut ctx.plants[i];
+        q.layer = PlantLayer::Foreground;
+        q.x = x;
+        q.y_snap = floor.y_snap;
+    }
+}
+
 /// Sort surfaces y_snap asc, then by layer (foreground last), so the starting
 /// cursor lands on the foreground floor.
 fn sort_surfaces(src: &[PlantSurface], out: &mut heapless::Vec<PlantSurface, 8>) {

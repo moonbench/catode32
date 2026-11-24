@@ -1,7 +1,7 @@
 use embedded_graphics::prelude::{Point, Size};
 
 use crate::{
-    assets::furniture::FAUCET,
+    assets::furniture::{draw_fridge, draw_trashcan, FridgeLayout, FAUCET, FRIDGE_H, FRIDGE_W},
     clock::ClockWidget,
     context::GameContext,
     environment::Layer,
@@ -14,35 +14,43 @@ use crate::{
 };
 
 const PLANT_SURFACES: &[PlantSurface] = &[
-    PlantSurface { y_snap: 63, layer: PlantLayer::Foreground, x_min: 0,  x_max: 180 },
-    PlantSurface { y_snap: 60, layer: PlantLayer::Midground,  x_min: 0,  x_max: 16 },
-    PlantSurface { y_snap: 24, layer: PlantLayer::Midground,  x_min: 25, x_max: 160 },
+    PlantSurface { y_snap: 63, layer: PlantLayer::Foreground, x_min: 0,  x_max: WORLD_WIDTH - 12 },
+    PlantSurface { y_snap: 24, layer: PlantLayer::Midground,  x_min: COUNTER_X_START, x_max: 160 },
 ];
 
-const WORLD_WIDTH: i32 = 192;
+/// Wide enough that the bin past the end of the counter scrolls into view.
+const WORLD_WIDTH: i32 = 256;
 const CHAR_WORLD_X: i32 = 64;
 const CHAR_WORLD_Y: i32 = 64;
 
-const COUNTER_X_START: i32 = 25;
+/// The fridge stands at the far left of the midground, feet on the floor.
+const FRIDGE_X: i32 = 4;
+const FRIDGE_FLOOR_Y: i32 = 60;
+const COUNTER_X_START: i32 = FRIDGE_X + FRIDGE_W + 6;
 const COUNTER_X_END: i32 = 175;
 const COUNTER_TOP_Y: i32 = 24;
-const FAUCET_WORLD_X: i32 = 82;
+const FAUCET_WORLD_X: i32 = 104;
+/// The bin stands on the floor just past the end of the counter.
+const TRASH_X: i32 = COUNTER_X_END + 5;
 
 pub struct KitchenScene {
     base: LocationScene,
     clock: ClockWidget,
+    fridge: FridgeLayout,
 }
 
 impl KitchenScene {
     pub fn new() -> Self {
         Self {
             base: LocationScene::new(WORLD_WIDTH, Point::new(CHAR_WORLD_X, CHAR_WORLD_Y)),
-            clock: ClockWidget::new(100, 0),
+            clock: ClockWidget::new(122, 0),
+            fridge: FridgeLayout::from_seed(0),
         }
     }
 
     fn draw_counter(&self, renderer: &mut Renderer) {
         let mg_offset = self.base.environment.camera_offset(Layer::Midground);
+        draw_fridge(renderer, FRIDGE_X - mg_offset, FRIDGE_FLOOR_Y - FRIDGE_H, &self.fridge);
         let sx = (COUNTER_X_START - mg_offset).max(0);
         let ex = (COUNTER_X_END - mg_offset).min(128);
         if sx >= ex {
@@ -62,7 +70,7 @@ impl KitchenScene {
             false,
         );
         // Cabinet door dividers
-        let mut door_wx = 40;
+        let mut door_wx = COUNTER_X_START + 15;
         while door_wx < COUNTER_X_END {
             let dx = door_wx - mg_offset;
             if sx < dx && dx < ex {
@@ -75,11 +83,14 @@ impl KitchenScene {
         let fx = FAUCET_WORLD_X - mg_offset;
         let fy = COUNTER_TOP_Y - FAUCET.height as i32;
         renderer.draw_sprite(&FAUCET, Point::new(fx, fy), SpriteOpts::default());
+
+        draw_trashcan(renderer, TRASH_X - mg_offset, FRIDGE_FLOOR_Y);
     }
 }
 
 impl Scene for KitchenScene {
     fn enter(&mut self, ctx: &mut GameContext) {
+        self.fridge = FridgeLayout::from_seed(ctx.pet_seed);
         self.base.enter(ctx, SceneId::Kitchen, PLANT_SURFACES);
     }
 

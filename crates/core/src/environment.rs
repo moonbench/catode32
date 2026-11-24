@@ -15,6 +15,11 @@ pub enum Layer {
 
 pub(crate) const PARALLAX: [f32; 3] = [0.3, 0.6, 1.0];
 
+/// How far `layer` has scrolled when the camera is at `camera_x`.
+pub fn parallax_offset(camera_x: i32, layer: Layer) -> i32 {
+    (camera_x as f32 * PARALLAX[layer as usize]) as i32
+}
+
 #[derive(Clone, Copy)]
 pub struct EnvObject {
     pub sprite: &'static Sprite,
@@ -60,7 +65,7 @@ impl Environment {
     }
 
     pub fn camera_offset(&self, layer: Layer) -> i32 {
-        (self.camera_x as f32 * PARALLAX[layer as usize]) as i32
+        parallax_offset(self.camera_x, layer)
     }
 
     pub fn draw_layer(&self, renderer: &mut Renderer, layer: Layer) {

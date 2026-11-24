@@ -190,3 +190,15 @@ pub static CATTREE_JETPACK: Sprite = Sprite {
     frames: CATTREE_JETPACK_FRAMES,
     fill_frames: Some(CATTREE_JETPACK_FILL),
 };
+
+// Treat Toss: a 2x2 treat with a 1px black outline (the fill mask) so it
+// reads on any background.
+const TREAT_FRAMES: &[&[u8]] = &[b"\x00\x60\x60\x00"];
+const TREAT_FILL_FRAMES: &[&[u8]] = &[b"\xf0\xf0\xf0\xf0"];
+
+pub static TREAT: Sprite = Sprite {
+    width: 4,
+    height: 4,
+    frames: TREAT_FRAMES,
+    fill_frames: Some(TREAT_FILL_FRAMES),
+};
