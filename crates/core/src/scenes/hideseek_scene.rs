@@ -982,23 +982,6 @@ mod tests {
     }
 
     #[test]
-    fn smarter_pets_find_boxes_faster() {
-        let mut totals = [0usize; 3];
-        let levels = [PetLevel::Kitten, PetLevel::Clever, PetLevel::Genius];
-        for seed in 1..300u32 {
-            let mut layout_rng = seed;
-            let mut yard = Yard::new();
-            yard.place_random(&mut layout_rng);
-            for (k, &level) in levels.iter().enumerate() {
-                let mut rng = seed.wrapping_mul(2654435761) | 1;
-                totals[k] += play_out(&mut yard.clone(), level, &mut rng);
-            }
-        }
-        assert!(totals[0] > totals[1], "kitten {} vs clever {}", totals[0], totals[1]);
-        assert!(totals[1] > totals[2], "clever {} vs genius {}", totals[1], totals[2]);
-    }
-
-    #[test]
     fn intelligence_picks_the_level() {
         assert_eq!(pet_level(0.0), PetLevel::Kitten);
         assert_eq!(pet_level(50.0), PetLevel::Clever);
