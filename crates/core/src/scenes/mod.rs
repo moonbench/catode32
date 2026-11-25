@@ -17,6 +17,7 @@ pub mod debug_time_scene;
 pub mod debug_wifi_scene;
 pub mod forecast_scene;
 pub mod garage_scene;
+pub mod save_recovery_scene;
 pub mod hanjie_scene;
 pub mod herding_scene;
 pub mod hideseek_scene;
@@ -81,6 +82,7 @@ use debug_time_scene::DebugTimeScene;
 use debug_wifi_scene::DebugWifiScene;
 use forecast_scene::ForecastScene;
 use garage_scene::GarageScene;
+use save_recovery_scene::SaveRecoveryScene;
 use hanjie_scene::HanjieScene;
 use herding_scene::HerdingScene;
 use hideseek_scene::HideSeekScene;
@@ -133,6 +135,7 @@ crate::dispatch_enum! {
         Kitchen(KitchenScene)                     = KitchenScene::new(),
         Treehouse(TreehouseScene)                 = TreehouseScene::new(),
         Garage(GarageScene)                       = GarageScene::new(),
+        SaveRecovery(SaveRecoveryScene)           = SaveRecoveryScene::new(),
         Menu(MenuScene)                           = MenuScene::new(),
         PoseViewer(PoseScene)                     = PoseScene::new(),
         Stats(StatsScene)                         = StatsScene::new(),

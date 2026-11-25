@@ -613,5 +613,7 @@
   "Distance: {n}": "Afstand: {n}",
   "Score: {n}": "Score: {n}",
   "On the windowsill": "Op de vensterbank",
-  "On the counter": "Op het aanrecht"
+  "On the counter": "Op het aanrecht",
+  "Your cat's save couldn't be read. It is kept safe and nothing will overwrite it. A firmware update may recover it. Press A to erase it and start over.": "De opslag van je kat kon niet worden gelezen. Hij blijft veilig bewaard en wordt niet overschreven. Een firmware-update kan hem herstellen. Druk op A om hem te wissen en opnieuw te beginnen.",
+  "Erase old save?\nThat cat is lost!": "Oude opslag wissen?\nDie kat is weg!"
 }

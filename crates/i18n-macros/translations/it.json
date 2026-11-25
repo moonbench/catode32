@@ -613,5 +613,7 @@
   "Distance: {n}": "Distanza: {n}",
   "Score: {n}": "Punti: {n}",
   "On the windowsill": "Sul davanzale",
-  "On the counter": "Sul bancone"
+  "On the counter": "Sul bancone",
+  "Your cat's save couldn't be read. It is kept safe and nothing will overwrite it. A firmware update may recover it. Press A to erase it and start over.": "Impossibile leggere il salvataggio del tuo gatto. Resta al sicuro e nulla lo sovrascriverà. Un aggiornamento del firmware potrebbe recuperarlo. Premi A per cancellarlo e ricominciare.",
+  "Erase old save?\nThat cat is lost!": "Cancellare il salvataggio?\nQuel gatto è perso!"
 }

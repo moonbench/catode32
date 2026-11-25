@@ -613,5 +613,7 @@
   "Distance: {n}": "Distancia: {n}",
   "Score: {n}": "Puntos: {n}",
   "On the windowsill": "En el alféizar",
-  "On the counter": "En la encimera"
+  "On the counter": "En la encimera",
+  "Your cat's save couldn't be read. It is kept safe and nothing will overwrite it. A firmware update may recover it. Press A to erase it and start over.": "No se pudo leer la partida de tu gato. Queda a salvo y nada la sobrescribirá. Una actualización del firmware puede recuperarla. Pulsa A para borrarla y empezar de nuevo.",
+  "Erase old save?\nThat cat is lost!": "¿Borrar la partida?\n¡Ese gato se pierde!"
 }

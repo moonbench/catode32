@@ -1,5 +1,9 @@
 #![cfg_attr(not(feature = "desktop"), no_std)]
 
+// The firmware's global allocator (esp-alloc) exists for the wifi stack.
+// Core only allocates briefly at boot, to migrate a legacy save.
+extern crate alloc;
+
 // Cfg-aware `println!`. Firmware routes to `esp_println` (USB serial-jtag /
 // UART per the `auto` backend); desktop uses the std macro. Call sites do
 // `use crate::println;` and then `println!(...)` as normal.
@@ -45,8 +49,10 @@ pub mod plant_renderer;
 pub mod plant_system;
 pub mod radio;
 pub mod rand;
+pub mod ring;
 pub mod render;
 pub mod save;
+pub mod save_v1;
 pub mod scene;
 pub mod scenes;
 pub mod sky;

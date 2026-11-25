@@ -613,5 +613,7 @@
   "Distance: {n}": "Distance: {n}",
   "Score: {n}": "Score: {n}",
   "On the windowsill": "On the windowsill",
-  "On the counter": "On the counter"
+  "On the counter": "On the counter",
+  "Your cat's save couldn't be read. It is kept safe and nothing will overwrite it. A firmware update may recover it. Press A to erase it and start over.": "Your cat's save couldn't be read. It is kept safe and nothing will overwrite it. A firmware update may recover it. Press A to erase it and start over.",
+  "Erase old save?\nThat cat is lost!": "Erase old save?\nThat cat is lost!"
 }

@@ -92,13 +92,18 @@ impl Game {
             }
         }
 
-        let loaded = save::has_save() && save::load(&mut context);
+        let outcome = save::load(&mut context);
+        let loaded = outcome == save::LoadOutcome::Loaded;
+        // A save that exists but can't be read must never be replaced by a
+        // new adoption. Storage is locked; show the recovery screen instead.
+        let unreadable = outcome == save::LoadOutcome::Unreadable;
 
         // Resume a scene change that a reset interrupted. Capped so a scene
         // that crashes on entry gets at most MAX_RESUME_ATTEMPTS boots before
         // we fall back to the normal start scene.
         let mut resumed = false;
         let start = match persist::intent_peek() {
+            _ if unreadable => SceneId::SaveRecovery,
             Some((id, attempts)) if loaded && attempts < MAX_RESUME_ATTEMPTS => {
                 match SceneId::from_u8(id).filter(|s| s.resumable()) {
                     Some(scene) => {

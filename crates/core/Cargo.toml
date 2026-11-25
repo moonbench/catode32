@@ -1,6 +1,6 @@
 [package]
 name = "catode32-core"
-version = "0.14.0"
+version = "0.15.0"
 edition = "2021"
 description = "Core game logic for catode32 — shared between firmware and desktop builds"
 license = "MIT"
@@ -67,6 +67,6 @@ embedded-graphics = "0.8.2"
 heapless = { version = "0.8", features = ["serde"] }
 micromath = "2"
 smart-leds = "0.4.0"
-serde = { version = "1.0", default-features = false, features = ["derive"] }
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
 serde-json-core = "0.6"
 catode32-i18n-macros = { path = "../i18n-macros", default-features = false }

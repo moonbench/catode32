@@ -613,5 +613,7 @@
   "Distance: {n}": "Weite: {n}",
   "Score: {n}": "Punkte: {n}",
   "On the windowsill": "Auf der Fensterbank",
-  "On the counter": "Auf der Arbeitsplatte"
+  "On the counter": "Auf der Arbeitsplatte",
+  "Your cat's save couldn't be read. It is kept safe and nothing will overwrite it. A firmware update may recover it. Press A to erase it and start over.": "Der Spielstand deiner Katze konnte nicht gelesen werden. Er bleibt sicher erhalten und wird nicht überschrieben. Ein Firmware-Update kann ihn retten. Drücke A, um ihn zu löschen und neu zu beginnen.",
+  "Erase old save?\nThat cat is lost!": "Alten Stand löschen?\nDie Katze ist weg!"
 }

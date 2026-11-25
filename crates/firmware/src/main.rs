@@ -18,7 +18,8 @@ fn main() -> ! {
     // scheduler it needs) both allocate from a global heap. 64 KB is the size
     // the esp-rs maintainers recommend for scan-only wifi; it holds the
     // driver's permanent buffers plus transient per-scan AP lists with
-    // comfortable headroom. Nothing else in this firmware allocates.
+    // comfortable headroom. The only other allocation is a one-off at boot,
+    // before wifi starts: reading a legacy (v0) save to migrate it.
     esp_alloc::heap_allocator!(size: 64 * 1024);
 
     // 80 MHz rather than the 160 MHz max: lower active current, and the
@@ -32,7 +33,7 @@ fn main() -> ! {
     storage::init(board.flash);
     let renderer = Renderer::new(board.i2c);
 
-    println!("catode32 v0.14.0 behavior framework");
+    println!("catode32 v0.15.0 behavior framework");
 
     // Start the preemptive scheduler. The radio stack drives its event loop
     // on a task scheduled by esp-rtos, so the scheduler must be running

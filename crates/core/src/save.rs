@@ -1,32 +1,42 @@
 //! Save / load for `GameContext`.
 //!
-//! Storage layer is `crate::storage` (round-robin sector rotation on the
-//! `nvs` partition).
+//! Saves are v1 snapshots (`crate::save_v1` format) in the snapshot ring
+//! (`crate::ring`) on the `nvs` partition (`crate::storage`).
+//!
+//! Loading:
+//! * The newest snapshot supplies each section. If a section's CRC fails,
+//!   that section comes from the newest older snapshot where it's intact,
+//!   so damage to the world (plants, wifi) never costs the pet.
+//! * A v0 JSON save that is newer than every snapshot is loaded and then
+//!   migrated: a v1 snapshot is written and verified alongside it. The v0
+//!   record is never erased while it's still the newest record, so a power
+//!   loss mid-migration just means the migration runs again next boot.
+//! * If a save exists but nothing in it can be read, storage is locked: no
+//!   save is written until the player explicitly erases it, so a firmware
+//!   update that can read it can still recover the cat.
 
 use core::str::FromStr;
 
-use crate::platform::time::{Duration, Instant};
+use alloc::vec::Vec as AVec;
 use heapless::{String, Vec};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
+use crate::platform::time::{Duration, Instant};
 use crate::{
     assets::plants::{PlantStage, PotKind},
     context::{
-        FavWeather, FoodItem, GameContext, PotSize, SeedKind, ToolKind, ToyEntry, ToyVariant,
-        FriendEntry, WifiEntry, FOOD_ITEM_COUNT, FRIENDS_MAX, MAX_PLANTS, PET_NAME_MAX, RECENT_HISTORY, TOY_VARIANT_COUNT,
-        WIFI_FAMILIAR_MAX, WIFI_RECENT_MAX, WIFI_SSID_MAX,
+        FavWeather, FoodItem, FriendEntry, GameContext, PotSize, SeedKind, ToolKind, ToyEntry,
+        ToyVariant, WifiEntry, FOOD_ITEM_COUNT, FRIENDS_MAX, WIFI_SSID_MAX,
     },
     pet_seed::{PetGender, StarSign},
     plant_system::{Plant, PlantLayer},
+    ring,
+    save_v1::{self, SECTION_PET, SECTION_WORLD},
     scene::SceneId,
-    storage,
+    storage::{self, LegacyRef, Partition},
     time_system::{Season, Weather},
     wifi_tracker,
 };
-
-/// Major schema version. Bumped when the on-disk shape changes in a
-/// backwards-incompatible way.
-const SCHEMA_VERSION: u8 = 0;
 
 /// Save interval used by `save_if_needed`. Deliberately longer than
 /// `wifi_tracker::SCAN_INTERVAL`: each scan is preceded by a save, so while
@@ -34,35 +44,219 @@ const SCHEMA_VERSION: u8 = 0;
 /// once per scan interval rather than twice.
 const SAVE_INTERVAL: Duration = Duration::from_secs(75 * 60);
 
-/// Max size of the JSON payload. Sized to `storage::MAX_PAYLOAD`, which
-/// covers a maxed-out save (80 plants, full inventory) with room to spare.
-const JSON_BUF_SIZE: usize = storage::MAX_PAYLOAD;
+/// Working buffer for one snapshot payload, used for both encode and decode.
+/// `static mut` so it lives in `.bss` rather than on the task stack.
+static mut SNAP_BUF: [u8; ring::MAX_PAYLOAD] = [0u8; ring::MAX_PAYLOAD];
 
-/// Working buffer for JSON encode/decode. `static mut` because the buffer is
-/// large enough that a stack allocation would dwarf typical task stacks.
-static mut JSON_BUF: [u8; JSON_BUF_SIZE] = [0u8; JSON_BUF_SIZE];
-
-// ---------------------------------------------------------------------------
-// Strings used in the JSON. Centralised here so the encoder and the tolerant
-// decoder agree.
-// ---------------------------------------------------------------------------
-
-type SStr = String<24>;
-type StageStr = String<20>;
-type NameStr = String<PET_NAME_MAX>;
-type SudokatStr = String<81>;
-
-fn sstr(s: &str) -> SStr {
-    let mut out = SStr::new();
-    // `push_str` truncates by returning Err. We deliberately allow truncation
-    // since every string we hand it is shorter than the buffer.
-    let _ = out.push_str(s);
-    out
+fn snap_buf() -> &'static mut [u8; ring::MAX_PAYLOAD] {
+    // SAFETY: single-threaded game loop. Only `load` and `save` use the
+    // buffer and neither re-enters the other.
+    unsafe { &mut *core::ptr::addr_of_mut!(SNAP_BUF) }
 }
 
 // ---------------------------------------------------------------------------
-// Per-enum string mapping. Snake_case keys.
+// Public API.
 // ---------------------------------------------------------------------------
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LoadOutcome {
+    /// The pet was restored.
+    Loaded,
+    /// No save exists: a fresh adoption.
+    NoSave,
+    /// A save exists but couldn't be read. Storage is now locked so nothing
+    /// overwrites it.
+    Unreadable,
+}
+
+/// True when any save exists, readable or not.
+pub fn has_save() -> bool {
+    storage::has_save()
+}
+
+/// Load the most recent save into `ctx`.
+pub fn load(ctx: &mut GameContext) -> LoadOutcome {
+    let Some(mut flash) = storage::open_partition() else {
+        println!("[Save] No save partition");
+        return LoadOutcome::NoSave;
+    };
+    let scan = storage::scan(&mut flash);
+    let legacy = storage::legacy_save(&scan);
+    let newest_v1 = scan.snaps.first().map(|s| s.seq);
+    if newest_v1.is_none() && legacy.is_none() {
+        return LoadOutcome::NoSave;
+    }
+    let legacy_is_newest = match (legacy, newest_v1) {
+        (Some(l), Some(v)) => l.seq > v,
+        (Some(_), None) => true,
+        _ => false,
+    };
+
+    if !legacy_is_newest && load_v1(&mut flash, &scan, ctx) {
+        finish_load(ctx);
+        return LoadOutcome::Loaded;
+    }
+    if let Some(l) = legacy {
+        if load_v0(&mut flash, &scan, l, ctx) {
+            finish_load(ctx);
+            if legacy_is_newest {
+                migrate(&mut flash, &scan, ctx);
+            }
+            return LoadOutcome::Loaded;
+        }
+    }
+    if legacy_is_newest && load_v1(&mut flash, &scan, ctx) {
+        finish_load(ctx);
+        return LoadOutcome::Loaded;
+    }
+
+    println!("[Save] A save exists but couldn't be read. Locking storage to keep it.");
+    storage::lock();
+    LoadOutcome::Unreadable
+}
+
+/// Encode `ctx` and append it to the ring. Returns true on success.
+pub fn save(ctx: &mut GameContext) -> bool {
+    if storage::is_locked() {
+        println!("[Save] Storage locked (an unreadable save is being kept); not saving");
+        return false;
+    }
+    let Some(mut flash) = storage::open_partition() else {
+        println!("[Save] No save partition");
+        return false;
+    };
+    let scan = storage::scan(&mut flash);
+    if write_snapshot(&mut flash, &scan, ctx) {
+        ctx.last_save_time = Some(Instant::now());
+        true
+    } else {
+        false
+    }
+}
+
+/// If `SAVE_INTERVAL` has elapsed since the last save, save now.
+pub fn save_if_needed(ctx: &mut GameContext) {
+    let due = match ctx.last_save_time {
+        None => true,
+        Some(t) => Instant::now().duration_since_epoch() - t.duration_since_epoch() > SAVE_INTERVAL,
+    };
+    if due {
+        save(ctx);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// v1.
+// ---------------------------------------------------------------------------
+
+fn write_snapshot(flash: &mut Partition, scan: &ring::Scan, ctx: &GameContext) -> bool {
+    let buf = snap_buf();
+    let Some(len) = save_v1::encode(ctx, buf) else {
+        println!("[Save] Encode failed: snapshot larger than {} bytes", ring::MAX_PAYLOAD);
+        return false;
+    };
+    match ring::write(flash, scan, &buf[..len], 0) {
+        Ok(s) => {
+            println!(
+                "[Save] Saved {} bytes at slot {} (seq {})",
+                len, s.slot, s.seq
+            );
+            true
+        }
+        Err(e) => {
+            println!("[Save] Write failed: {:?}", e);
+            false
+        }
+    }
+}
+
+/// Load the PET section from the newest snapshot where it's intact, then
+/// WORLD the same way. False (with `ctx` untouched) if no PET is readable.
+fn load_v1(flash: &mut Partition, scan: &ring::Scan, ctx: &mut GameContext) -> bool {
+    let buf = snap_buf();
+    let mut pet_seq = None;
+    for s in scan.snaps.iter() {
+        let pet = ring::read_snapshot(flash, scan, s, buf).and_then(|p| save_v1::section(p, SECTION_PET));
+        match pet {
+            Some(body) => {
+                save_v1::decode_pet(body, ctx);
+                pet_seq = Some(s.seq);
+                break;
+            }
+            None => println!("[Save] Snapshot seq {}: pet section unreadable", s.seq),
+        }
+    }
+    let Some(pet_seq) = pet_seq else {
+        return false;
+    };
+
+    let mut world_seq = None;
+    for s in scan.snaps.iter() {
+        let world = ring::read_snapshot(flash, scan, s, buf).and_then(|p| save_v1::section(p, SECTION_WORLD));
+        if let Some(body) = world {
+            save_v1::decode_world(body, ctx);
+            world_seq = Some(s.seq);
+            break;
+        }
+    }
+    match world_seq {
+        Some(w) if w == pet_seq => println!("[Save] Loaded snapshot seq {}", pet_seq),
+        Some(w) => println!("[Save] Loaded pet from seq {}, world from older seq {}", pet_seq, w),
+        None => println!("[Save] Loaded pet from seq {}; no readable world, using defaults", pet_seq),
+    }
+    true
+}
+
+fn finish_load(ctx: &mut GameContext) {
+    ctx.first_impressions = false;
+    ctx.recompute_health();
+    ctx.last_save_time = Some(Instant::now());
+}
+
+/// Write the just-loaded v0 cat as a v1 snapshot. The v0 record is the
+/// newest record, so the ring won't erase it; it stays as a backup until
+/// the ring wraps around to it.
+fn migrate(flash: &mut Partition, scan: &ring::Scan, ctx: &GameContext) {
+    if write_snapshot(flash, scan, ctx) {
+        println!("[Save] Migrated v0 save to v1");
+    } else {
+        println!("[Save] Migration write failed; v0 save kept, will retry");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// v0 (legacy JSON) reader, kept for migration. Never written any more.
+//
+// Strings borrow from the JSON buffer and lists live on the heap, so the
+// parse needs about 0.5 KB of stack instead of the ~16 KB the old by-value
+// structs needed (the cause of the ESP32-C3 boot loop, issue #23). The JSON
+// buffer itself is a heap allocation that only exists during the parse;
+// nothing else is on the heap yet at boot.
+// ---------------------------------------------------------------------------
+
+fn load_v0(flash: &mut Partition, scan: &ring::Scan, l: LegacyRef, ctx: &mut GameContext) -> bool {
+    let mut json: AVec<u8> = AVec::new();
+    if json.try_reserve_exact(l.len).is_err() {
+        println!("[Save] Not enough memory to read the v0 save ({} bytes)", l.len);
+        return false;
+    }
+    json.resize(l.len, 0);
+    if !storage::read_legacy(flash, scan, &mut json) {
+        println!("[Save] v0 save read failed");
+        return false;
+    }
+    match serde_json_core::from_slice::<SaveData>(&json) {
+        Ok((data, consumed)) => {
+            apply(&data, ctx);
+            println!("[Save] Loaded v0 save ({} bytes, {} parsed)", l.len, consumed);
+            true
+        }
+        Err(e) => {
+            println!("[Save] v0 parse failed ({} bytes): {:?}", l.len, e);
+            false
+        }
+    }
+}
 
 crate::enum_key_pair_option! {
     food_save_key, food_from_key, FoodItem;
@@ -128,20 +322,6 @@ crate::enum_key_pair_default! {
     Foreground => "foreground" | "fg",
 }
 
-fn scene_save_key(s: SceneId) -> &'static str {
-    match s {
-        SceneId::Inside => "inside",
-        SceneId::Outside => "outside",
-        SceneId::Bedroom => "bedroom",
-        SceneId::Kitchen => "kitchen",
-        SceneId::Treehouse => "treehouse",
-        SceneId::Garage => "garage",
-        // Non-main scenes never appear on a saved plant, but keep the mapping
-        // exhaustive so the compiler catches future SceneId additions.
-        _ => "inside",
-    }
-}
-
 fn scene_from_key(s: &str) -> SceneId {
     match s {
         "outside" => SceneId::Outside,
@@ -178,10 +358,6 @@ crate::enum_key_pair_default! {
     Dormant         => "dormant",
 }
 
-fn weather_save_key(w: Weather) -> &'static str {
-    w.name()
-}
-
 fn weather_from_key(s: &str) -> Weather {
     match s {
         "Clear" => Weather::Clear,
@@ -195,10 +371,6 @@ fn weather_from_key(s: &str) -> Weather {
     }
 }
 
-fn season_save_key(s: Season) -> &'static str {
-    s.name()
-}
-
 fn season_from_key(s: &str) -> Season {
     match s {
         "Winter" => Season::Winter,
@@ -209,21 +381,8 @@ fn season_from_key(s: &str) -> Season {
     }
 }
 
-/// `moon_phase` is stored as a 0-7 index in memory but written to disk as a
-/// human label ("1st Qtr", "Full", ...). Parse either form on load.
-fn moon_phase_save_key(p: u8) -> &'static str {
-    match p % 8 {
-        0 => "New",
-        1 => "Waxing Crescent",
-        2 => "1st Qtr",
-        3 => "Waxing Gibbous",
-        4 => "Full",
-        5 => "Waning Gibbous",
-        6 => "Last Qtr",
-        _ => "Waning Crescent",
-    }
-}
-
+/// v0 wrote `moon_phase` as a human label ("1st Qtr", "Full", ...). Parse
+/// either form.
 fn moon_phase_from_key(s: &str) -> u8 {
     match s {
         "New" => 0,
@@ -234,8 +393,6 @@ fn moon_phase_from_key(s: &str) -> u8 {
         "Waning Gibbous" => 5,
         "Last Qtr" | "3rd Qtr" => 6,
         "Waning Crescent" => 7,
-        // Fall back to numeric parse so a Rust-emitted save can also round-trip
-        // even if a future revision drops the labels.
         _ => u8::from_str(s).unwrap_or(0),
     }
 }
@@ -254,23 +411,8 @@ crate::enum_key_pair_option! {
     Overcast => "overcast",
 }
 
-fn star_sign_save_key(s: StarSign) -> &'static str {
-    s.name()
-}
-
 fn star_sign_from_key(s: &str) -> Option<StarSign> {
     StarSign::ALL.iter().copied().find(|x| x.name() == s)
-}
-
-fn fav_location_save_key(s: SceneId) -> &'static str {
-    match s {
-        SceneId::Outside => "outside",
-        SceneId::Kitchen => "kitchen",
-        SceneId::Treehouse => "treehouse",
-        SceneId::Bedroom => "bedroom",
-        SceneId::Garage => "garage",
-        _ => "inside",
-    }
 }
 
 fn fav_location_from_key(s: &str) -> Option<SceneId> {
@@ -285,27 +427,27 @@ fn fav_location_from_key(s: &str) -> Option<SceneId> {
     })
 }
 
-// ---------------------------------------------------------------------------
-// Wire-format structs. #[serde(default)] on every field keeps loading
-// tolerant when keys are missing.
-// ---------------------------------------------------------------------------
+// Wire-format structs. `#[serde(default)]` on every field keeps loading
+// tolerant when keys are missing. `&str` fields borrow from the JSON buffer
+// (serde-json-core never unescapes, so this matches the old owned-string
+// behaviour, without the 28-byte copies).
 
-#[derive(Default, Serialize, Deserialize)]
-struct EnvData {
+#[derive(Default, Deserialize)]
+struct EnvData<'a> {
     #[serde(default)] season_offset: u16,
-    #[serde(default)] season: SStr,
-    #[serde(default)] weather: SStr,
+    #[serde(default)] season: &'a str,
+    #[serde(default)] weather: &'a str,
     #[serde(default)] weather_step: u32,
     #[serde(default)] weather_timer: f32,
     #[serde(default)] meteor_shower_timer: f32,
-    #[serde(default)] moon_phase: SStr,
+    #[serde(default)] moon_phase: &'a str,
     #[serde(default)] temperature: f32,
     #[serde(default)] time_hours: u8,
     #[serde(default)] time_minutes: u8,
     #[serde(default)] day_number: u32,
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, Deserialize)]
 struct FoodStockData {
     #[serde(default)] kibble: u8,
     #[serde(default)] cod: u8,
@@ -332,7 +474,7 @@ struct FoodStockData {
     #[serde(default)] puree: u8,
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, Deserialize)]
 struct PotsData {
     #[serde(default)] small: u8,
     #[serde(default)] medium: u8,
@@ -340,7 +482,7 @@ struct PotsData {
     #[serde(default)] planter: u8,
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, Deserialize)]
 struct SeedsData {
     #[serde(default)] cat_grass: u8,
     #[serde(default)] sunflower: u8,
@@ -348,40 +490,39 @@ struct SeedsData {
     #[serde(default)] freesia: u8,
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, Deserialize)]
 struct ToolsData {
     #[serde(default)] watering_can: bool,
     #[serde(default)] spade: bool,
 }
 
-#[derive(Default, Serialize, Deserialize)]
-struct ToyData {
-    #[serde(default)] variant: SStr,
+#[derive(Default, Deserialize)]
+struct ToyData<'a> {
+    #[serde(default)] variant: &'a str,
     #[serde(default)] durability: u8,
 }
 
-#[derive(Default, Serialize, Deserialize)]
-struct PlantRecord {
+#[derive(Default, Deserialize)]
+struct PlantRecord<'a> {
     #[serde(default)] id: u32,
     #[serde(default, rename = "type")]
-    seed_type: SStr,
-    #[serde(default)] scene: SStr,
-    #[serde(default)] layer: SStr,
+    seed_type: &'a str,
+    #[serde(default)] scene: &'a str,
+    #[serde(default)] layer: &'a str,
     #[serde(default)] x: i32,
     #[serde(default)] y_snap: i32,
-    #[serde(default)] pot: SStr,
-    #[serde(default)] stage: StageStr,
+    #[serde(default)] pot: &'a str,
+    #[serde(default)] stage: &'a str,
     #[serde(default)] age_hours: u32,
     #[serde(default)] water_debt_hours: f32,
     #[serde(default)] fertilizer: f32,
-    /// Wire format uses 0 as the "no planted_day recorded" sentinel; in
-    /// memory we hold `Option<u32>` and map 0 to `Some(0)` on load. The
-    /// distinction is purely cosmetic during gameplay.
+    /// v0 used 0 as the "no planted_day recorded" sentinel and loaded it
+    /// as `Some(0)`; kept as-is so migrated plants are unchanged.
     #[serde(default)] planted_day: u32,
     #[serde(default)] mirror: bool,
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, Deserialize)]
 struct MilestonesData {
     #[serde(default)] fed: bool,
     #[serde(default)] groomed: bool,
@@ -391,62 +532,51 @@ struct MilestonesData {
 }
 
 /// Wire-format for a single wifi AP entry: `{'b': ..., 's': ..., 'n': ...}`.
-#[derive(Default, Serialize, Deserialize)]
-struct WifiEntryData {
+#[derive(Default, Deserialize)]
+struct WifiEntryData<'a> {
     #[serde(default, rename = "b")]
-    bssid: heapless::String<17>,
+    bssid: &'a str,
     #[serde(default, rename = "s")]
-    ssid: heapless::String<WIFI_SSID_MAX>,
+    ssid: &'a str,
     #[serde(default, rename = "n")]
     count: f32,
 }
 
-#[derive(Default, Serialize, Deserialize)]
-struct FriendData {
+#[derive(Default, Deserialize)]
+struct FriendData<'a> {
     #[serde(default, rename = "n")]
-    name: NameStr,
+    name: &'a str,
     #[serde(default, rename = "t")]
     total_secs: f32,
     #[serde(default, rename = "c")]
     visits: u16,
 }
 
-/// Playdate friends, keyed by peer MAC. Serialises as a JSON object
+/// Playdate friends, keyed by peer MAC:
 /// `{"aa:bb:cc:dd:ee:ff": {"n": .., "t": .., "c": ..}}`, matching the
 /// MicroPython save format. Entries with unparseable keys, or past
 /// `FRIENDS_MAX`, are dropped on load.
 #[derive(Default)]
-struct FriendsMap(Vec<([u8; 6], FriendData), FRIENDS_MAX>);
+struct FriendsMap<'a>(AVec<([u8; 6], FriendData<'a>)>);
 
-impl Serialize for FriendsMap {
-    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        use serde::ser::SerializeMap;
-        let mut map = s.serialize_map(Some(self.0.len()))?;
-        for (mac, data) in self.0.iter() {
-            map.serialize_entry(wifi_tracker::format_bssid(mac).as_str(), data)?;
-        }
-        map.end()
-    }
-}
-
-impl<'de> Deserialize<'de> for FriendsMap {
+impl<'de: 'a, 'a> Deserialize<'de> for FriendsMap<'a> {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        struct V;
-        impl<'de> serde::de::Visitor<'de> for V {
-            type Value = FriendsMap;
+        struct V<'a>(core::marker::PhantomData<&'a ()>);
+        impl<'de: 'a, 'a> serde::de::Visitor<'de> for V<'a> {
+            type Value = FriendsMap<'a>;
             fn expecting(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
                 f.write_str("a map of MAC -> friend")
             }
             fn visit_map<A: serde::de::MapAccess<'de>>(
                 self,
                 mut access: A,
-            ) -> Result<FriendsMap, A::Error> {
+            ) -> Result<FriendsMap<'a>, A::Error> {
                 let mut out = FriendsMap::default();
-                while let Some(key) = access.next_key::<String<17>>()? {
-                    match wifi_tracker::parse_bssid(&key) {
-                        Some(mac) if !out.0.is_full() => {
-                            let data = access.next_value::<FriendData>()?;
-                            let _ = out.0.push((mac, data));
+                while let Some(key) = access.next_key::<&'de str>()? {
+                    match wifi_tracker::parse_bssid(key) {
+                        Some(mac) if out.0.len() < FRIENDS_MAX => {
+                            let data = access.next_value::<FriendData<'a>>()?;
+                            out.0.push((mac, data));
                         }
                         _ => {
                             access.next_value::<serde::de::IgnoredAny>()?;
@@ -456,43 +586,15 @@ impl<'de> Deserialize<'de> for FriendsMap {
                 Ok(out)
             }
         }
-        d.deserialize_map(V)
+        d.deserialize_map(V(core::marker::PhantomData))
     }
 }
 
-fn build_friends(src: &Vec<FriendEntry, FRIENDS_MAX>) -> FriendsMap {
-    let mut out = FriendsMap::default();
-    for f in src.iter() {
-        let _ = out.0.push((
-            f.mac,
-            FriendData {
-                name: f.name.clone(),
-                total_secs: f.total_secs,
-                visits: f.visits,
-            },
-        ));
-    }
-    out
-}
-
-fn apply_friends(src: &FriendsMap, dst: &mut Vec<FriendEntry, FRIENDS_MAX>) {
-    dst.clear();
-    for (mac, data) in src.0.iter() {
-        let _ = dst.push(FriendEntry {
-            mac: *mac,
-            name: data.name.clone(),
-            total_secs: data.total_secs,
-            visits: data.visits,
-        });
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-struct SaveData {
-    #[serde(default)] v: u8,
-    #[serde(default)] env: EnvData,
+#[derive(Deserialize)]
+struct SaveData<'a> {
+    #[serde(default, borrow)] env: EnvData<'a>,
     #[serde(default)] food_stock: FoodStockData,
-    #[serde(default)] toys: Vec<ToyData, TOY_VARIANT_COUNT>,
+    #[serde(default, borrow)] toys: AVec<ToyData<'a>>,
     #[serde(default)] pots: PotsData,
     #[serde(default)] seeds: SeedsData,
     #[serde(default)] tools: ToolsData,
@@ -500,27 +602,27 @@ struct SaveData {
     #[serde(default)] medicine: u8,
     #[serde(default)] sickness: f32,
     #[serde(default)] medicine_pending: bool,
-    #[serde(default)] plants: Vec<PlantRecord, MAX_PLANTS>,
+    #[serde(default, borrow)] plants: AVec<PlantRecord<'a>>,
     #[serde(default)] next_plant_id: u32,
     #[serde(default)] pet_seed: u64,
-    #[serde(default)] pet_gender: Option<SStr>,
-    #[serde(default)] fav_weather: Option<SStr>,
-    #[serde(default)] star_sign: Option<SStr>,
-    #[serde(default)] fav_meal: Option<SStr>,
-    #[serde(default)] least_fav_meal: Option<SStr>,
-    #[serde(default)] fav_snack: Option<SStr>,
-    #[serde(default)] least_fav_snack: Option<SStr>,
-    #[serde(default)] fav_toy: Option<SStr>,
-    #[serde(default)] least_fav_toy: Option<SStr>,
-    #[serde(default)] fav_location: Option<SStr>,
-    #[serde(default)] least_fav_location: Option<SStr>,
-    #[serde(default)] wifi_familiar: Vec<WifiEntryData, WIFI_FAMILIAR_MAX>,
-    #[serde(default)] wifi_recent: Vec<WifiEntryData, WIFI_RECENT_MAX>,
+    #[serde(default, borrow)] pet_gender: Option<&'a str>,
+    #[serde(default, borrow)] fav_weather: Option<&'a str>,
+    #[serde(default, borrow)] star_sign: Option<&'a str>,
+    #[serde(default, borrow)] fav_meal: Option<&'a str>,
+    #[serde(default, borrow)] least_fav_meal: Option<&'a str>,
+    #[serde(default, borrow)] fav_snack: Option<&'a str>,
+    #[serde(default, borrow)] least_fav_snack: Option<&'a str>,
+    #[serde(default, borrow)] fav_toy: Option<&'a str>,
+    #[serde(default, borrow)] least_fav_toy: Option<&'a str>,
+    #[serde(default, borrow)] fav_location: Option<&'a str>,
+    #[serde(default, borrow)] least_fav_location: Option<&'a str>,
+    #[serde(default, borrow)] wifi_familiar: AVec<WifiEntryData<'a>>,
+    #[serde(default, borrow)] wifi_recent: AVec<WifiEntryData<'a>>,
     /// True when this save was written immediately before a wifi scan.
     #[serde(default)] scan_started: bool,
-    #[serde(default)] pet_name: Option<NameStr>,
-    #[serde(default)] friends: FriendsMap,
-    #[serde(default)] recent_meals: Vec<SStr, RECENT_HISTORY>,
+    #[serde(default, borrow)] pet_name: Option<&'a str>,
+    #[serde(default, borrow)] friends: FriendsMap<'a>,
+    #[serde(default, borrow)] recent_meals: AVec<&'a str>,
     #[serde(default)] milestones: MilestonesData,
 
     // Flat stat fields at the top level.
@@ -546,185 +648,11 @@ struct SaveData {
     #[serde(default)] snake_high_score: i32,
     #[serde(default)] memory_best_score: i32,
     #[serde(default)] meowltiply_high_score: i32,
-    #[serde(default)] sudokat_givens: SudokatStr,
-    #[serde(default)] sudokat_entries: SudokatStr,
+    #[serde(default, borrow)] sudokat_givens: &'a str,
+    #[serde(default, borrow)] sudokat_entries: &'a str,
     #[serde(default)] sudokat_difficulty: u8,
     #[serde(default)] time_speed: f32,
     #[serde(default)] coins: i32,
-}
-
-// ---------------------------------------------------------------------------
-// Bridging GameContext ↔ SaveData.
-// ---------------------------------------------------------------------------
-
-fn build(ctx: &GameContext) -> SaveData {
-    let mut toys: Vec<ToyData, TOY_VARIANT_COUNT> = Vec::new();
-    for t in ctx.toys.iter() {
-        let _ = toys.push(ToyData {
-            variant: sstr(toy_save_key(t.variant)),
-            durability: t.durability,
-        });
-    }
-
-    let mut plants: Vec<PlantRecord, MAX_PLANTS> = Vec::new();
-    for p in ctx.plants.iter() {
-        let _ = plants.push(PlantRecord {
-            id: p.id,
-            seed_type: p
-                .seed
-                .map(|s| sstr(seed_save_key(s)))
-                .unwrap_or_default(),
-            scene: sstr(scene_save_key(p.scene)),
-            layer: sstr(layer_save_key(p.layer)),
-            x: p.x,
-            y_snap: p.y_snap,
-            pot: sstr(pot_save_key(p.pot)),
-            stage: {
-                let mut s = StageStr::new();
-                let _ = s.push_str(stage_save_key(p.stage));
-                s
-            },
-            age_hours: p.age_hours,
-            water_debt_hours: p.water_debt,
-            fertilizer: p.fertilizer,
-            planted_day: p.planted_day.unwrap_or(0),
-            mirror: p.mirror,
-        });
-    }
-
-    let mut recent_meals: Vec<SStr, RECENT_HISTORY> = Vec::new();
-    for m in ctx.recent_meals.iter() {
-        use crate::context::MealEntry;
-        let key = match m {
-            MealEntry::Item(item) => food_save_key(*item),
-            MealEntry::CaughtSnack => "caught_snack",
-        };
-        let _ = recent_meals.push(sstr(key));
-    }
-
-    SaveData {
-        v: SCHEMA_VERSION,
-        env: EnvData {
-            season_offset: ctx.season_offset,
-            season: sstr(season_save_key(ctx.season)),
-            weather: sstr(weather_save_key(ctx.weather)),
-            weather_step: ctx.weather_step,
-            weather_timer: ctx.weather_timer,
-            meteor_shower_timer: ctx.meteor_shower_timer,
-            moon_phase: sstr(moon_phase_save_key(ctx.moon_phase)),
-            temperature: ctx.temperature,
-            time_hours: ctx.time_hours,
-            time_minutes: ctx.time_minutes,
-            day_number: ctx.day_number,
-        },
-        food_stock: FoodStockData {
-            kibble: ctx.food_stock[FoodItem::Kibble as usize],
-            cod: ctx.food_stock[FoodItem::Cod as usize],
-            haddock: ctx.food_stock[FoodItem::Haddock as usize],
-            trout: ctx.food_stock[FoodItem::Trout as usize],
-            shrimp: ctx.food_stock[FoodItem::Shrimp as usize],
-            herring: ctx.food_stock[FoodItem::Herring as usize],
-            turkey: ctx.food_stock[FoodItem::Turkey as usize],
-            tuna: ctx.food_stock[FoodItem::Tuna as usize],
-            salmon: ctx.food_stock[FoodItem::Salmon as usize],
-            chicken: ctx.food_stock[FoodItem::Chicken as usize],
-            liver: ctx.food_stock[FoodItem::Liver as usize],
-            beef: ctx.food_stock[FoodItem::Beef as usize],
-            lamb: ctx.food_stock[FoodItem::Lamb as usize],
-            mackerel: ctx.food_stock[FoodItem::Mackerel as usize],
-            carrots: ctx.food_stock[FoodItem::Carrots as usize],
-            pumpkin: ctx.food_stock[FoodItem::Pumpkin as usize],
-            treats: ctx.food_stock[FoodItem::Treats as usize],
-            fish_bite: ctx.food_stock[FoodItem::FishBite as usize],
-            eggs: ctx.food_stock[FoodItem::Eggs as usize],
-            nugget: ctx.food_stock[FoodItem::Nugget as usize],
-            milk: ctx.food_stock[FoodItem::Milk as usize],
-            chew_stick: ctx.food_stock[FoodItem::ChewStick as usize],
-            puree: ctx.food_stock[FoodItem::Puree as usize],
-        },
-        toys,
-        pots: PotsData {
-            small: ctx.pots[PotSize::Small as usize],
-            medium: ctx.pots[PotSize::Medium as usize],
-            large: ctx.pots[PotSize::Large as usize],
-            planter: ctx.pots[PotSize::Planter as usize],
-        },
-        seeds: SeedsData {
-            cat_grass: ctx.seeds[SeedKind::CatGrass as usize],
-            sunflower: ctx.seeds[SeedKind::Sunflower as usize],
-            rose: ctx.seeds[SeedKind::Rose as usize],
-            freesia: ctx.seeds[SeedKind::Freesia as usize],
-        },
-        tools: ToolsData {
-            watering_can: ctx.tools[ToolKind::WateringCan as usize],
-            spade: ctx.tools[ToolKind::Spade as usize],
-        },
-        fertilizer: ctx.fertilizer,
-        medicine: ctx.medicine,
-        sickness: ctx.sickness,
-        medicine_pending: ctx.medicine_pending,
-        plants,
-        next_plant_id: ctx.next_plant_id,
-        pet_seed: ctx.pet_seed,
-        pet_gender: ctx.pet_gender.map(|g| sstr(gender_save_key(g))),
-        fav_weather: ctx.fav_weather.map(|w| sstr(fav_weather_save_key(w))),
-        star_sign: ctx.star_sign.map(|s| sstr(star_sign_save_key(s))),
-        fav_meal: ctx.fav_meal.map(|f| sstr(food_save_key(f))),
-        least_fav_meal: ctx.least_fav_meal.map(|f| sstr(food_save_key(f))),
-        fav_snack: ctx.fav_snack.map(|f| sstr(food_save_key(f))),
-        least_fav_snack: ctx.least_fav_snack.map(|f| sstr(food_save_key(f))),
-        fav_toy: ctx.fav_toy.map(|t| sstr(toy_save_key(t))),
-        least_fav_toy: ctx.least_fav_toy.map(|t| sstr(toy_save_key(t))),
-        fav_location: ctx.fav_location.map(|s| sstr(fav_location_save_key(s))),
-        least_fav_location: ctx.least_fav_location.map(|s| sstr(fav_location_save_key(s))),
-        wifi_familiar: build_wifi_list(&ctx.wifi_familiar),
-        wifi_recent: build_wifi_list(&ctx.wifi_recent),
-        scan_started: ctx.scan_started,
-        pet_name: if ctx.pet_name.is_empty() {
-            None
-        } else {
-            let mut n = NameStr::new();
-            let _ = n.push_str(ctx.pet_name.as_str());
-            Some(n)
-        },
-        friends: build_friends(&ctx.friends),
-        recent_meals,
-        milestones: MilestonesData {
-            fed: ctx.milestone_fed,
-            groomed: ctx.milestone_groomed,
-            played: ctx.milestone_played,
-            petted: ctx.milestone_petted,
-            store: ctx.milestone_store,
-        },
-
-        fullness: ctx.fullness,
-        energy: ctx.energy,
-        comfort: ctx.comfort,
-        playfulness: ctx.playfulness,
-        focus: ctx.focus,
-        fulfillment: ctx.fulfillment,
-        cleanliness: ctx.cleanliness,
-        curiosity: ctx.curiosity,
-        sociability: ctx.sociability,
-        intelligence: ctx.intelligence,
-        maturity: ctx.maturity,
-        affection: ctx.affection,
-        fitness: ctx.fitness,
-        serenity: ctx.serenity,
-        courage: ctx.courage,
-        loyalty: ctx.loyalty,
-        mischievousness: ctx.mischievousness,
-        zoomies_high_score: ctx.zoomies_high_score,
-        maze_best_time: ctx.maze_best_time,
-        snake_high_score: ctx.snake_high_score,
-        memory_best_score: ctx.memory_best_score,
-        meowltiply_high_score: ctx.meowltiply_high_score,
-        sudokat_givens: build_sudokat_cells(&ctx.sudokat_givens),
-        sudokat_entries: build_sudokat_cells(&ctx.sudokat_entries),
-        sudokat_difficulty: ctx.sudokat_difficulty,
-        time_speed: ctx.time_speed,
-        coins: ctx.coins,
-    }
 }
 
 fn apply(data: &SaveData, ctx: &mut GameContext) {
@@ -757,22 +685,19 @@ fn apply(data: &SaveData, ctx: &mut GameContext) {
 
     // Identity
     ctx.pet_seed = data.pet_seed;
-    ctx.pet_gender = data.pet_gender.as_deref().and_then(gender_from_key);
-    ctx.fav_weather = data.fav_weather.as_deref().and_then(fav_weather_from_key);
-    ctx.star_sign = data.star_sign.as_deref().and_then(star_sign_from_key);
-    ctx.fav_meal = data.fav_meal.as_deref().and_then(food_from_key);
-    ctx.least_fav_meal = data.least_fav_meal.as_deref().and_then(food_from_key);
-    ctx.fav_snack = data.fav_snack.as_deref().and_then(food_from_key);
-    ctx.least_fav_snack = data.least_fav_snack.as_deref().and_then(food_from_key);
-    ctx.fav_toy = data.fav_toy.as_deref().and_then(toy_from_key);
-    ctx.least_fav_toy = data.least_fav_toy.as_deref().and_then(toy_from_key);
-    ctx.fav_location = data.fav_location.as_deref().and_then(fav_location_from_key);
-    ctx.least_fav_location = data
-        .least_fav_location
-        .as_deref()
-        .and_then(fav_location_from_key);
+    ctx.pet_gender = data.pet_gender.and_then(gender_from_key);
+    ctx.fav_weather = data.fav_weather.and_then(fav_weather_from_key);
+    ctx.star_sign = data.star_sign.and_then(star_sign_from_key);
+    ctx.fav_meal = data.fav_meal.and_then(food_from_key);
+    ctx.least_fav_meal = data.least_fav_meal.and_then(food_from_key);
+    ctx.fav_snack = data.fav_snack.and_then(food_from_key);
+    ctx.least_fav_snack = data.least_fav_snack.and_then(food_from_key);
+    ctx.fav_toy = data.fav_toy.and_then(toy_from_key);
+    ctx.least_fav_toy = data.least_fav_toy.and_then(toy_from_key);
+    ctx.fav_location = data.fav_location.and_then(fav_location_from_key);
+    ctx.least_fav_location = data.least_fav_location.and_then(fav_location_from_key);
     ctx.pet_name.clear();
-    if let Some(n) = data.pet_name.as_deref() {
+    if let Some(n) = data.pet_name {
         for c in n.chars() {
             if ctx.pet_name.push(c).is_err() {
                 break;
@@ -782,12 +707,12 @@ fn apply(data: &SaveData, ctx: &mut GameContext) {
 
     // Env
     ctx.season_offset = data.env.season_offset;
-    ctx.season = season_from_key(&data.env.season);
-    ctx.weather = weather_from_key(&data.env.weather);
+    ctx.season = season_from_key(data.env.season);
+    ctx.weather = weather_from_key(data.env.weather);
     ctx.weather_step = data.env.weather_step;
     ctx.weather_timer = data.env.weather_timer;
     ctx.meteor_shower_timer = data.env.meteor_shower_timer;
-    ctx.moon_phase = moon_phase_from_key(&data.env.moon_phase);
+    ctx.moon_phase = moon_phase_from_key(data.env.moon_phase);
     ctx.temperature = data.env.temperature;
     ctx.time_hours = data.env.time_hours;
     ctx.time_minutes = data.env.time_minutes;
@@ -795,33 +720,38 @@ fn apply(data: &SaveData, ctx: &mut GameContext) {
 
     // Inventory
     ctx.food_stock = [0u8; FOOD_ITEM_COUNT];
-    ctx.food_stock[FoodItem::Kibble as usize] = data.food_stock.kibble;
-    ctx.food_stock[FoodItem::Cod as usize] = data.food_stock.cod;
-    ctx.food_stock[FoodItem::Haddock as usize] = data.food_stock.haddock;
-    ctx.food_stock[FoodItem::Trout as usize] = data.food_stock.trout;
-    ctx.food_stock[FoodItem::Shrimp as usize] = data.food_stock.shrimp;
-    ctx.food_stock[FoodItem::Herring as usize] = data.food_stock.herring;
-    ctx.food_stock[FoodItem::Turkey as usize] = data.food_stock.turkey;
-    ctx.food_stock[FoodItem::Tuna as usize] = data.food_stock.tuna;
-    ctx.food_stock[FoodItem::Salmon as usize] = data.food_stock.salmon;
-    ctx.food_stock[FoodItem::Chicken as usize] = data.food_stock.chicken;
-    ctx.food_stock[FoodItem::Liver as usize] = data.food_stock.liver;
-    ctx.food_stock[FoodItem::Beef as usize] = data.food_stock.beef;
-    ctx.food_stock[FoodItem::Lamb as usize] = data.food_stock.lamb;
-    ctx.food_stock[FoodItem::Mackerel as usize] = data.food_stock.mackerel;
-    ctx.food_stock[FoodItem::Carrots as usize] = data.food_stock.carrots;
-    ctx.food_stock[FoodItem::Pumpkin as usize] = data.food_stock.pumpkin;
-    ctx.food_stock[FoodItem::Treats as usize] = data.food_stock.treats;
-    ctx.food_stock[FoodItem::FishBite as usize] = data.food_stock.fish_bite;
-    ctx.food_stock[FoodItem::Eggs as usize] = data.food_stock.eggs;
-    ctx.food_stock[FoodItem::Nugget as usize] = data.food_stock.nugget;
-    ctx.food_stock[FoodItem::Milk as usize] = data.food_stock.milk;
-    ctx.food_stock[FoodItem::ChewStick as usize] = data.food_stock.chew_stick;
-    ctx.food_stock[FoodItem::Puree as usize] = data.food_stock.puree;
+    let f = &data.food_stock;
+    for (item, count) in [
+        (FoodItem::Kibble, f.kibble),
+        (FoodItem::Cod, f.cod),
+        (FoodItem::Haddock, f.haddock),
+        (FoodItem::Trout, f.trout),
+        (FoodItem::Shrimp, f.shrimp),
+        (FoodItem::Herring, f.herring),
+        (FoodItem::Turkey, f.turkey),
+        (FoodItem::Tuna, f.tuna),
+        (FoodItem::Salmon, f.salmon),
+        (FoodItem::Chicken, f.chicken),
+        (FoodItem::Liver, f.liver),
+        (FoodItem::Beef, f.beef),
+        (FoodItem::Lamb, f.lamb),
+        (FoodItem::Mackerel, f.mackerel),
+        (FoodItem::Carrots, f.carrots),
+        (FoodItem::Pumpkin, f.pumpkin),
+        (FoodItem::Treats, f.treats),
+        (FoodItem::FishBite, f.fish_bite),
+        (FoodItem::Eggs, f.eggs),
+        (FoodItem::Nugget, f.nugget),
+        (FoodItem::Milk, f.milk),
+        (FoodItem::ChewStick, f.chew_stick),
+        (FoodItem::Puree, f.puree),
+    ] {
+        ctx.food_stock[item as usize] = count;
+    }
 
     ctx.toys.clear();
     for t in data.toys.iter() {
-        if let Some(v) = toy_from_key(&t.variant) {
+        if let Some(v) = toy_from_key(t.variant) {
             let _ = ctx.toys.push(ToyEntry {
                 variant: v,
                 durability: t.durability,
@@ -854,13 +784,13 @@ fn apply(data: &SaveData, ctx: &mut GameContext) {
         for r in data.plants.iter() {
             let plant = Plant {
                 id: r.id,
-                seed: seed_from_key(&r.seed_type),
-                scene: scene_from_key(&r.scene),
-                layer: layer_from_key(&r.layer),
+                seed: seed_from_key(r.seed_type),
+                scene: scene_from_key(r.scene),
+                layer: layer_from_key(r.layer),
                 x: r.x,
                 y_snap: r.y_snap,
-                pot: pot_from_key(&r.pot).unwrap_or(PotKind::Small),
-                stage: stage_from_key(&r.stage),
+                pot: pot_from_key(r.pot).unwrap_or(PotKind::Small),
+                stage: stage_from_key(r.stage),
                 age_hours: r.age_hours,
                 water_debt: r.water_debt_hours,
                 fertilizer: r.fertilizer,
@@ -881,9 +811,9 @@ fn apply(data: &SaveData, ctx: &mut GameContext) {
 
     // Recent meals.
     ctx.recent_meals.clear();
-    for s in data.recent_meals.iter() {
+    for &s in data.recent_meals.iter() {
         use crate::context::MealEntry;
-        let entry = if s.as_str() == "caught_snack" {
+        let entry = if s == "caught_snack" {
             MealEntry::CaughtSnack
         } else if let Some(item) = food_from_key(s) {
             MealEntry::Item(item)
@@ -904,52 +834,40 @@ fn apply(data: &SaveData, ctx: &mut GameContext) {
     // (e.g. saves from before wifi was wired up).
     apply_wifi_list(&data.wifi_familiar, &mut ctx.wifi_familiar);
     apply_wifi_list(&data.wifi_recent, &mut ctx.wifi_recent);
-    apply_friends(&data.friends, &mut ctx.friends);
-    ctx.scan_started = data.scan_started;
-
-    ctx.first_impressions = false;
-    ctx.recompute_health();
-}
-
-fn build_wifi_list<const N: usize>(src: &heapless::Vec<WifiEntry, N>) -> Vec<WifiEntryData, N> {
-    let mut out: Vec<WifiEntryData, N> = Vec::new();
-    for e in src.iter() {
-        let _ = out.push(WifiEntryData {
-            bssid: wifi_tracker::format_bssid(&e.bssid),
-            ssid: e.ssid.clone(),
-            count: e.count,
+    ctx.friends.clear();
+    for (mac, d) in data.friends.0.iter() {
+        let mut name = String::new();
+        for c in d.name.chars() {
+            if name.push(c).is_err() {
+                break;
+            }
+        }
+        let _ = ctx.friends.push(FriendEntry {
+            mac: *mac,
+            name,
+            total_secs: d.total_secs,
+            visits: d.visits,
         });
     }
-    out
+    ctx.scan_started = data.scan_started;
 }
 
-fn apply_wifi_list<const N: usize>(
-    src: &Vec<WifiEntryData, N>,
-    dst: &mut heapless::Vec<WifiEntry, N>,
-) {
+fn apply_wifi_list<const N: usize>(src: &[WifiEntryData], dst: &mut Vec<WifiEntry, N>) {
     dst.clear();
     for e in src.iter() {
-        let Some(bssid) = wifi_tracker::parse_bssid(&e.bssid) else {
+        let Some(bssid) = wifi_tracker::parse_bssid(e.bssid) else {
             continue;
         };
-        let _ = dst.push(WifiEntry {
-            bssid,
-            ssid: e.ssid.clone(),
-            count: e.count,
-        });
+        let mut ssid = String::<WIFI_SSID_MAX>::new();
+        for c in e.ssid.chars() {
+            if ssid.push(c).is_err() {
+                break;
+            }
+        }
+        if dst.push(WifiEntry { bssid, ssid, count: e.count }).is_err() {
+            break;
+        }
     }
-}
-
-/// Sudokat cells as one digit per cell, or empty when there is no board.
-fn build_sudokat_cells(cells: &[u8; 81]) -> SudokatStr {
-    let mut out = SudokatStr::new();
-    if cells.iter().all(|&v| v == 0) {
-        return out;
-    }
-    for &v in cells {
-        let _ = out.push((b'0' + v.min(9)) as char);
-    }
-    out
 }
 
 fn parse_sudokat_cells(s: &str) -> Option<[u8; 81]> {
@@ -971,13 +889,13 @@ fn apply_sudokat(data: &SaveData, ctx: &mut GameContext) {
     ctx.sudokat_difficulty = data.sudokat_difficulty.min(2);
     ctx.sudokat_givens = [0; 81];
     ctx.sudokat_entries = [0; 81];
-    let Some(givens) = parse_sudokat_cells(&data.sudokat_givens) else {
+    let Some(givens) = parse_sudokat_cells(data.sudokat_givens) else {
         return;
     };
     let entries = if data.sudokat_entries.is_empty() {
         [0; 81]
     } else {
-        match parse_sudokat_cells(&data.sudokat_entries) {
+        match parse_sudokat_cells(data.sudokat_entries) {
             Some(e) => e,
             None => return,
         }
@@ -989,64 +907,17 @@ fn apply_sudokat(data: &SaveData, ctx: &mut GameContext) {
     ctx.sudokat_entries = entries;
 }
 
-// ---------------------------------------------------------------------------
-// Public API.
-// ---------------------------------------------------------------------------
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-/// True iff the storage layer holds at least one syntactically valid save.
-pub fn has_save() -> bool {
-    storage::has_save()
-}
-
-/// Load the most recent save into `ctx`. Returns true on success.
-pub fn load(ctx: &mut GameContext) -> bool {
-    // SAFETY: single-threaded boot path; JSON_BUF is only touched here and in
-    // `save` below, never concurrently.
-    let buf = unsafe { &mut *core::ptr::addr_of_mut!(JSON_BUF) };
-    let Some(len) = storage::read_latest(buf) else {
-        println!("[Save] storage::read_latest returned None, no save loaded");
-        return false;
-    };
-    match serde_json_core::from_slice::<SaveData>(&buf[..len]) {
-        Ok((data, consumed)) => {
-            apply(&data, ctx);
-            ctx.last_save_time = Some(Instant::now());
-            println!("[Save] Loaded {} bytes ({} parsed)", len, consumed);
-            true
-        }
-        Err(e) => {
-            println!("[Save] Parse failed ({} bytes): {:?}", len, e);
-            false
-        }
-    }
-}
-
-/// Encode `ctx` to JSON and persist it. Returns true on success.
-pub fn save(ctx: &mut GameContext) -> bool {
-    let data = build(ctx);
-    // SAFETY: see `load`.
-    let buf = unsafe { &mut *core::ptr::addr_of_mut!(JSON_BUF) };
-    let len = match serde_json_core::to_slice(&data, buf) {
-        Ok(n) => n,
-        Err(_) => {
-            println!("[Save] Encode failed");
-            return false;
-        }
-    };
-    if !storage::write_next(&buf[..len]) {
-        return false;
-    }
-    ctx.last_save_time = Some(Instant::now());
-    true
-}
-
-/// If `SAVE_INTERVAL` has elapsed since the last save, save now.
-pub fn save_if_needed(ctx: &mut GameContext) {
-    let due = match ctx.last_save_time {
-        None => true,
-        Some(t) => Instant::now().duration_since_epoch() - t.duration_since_epoch() > SAVE_INTERVAL,
-    };
-    if due {
-        save(ctx);
+    /// Issue #23: the old by-value `SaveData` was ~16 KB and serde keeps a
+    /// few copies of it on the stack, which overflowed the ESP32-C3's stack
+    /// during boot. Keep the v0 parse struct small (sizes here are for the
+    /// 64-bit host; the 32-bit firmware's are smaller still).
+    #[test]
+    fn v0_parse_struct_stays_small() {
+        let size = core::mem::size_of::<SaveData>();
+        assert!(size < 1024, "v0 SaveData grew to {size} bytes");
     }
 }

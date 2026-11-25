@@ -68,11 +68,12 @@ pub enum SceneId {
     HideSeek,
     TreatToss,
     Garage,
+    SaveRecovery,
 }
 
 impl SceneId {
     /// Every variant in declaration order, so `ALL[id as usize] == id`.
-    const ALL: [SceneId; 60] = [
+    const ALL: [SceneId; 61] = [
         SceneId::Inside,
         SceneId::Outside,
         SceneId::Bedroom,
@@ -133,6 +134,7 @@ impl SceneId {
         SceneId::HideSeek,
         SceneId::TreatToss,
         SceneId::Garage,
+        SceneId::SaveRecovery,
     ];
 
     pub fn to_u8(self) -> u8 {
@@ -145,9 +147,13 @@ impl SceneId {
 
     /// Whether a crash-resume intent may boot straight into this scene.
     /// Adoption only runs without a save, Social needs a live ESP-NOW
-    /// session, and Menu is an overlay that is never swapped to.
+    /// session, Menu is an overlay that is never swapped to, and
+    /// SaveRecovery is chosen by the boot path itself.
     pub fn resumable(self) -> bool {
-        !matches!(self, SceneId::Adoption | SceneId::Social | SceneId::Menu)
+        !matches!(
+            self,
+            SceneId::Adoption | SceneId::Social | SceneId::Menu | SceneId::SaveRecovery
+        )
     }
 }
 

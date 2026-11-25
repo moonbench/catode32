@@ -1,9 +1,10 @@
 //! Playdate familiarity: playtime with a peer accumulates in
-//! `ctx.friends`, drives `friendship_level`, and survives save/load in
-//! the MicroPython-compatible `"friends": {mac: {n, t, c}}` shape.
+//! `ctx.friends`, drives `friendship_level`, and survives save/load. Legacy
+//! saves in the MicroPython-compatible `"friends": {mac: {n, t, c}}` shape
+//! still load (and migrate).
 //!
 //! The save tests flip the process CWD to a temp dir so the repo's real
-//! `./catode32-save.json` isn't touched.
+//! save files aren't touched.
 
 #![cfg(feature = "desktop")]
 
@@ -15,7 +16,7 @@ use std::sync::{Mutex, MutexGuard, OnceLock};
 use catode32_core::{
     context::{GameContext, VisitRole, VisitState, FRIENDS_MAX, FRIEND_FULL_SECS},
     led::Led,
-    save,
+    save::{self, LoadOutcome},
 };
 
 const A: [u8; 6] = [0xaa, 0xbb, 0xcc, 0x00, 0x11, 0x22];
@@ -130,11 +131,8 @@ fn friends_round_trip_through_save() {
     ctx.update_friend(B, "Biscuit", 30.0);
     assert!(save::save(&mut ctx));
 
-    let json = fs::read_to_string("catode32-save.json").expect("read save");
-    assert!(json.contains(r#""friends":{"aa:bb:cc:00:11:22":{"n":"Mochi","#), "{json}");
-
     let mut loaded = GameContext::new(Led::new());
-    assert!(save::load(&mut loaded));
+    assert_eq!(save::load(&mut loaded), LoadOutcome::Loaded);
     assert_eq!(loaded.friends.len(), 2);
     assert!((loaded.friendship_level(&A) - 0.5).abs() < 1e-4);
     let b = loaded.friends.iter().find(|f| f.mac == B).unwrap();
@@ -152,7 +150,7 @@ fn loads_micropython_friends_format() {
     .expect("write save");
 
     let mut ctx = GameContext::new(Led::new());
-    assert!(save::load(&mut ctx));
+    assert_eq!(save::load(&mut ctx), LoadOutcome::Loaded);
     assert_eq!(ctx.friends.len(), 1);
     assert_eq!(ctx.friendship_level(&A), 1.0);
     assert_eq!(ctx.friends[0].visits, 3);

@@ -24,7 +24,7 @@ pub const EITHER_NAMES: &[&str] = &[
     "Tiger", "Tux", "Umi", "Whiskers", "Ziggy", "Patch", "Midnight", "Gato",
     t!("Hunter"), "Pepper", "Bengie", "Kitty", "Snowball", "Star", "Artemis",
     "Tang", "Titch", "Rainbow", "Speedy", "Lemony", "Milkshake", "Jingles",
-    "Muffin", "Taco", "Turbo", "Speedy", "Ash", "Copper", "Cloud", "Dusk",
+    "Muffin", "Taco", "Turbo", "Sugar", "Ash", "Copper", "Cloud", "Dusk",
     "Echo", "Hero", "Karma", "Lynx", "Marble", "Mittens", "Mocha", "Mint",
     "Nutmeg", "Patches", "Saturn", "Scout", "Toast", "Xylo", "Yoko", "Zero",
     "Zephyr", "Nimbus",
