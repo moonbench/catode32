@@ -7,15 +7,17 @@ pub const TOM_NAMES: &[&str] = &[
     "Yoshi", "Zeus", "Zeke", "Leo", "Ajax", "Java", "Rio", "Gizmo", "Loki",
     "Smokey", "Rebel", "Milo", "Simba", "Rocky", "Jet", "Mozart", "Spunky",
     "Yogi", "Ollie", "Otto", "Skipper", "Rex", "Ace", "Casper", "Domino",
-    "Knox", "Rocky",
+    "Knox", "Gus", "Monty", "Archie", "Basil", "Murphy", "Toby", "Bruno",
+    "Oscar", "Rufus", "Chester",
 ];
 
 pub const QUEEN_NAMES: &[&str] = &[
     "Bean", "Lyra", "Tressym", "Angel", "Callie", "Honey", "Piper", "Roxie",
-    "Daisy", "Jasmine", "Lizzy", "Daphnie", "Paprika", "Mocha", "Cocoa",
+    "Daisy", "Jasmine", "Lizzy", "Daphnie", "Paprika", "Cocoa",
     "Luna", "Peaches", "Kiki", "Suki", "Cleo", "Violet", "Lilith", "Buffie",
-    "Piper", "Star", "Maya", "Hidey", t!("Bubbles"), t!("Rose"), "Fiona",
-    "Zali",
+    "Maya", "Hidey", t!("Bubbles"), t!("Rose"), "Fiona",
+    "Zali", "Hazel", "Olive", "Pearl", "Mabel", "Clementine", "Willow", "Ivy",
+    "Nova", "Poppy", "Tilly",
 ];
 
 pub const EITHER_NAMES: &[&str] = &[
@@ -27,7 +29,9 @@ pub const EITHER_NAMES: &[&str] = &[
     "Muffin", "Taco", "Turbo", "Sugar", "Ash", "Copper", "Cloud", "Dusk",
     "Echo", "Hero", "Karma", "Lynx", "Marble", "Mittens", "Mocha", "Mint",
     "Nutmeg", "Patches", "Saturn", "Scout", "Toast", "Xylo", "Yoko", "Zero",
-    "Zephyr", "Nimbus",
+    "Zephyr", "Nimbus", "Biscuit", "Pickle", "Waffles", "Pudding", "Pumpkin",
+    "Tofu", "Miso", "Pebble", "Socks", "Clover", "Diode", "Volt", "Sprocket",
+    "Widget", "Byte", "Flux", "Static", "Ohm",
 ];
 
 /// Pick a name from the gendered pool concatenated with the unisex pool:
