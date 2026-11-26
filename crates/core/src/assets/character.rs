@@ -2037,6 +2037,17 @@ pub static POSE_LEANING_FORWARD_SIDE_EATING: Pose = Pose {
     head_offset: Some((1, 0)),
 };
 
+/// The eating lean with the self-groom tongue: lapping water or milk.
+pub static POSE_LEANING_FORWARD_SIDE_LAPPING: Pose = Pose {
+    body: &BODY_SIDE_LEANING,
+    head: &HEAD_SIDE_NEUTRAL2,
+    tail: &TAIL_UP_NEUTRAL,
+    eyes: Some(&EYES_LICKING),
+    head_first: true,
+    tail_last: false,
+    head_offset: Some((1, 0)),
+};
+
 pub static POSE_LEANING_FORWARD_SIDE_POUNCE: Pose = Pose {
     body: &BODY_SIDE_LEANING,
     head: &HEAD_SIDE_AIRPLANE2,
@@ -2263,6 +2274,7 @@ pub enum PoseId {
     LeaningForwardSideSniffing,
     LeaningForwardSideStretch,
     LeaningForwardSideEating,
+    LeaningForwardSideLapping,
     LeaningForwardSidePounce,
     LeaningForwardSideCrazy,
     KneadingSideNeutral,
@@ -2339,6 +2351,7 @@ impl PoseId {
             PoseId::LeaningForwardSideSniffing => &POSE_LEANING_FORWARD_SIDE_SNIFFING,
             PoseId::LeaningForwardSideStretch => &POSE_LEANING_FORWARD_SIDE_STRETCH,
             PoseId::LeaningForwardSideEating => &POSE_LEANING_FORWARD_SIDE_EATING,
+            PoseId::LeaningForwardSideLapping => &POSE_LEANING_FORWARD_SIDE_LAPPING,
             PoseId::LeaningForwardSidePounce => &POSE_LEANING_FORWARD_SIDE_POUNCE,
             PoseId::LeaningForwardSideCrazy => &POSE_LEANING_FORWARD_SIDE_CRAZY,
             PoseId::KneadingSideNeutral => &POSE_KNEADING_SIDE_NEUTRAL,
@@ -2415,6 +2428,7 @@ impl PoseId {
             PoseId::LeaningForwardSideSniffing => "leaning_forward.side.sniffing",
             PoseId::LeaningForwardSideStretch => "leaning_forward.side.stretch",
             PoseId::LeaningForwardSideEating => "leaning_forward.side.eating",
+            PoseId::LeaningForwardSideLapping => "leaning_forward.side.lapping",
             PoseId::LeaningForwardSidePounce => "leaning_forward.side.pounce",
             PoseId::LeaningForwardSideCrazy => "leaning_forward.side.crazy",
             PoseId::KneadingSideNeutral => "kneading.side.neutral",
@@ -2511,4 +2525,6 @@ pub const ALL_POSES: &[PoseId] = &[
     // Appended (not inserted) so existing vst wire indices stay stable.
     PoseId::SittingSideSniffing,
     PoseId::LeaningForwardSideSniffing,
+    // Appended so existing vst wire indices stay stable.
+    PoseId::LeaningForwardSideLapping,
 ];

@@ -1,7 +1,10 @@
 use embedded_graphics::prelude::{Point, Size};
 
 use crate::{
-    assets::furniture::{draw_fridge, draw_trashcan, FridgeLayout, FAUCET, FRIDGE_H, FRIDGE_W},
+    assets::{
+        furniture::{draw_fridge, draw_trashcan, FridgeLayout, FAUCET, FRIDGE_H, FRIDGE_W},
+        items::FOOD_BOWL,
+    },
     clock::ClockWidget,
     context::GameContext,
     environment::Layer,
@@ -32,6 +35,10 @@ const COUNTER_TOP_Y: i32 = 24;
 const FAUCET_WORLD_X: i32 = 104;
 /// The bin stands on the floor just past the end of the counter.
 const TRASH_X: i32 = COUNTER_X_END + 5;
+/// The water bowl sits on the floor (foreground), left edge in world x. It
+/// is the empty last frame of the food bowl, same as in Treat Toss.
+const WATER_BOWL_X: i32 = 140;
+const WATER_BOWL_Y: i32 = CHAR_WORLD_Y - FOOD_BOWL.height as i32;
 
 pub struct KitchenScene {
     base: LocationScene,
@@ -86,12 +93,27 @@ impl KitchenScene {
 
         draw_trashcan(renderer, TRASH_X - mg_offset, FRIDGE_FLOOR_Y);
     }
+
+    fn draw_water_bowl(&self, renderer: &mut Renderer) {
+        let fg_offset = self.base.environment.camera_offset(Layer::Foreground);
+        let empty = FOOD_BOWL.frames.len() - 1;
+        renderer.draw_sprite(
+            &FOOD_BOWL,
+            Point::new(WATER_BOWL_X - fg_offset, WATER_BOWL_Y),
+            SpriteOpts { frame: empty, ..Default::default() },
+        );
+    }
 }
 
 impl Scene for KitchenScene {
     fn enter(&mut self, ctx: &mut GameContext) {
         self.fridge = FridgeLayout::from_seed(ctx.pet_seed);
         self.base.enter(ctx, SceneId::Kitchen, PLANT_SURFACES);
+        ctx.water_bowl_x = Some(WATER_BOWL_X + FOOD_BOWL.width as i32 / 2);
+    }
+
+    fn exit(&mut self, ctx: &mut GameContext) {
+        ctx.water_bowl_x = None;
     }
 
     fn update(
@@ -131,6 +153,7 @@ impl Scene for KitchenScene {
         self.base.draw_plants(ctx, renderer, PlantLayer::Midground);
         self.base.environment.draw_layer(renderer, Layer::Foreground);
         self.base.draw_plants(ctx, renderer, PlantLayer::Foreground);
+        self.draw_water_bowl(renderer);
         self.base.draw_character(renderer, ctx);
         self.base.draw_overlay(ctx, renderer);
     }

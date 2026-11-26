@@ -4,6 +4,7 @@ pub mod being_groomed;
 pub mod chattering;
 pub mod climbing;
 pub mod common;
+pub mod drinking;
 pub mod eating;
 pub mod gift_bringing;
 pub mod go_to;
@@ -44,6 +45,7 @@ pub use attention::AttentionBehavior;
 pub use being_groomed::BeingGroomedBehavior;
 pub use chattering::ChatteringBehavior;
 pub use climbing::ClimbingBehavior;
+pub use drinking::DrinkingBehavior;
 pub use eating::EatingBehavior;
 pub use gift_bringing::GiftBringingBehavior;
 pub use go_to::GoToBehavior;
@@ -113,6 +115,7 @@ crate::dispatch_enum! {
         Hearing(HearingBehavior)(icon)                  = HearingBehavior::new(icon),
         Greeting(GreetingBehavior)                      = GreetingBehavior::new(),
         Climbing(ClimbingBehavior)(up)                  = ClimbingBehavior::new(up),
+        Drinking(DrinkingBehavior)                      = DrinkingBehavior::new(),
     }
 }
 
@@ -139,6 +142,7 @@ const AUTO_SELECT_NAMES: &[BehaviorId] = &[
     BehaviorId::Hiding,
     BehaviorId::Lounging,
     BehaviorId::Startled,
+    BehaviorId::Drinking,
 ];
 
 pub fn auto_select(ctx: &mut GameContext) -> NextBehavior {
@@ -336,6 +340,7 @@ fn print_skip_reason(id: BehaviorId, ctx: &GameContext) {
         ),
         BehaviorId::Startled => println!("Skipping startled. Courage: {:6.4}", ctx.courage),
         BehaviorId::Meandering => println!("Skipping meandering. Energy: {:6.4}", ctx.energy),
+        BehaviorId::Drinking => println!("Skipping drinking. No water bowl here or on a playdate."),
         _ => {}
     }
 }
@@ -362,6 +367,7 @@ fn to_next_default(id: BehaviorId) -> NextBehavior {
         BehaviorId::Meandering => NextBehavior::Meandering,
         BehaviorId::Idle => NextBehavior::Idle,
         BehaviorId::Chattering => NextBehavior::Chattering,
+        BehaviorId::Drinking => NextBehavior::Drinking,
         _ => NextBehavior::Idle,
     }
 }
@@ -388,6 +394,7 @@ fn can_trigger(id: BehaviorId, ctx: &GameContext) -> bool {
         BehaviorId::Startled => StartledBehavior::can_trigger(ctx),
         BehaviorId::Meandering => MeanderingBehavior::can_trigger(ctx),
         BehaviorId::Playing => PlayingBehavior::can_trigger(ctx),
+        BehaviorId::Drinking => DrinkingBehavior::can_trigger(ctx),
         _ => false,
     }
 }
@@ -446,6 +453,7 @@ fn base_priority(id: BehaviorId, ctx: &GameContext) -> u32 {
         BehaviorId::Lounging => LoungingBehavior::priority(ctx, &mut rng),
         BehaviorId::Startled => StartledBehavior::priority(ctx, &mut rng),
         BehaviorId::Playing => PlayingBehavior::priority(ctx, &mut rng),
+        BehaviorId::Drinking => DrinkingBehavior::priority(ctx, &mut rng),
         _ => 100,
     }
 }

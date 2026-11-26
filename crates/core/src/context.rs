@@ -582,6 +582,8 @@ pub struct GameContext {
     pub cat_bed_span: Option<(i32, i32)>,
     /// Foreground world-x of the bookshelf's right edge, when the scene has one.
     pub bookshelf_right_x: Option<i32>,
+    /// Foreground world-x of the water bowl's center, when the scene has one.
+    pub water_bowl_x: Option<i32>,
     pub in_cat_bed: bool,
     /// Furniture in this scene the cat can hop up onto (couch, bed).
     pub perches: &'static [crate::behaviors::climbing::Perch],
@@ -811,6 +813,7 @@ impl GameContext {
             cat_bed_x: None,
             cat_bed_span: None,
             bookshelf_right_x: None,
+            water_bowl_x: None,
             in_cat_bed: false,
             perches: &[],
             perch: None,

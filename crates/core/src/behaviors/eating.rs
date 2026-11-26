@@ -49,6 +49,8 @@ pub struct EatingBehavior {
     food_y_progress: f32,
     food_frame: f32,
     pose_id: PoseId,
+    /// Pose held while eating: lapping for liquids, chomping otherwise.
+    eat_pose: PoseId,
     rejecting: bool,
 }
 
@@ -65,6 +67,7 @@ impl EatingBehavior {
             food_y_progress: 0.0,
             food_frame: 0.0,
             pose_id: PoseId::StandingSideHappy,
+            eat_pose: eat_pose(source),
             rejecting: false,
         }
     }
@@ -97,7 +100,7 @@ impl Behavior for EatingBehavior {
         self.pose_id
     }
 
-    fn enter(&mut self, ctx: &mut GameContext, _: &mut Character) {
+    fn enter(&mut self, ctx: &mut GameContext, character: &mut Character) {
         self.phase = Phase::Lowering;
         self.phase_timer = 0.0;
         self.food_y_progress = 0.0;
@@ -109,6 +112,17 @@ impl Behavior for EatingBehavior {
         self.rejecting = rand::rand_f32(&mut ctx.rng) < chance;
 
         self.pose_id = PoseId::StandingSideHappy;
+
+        // Don't serve the meal on top of the scene's water bowl: if the food
+        // would land on it, turn around so it lands on the other side.
+        if let Some(bowl_x) = ctx.water_bowl_x {
+            let dir = if character.mirror_h { 1 } else { -1 };
+            let food_x = character.pos.x + dir * FOOD_OFFSET_X;
+            let clearance = (self.sprite.width + FOOD_BOWL.width) as i32 / 2;
+            if (food_x - bowl_x).abs() < clearance {
+                character.mirror_h = !character.mirror_h;
+            }
+        }
     }
 
     fn update(
@@ -141,7 +155,7 @@ impl Behavior for EatingBehavior {
                 if self.phase_timer >= PAUSE_DURATION {
                     self.phase = Phase::Eating;
                     self.phase_timer = 0.0;
-                    self.pose_id = PoseId::LeaningForwardSideEating;
+                    self.pose_id = self.eat_pose;
                 }
             }
             Phase::Eating => {
@@ -659,6 +673,14 @@ fn food_cfg(source: EatingSource) -> EatCfg {
                 },
             },
         },
+    }
+}
+
+/// Milk and puree get lapped up; everything else gets chomped.
+fn eat_pose(source: EatingSource) -> PoseId {
+    match source {
+        EatingSource::Item(FoodItem::Milk | FoodItem::Puree) => PoseId::LeaningForwardSideLapping,
+        _ => PoseId::LeaningForwardSideEating,
     }
 }
 

@@ -55,6 +55,7 @@ pub enum BehaviorId {
     Pawing,
     Sniffing,
     Climbing,
+    Drinking,
 }
 
 crate::enum_str_method! {
@@ -91,6 +92,7 @@ crate::enum_str_method! {
     Pawing        => "pawing",
     Sniffing      => "sniffing",
     Climbing      => "climbing",
+    Drinking      => "drinking",
 }
 
 #[allow(dead_code)]
@@ -218,6 +220,8 @@ pub enum NextBehavior {
     GoTo(GoToParams),
     /// bool: up (onto one of `ctx.perches`) or back down to the floor.
     Climbing(bool),
+    /// Walk to the scene's water bowl and lap at it.
+    Drinking,
 }
 
 impl NextBehavior {
@@ -255,6 +259,7 @@ impl NextBehavior {
             NextBehavior::Training(_) => BehaviorId::Training,
             NextBehavior::GoTo(_) => BehaviorId::GoTo,
             NextBehavior::Climbing(_) => BehaviorId::Climbing,
+            NextBehavior::Drinking => BehaviorId::Drinking,
         }
     }
 }
