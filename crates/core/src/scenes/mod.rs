@@ -11,6 +11,7 @@ pub mod debug_behaviors_scene;
 pub mod debug_context_scene;
 pub mod debug_env_scene;
 pub mod debug_espnow_scene;
+#[cfg(feature = "rgb-led")]
 pub mod debug_led_scene;
 pub mod debug_plants_scene;
 pub mod debug_power_scene;
@@ -19,6 +20,7 @@ pub mod debug_time_scene;
 pub mod debug_wifi_scene;
 pub mod dice_scene;
 pub mod eightball_scene;
+#[cfg(feature = "rgb-led")]
 pub mod flashlight_scene;
 pub mod forecast_scene;
 pub mod garage_scene;
@@ -85,6 +87,7 @@ use debug_behaviors_scene::DebugBehaviorsScene;
 use debug_context_scene::DebugContextScene;
 use debug_env_scene::DebugEnvScene;
 use debug_espnow_scene::DebugEspnowScene;
+#[cfg(feature = "rgb-led")]
 use debug_led_scene::DebugLedScene;
 use debug_plants_scene::DebugPlantsScene;
 use debug_power_scene::DebugPowerScene;
@@ -137,6 +140,7 @@ use yarnball_scene::YarnballScene;
 use zoomies_scene::ZoomiesScene;
 use dice_scene::DiceScene;
 use lucky_scene::LuckyScene;
+#[cfg(feature = "rgb-led")]
 use flashlight_scene::FlashlightScene;
 use eightball_scene::EightBallScene;
 use calculator_scene::CalculatorScene;
@@ -169,6 +173,7 @@ crate::dispatch_enum! {
         DebugBehaviors(DebugBehaviorsScene)       = DebugBehaviorsScene::new(),
         DebugContext(DebugContextScene)           = DebugContextScene::new(),
         DebugEnv(DebugEnvScene)                   = DebugEnvScene::new(),
+        #[cfg(feature = "rgb-led")]
         DebugLed(DebugLedScene)                   = DebugLedScene::new(),
         DebugPlants(DebugPlantsScene)             = DebugPlantsScene::new(),
         DebugPower(DebugPowerScene)               = DebugPowerScene::new(),
@@ -214,6 +219,7 @@ crate::dispatch_enum! {
         VacationBeach(VacationBeachScene)         = VacationBeachScene::new(),
         Dice(DiceScene)                           = DiceScene::new(),
         LuckyNumbers(LuckyScene)                  = LuckyScene::new(),
+        #[cfg(feature = "rgb-led")]
         Flashlight(FlashlightScene)               = FlashlightScene::new(),
         EightBall(EightBallScene)                 = EightBallScene::new(),
         Calculator(CalculatorScene)               = CalculatorScene::new(),

@@ -83,6 +83,8 @@ macro_rules! enum_key_pair_option {
 ///     as dyn Scene via as_scene / as_scene_mut
 ///     {
 ///         Inside(InsideScene) = InsideScene::new(),
+///         #[cfg(feature = "rgb-led")] // attributes carry through to every arm
+///         Flashlight(FlashlightScene) = FlashlightScene::new(),
 ///         // ...
 ///     }
 /// }
@@ -95,19 +97,21 @@ macro_rules! dispatch_enum {
         as dyn $Trait:ident via $as_ref:ident / $as_mut:ident
         {
             $(
+                $(#[$variant_meta:meta])*
                 $Variant:ident($Type:ty) $(($($pat:tt)+))? = $ctor:expr
             ),+ $(,)?
         }
     ) => {
         $(#[$enum_meta])*
         $vis enum $Enum {
-            $($Variant($Type),)+
+            $($(#[$variant_meta])* $Variant($Type),)+
         }
 
         impl $Enum {
             pub fn $from_fn(src: $Source) -> Self {
                 match src {
                     $(
+                        $(#[$variant_meta])*
                         $Source::$Variant $(($($pat)+))? => Self::$Variant($ctor),
                     )+
                 }
@@ -115,13 +119,13 @@ macro_rules! dispatch_enum {
 
             pub fn $as_ref(&self) -> &dyn $Trait {
                 match self {
-                    $(Self::$Variant(b) => b,)+
+                    $($(#[$variant_meta])* Self::$Variant(b) => b,)+
                 }
             }
 
             pub fn $as_mut(&mut self) -> &mut dyn $Trait {
                 match self {
-                    $(Self::$Variant(b) => b,)+
+                    $($(#[$variant_meta])* Self::$Variant(b) => b,)+
                 }
             }
         }

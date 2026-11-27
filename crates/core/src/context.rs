@@ -543,6 +543,7 @@ impl ToolPrefs {
 }
 
 /// Flashlight settings carried between visits within one session.
+#[cfg(feature = "rgb-led")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FlashlightPrefs {
     /// Index into the flashlight's mode list.
@@ -553,6 +554,7 @@ pub struct FlashlightPrefs {
     pub rgb: [u8; 3],
 }
 
+#[cfg(feature = "rgb-led")]
 impl FlashlightPrefs {
     pub const DEFAULT: Self = Self { mode: 0, level: 5, rgb: [160, 80, 255] };
 }
@@ -721,6 +723,7 @@ pub struct GameContext {
     pub keep_awake: bool,
     /// How the flashlight was left, so it reopens the same way. Kept for
     /// the session only; never saved.
+    #[cfg(feature = "rgb-led")]
     pub flashlight: FlashlightPrefs,
     /// Settings for the timer, Pomodoro, breathing, metronome and Morse
     /// tools. Kept for the session only; never saved.
@@ -912,6 +915,7 @@ impl GameContext {
             friends: Vec::new(),
             wifi_scan_requested: false,
             keep_awake: false,
+            #[cfg(feature = "rgb-led")]
             flashlight: FlashlightPrefs::DEFAULT,
             tool_prefs: ToolPrefs::DEFAULT,
             led_cues: heapless::Vec::new(),

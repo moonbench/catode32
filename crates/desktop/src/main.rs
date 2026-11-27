@@ -6,8 +6,11 @@
 //! 1. Pump SDL events; map arrow / A / S / Q / W keys onto the
 //!    `Button` indices used by `catode32_core::input`.
 //! 2. Call `Game::tick()` to run one frame of game logic + drawing.
-//! 3. Blit the in-memory 128x64 framebuffer to the `SimulatorDisplay`.
-//! 4. `Window::update()` and sleep enough to land near 12 FPS.
+//! 3. Blit the in-memory 128x64 framebuffer to the `SimulatorDisplay`,
+//!    with the board's RGB LED drawn in a strip below the screen.
+//! 4. `Window::update()` and wait out the rest of the frame to land near
+//!    12 FPS, firing queued LED changes (metronome beats, Morse) on time
+//!    as they fall due.
 //!
 //! ESC or closing the window saves the game, then quits.
 //!
@@ -33,8 +36,9 @@ use catode32_core::{
 
 use embedded_graphics::{
     pixelcolor::Rgb888,
-    prelude::{DrawTarget, Point, Size},
-    Pixel,
+    prelude::{DrawTarget, Point, Primitive, Size},
+    primitives::{Circle, PrimitiveStyle},
+    Drawable, Pixel,
 };
 use embedded_graphics_simulator::{
     sdl2::Keycode, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
@@ -45,6 +49,14 @@ const HEIGHT: u32 = 64;
 const SCALE: u32 = 8;
 const FPS: u64 = 12;
 const FRAME_MS: u64 = 1000 / FPS;
+/// Rows below the screen holding the LED, in screen pixels.
+const LED_STRIP: u32 = 7;
+/// LED diameter, in screen pixels.
+const LED_SIZE: u32 = 5;
+/// An unlit LED: visible, so it reads as part of the device.
+const LED_OFF: Rgb888 = Rgb888::new(40, 40, 40);
+/// How often the frame wait checks for due LED changes.
+const LED_POLL: Duration = Duration::from_millis(2);
 
 /// Default "lit pixel" tint.
 const DEFAULT_FG: Rgb888 = Rgb888::new(35, 165, 204);
@@ -155,7 +167,7 @@ fn main() {
 
     let mut game = Game::new(renderer, buttons, rng, EntropySource::new(), led, wifi, espnow);
 
-    let mut sim_display = SimulatorDisplay::<Rgb888>::new(Size::new(WIDTH, HEIGHT));
+    let mut sim_display = SimulatorDisplay::<Rgb888>::new(Size::new(WIDTH, HEIGHT + LED_STRIP));
     let output = OutputSettingsBuilder::new().scale(SCALE).build();
     let mut window = Window::new("catode32", &output);
     // Prime the window so `events()` has a valid SDL window to pump from
@@ -214,12 +226,24 @@ fn main() {
         }
 
         blit(game.renderer(), &mut sim_display, &palette);
+        let mut led = game.led().rgb();
+        draw_led(led, &mut sim_display);
         window.update(&sim_display);
 
-        let elapsed = frame_start.elapsed();
-        let target = Duration::from_millis(FRAME_MS);
-        if elapsed < target {
-            thread::sleep(target - elapsed);
+        // Wait out the frame, redrawing whenever a queued LED change fires.
+        let frame_end = frame_start + Duration::from_millis(FRAME_MS);
+        loop {
+            game.apply_due_led_cues();
+            if game.led().rgb() != led {
+                led = game.led().rgb();
+                draw_led(led, &mut sim_display);
+                window.update(&sim_display);
+            }
+            let now = Instant::now();
+            if now >= frame_end {
+                break;
+            }
+            thread::sleep(LED_POLL.min(frame_end - now));
         }
     }
 
@@ -244,6 +268,29 @@ fn blit(renderer: &Renderer, target: &mut SimulatorDisplay<Rgb888>, palette: &Pa
         })
     });
     let _ = target.draw_iter(pixels);
+}
+
+/// Draw the LED, centred in the strip below the screen.
+fn draw_led(rgb: (u8, u8, u8), target: &mut SimulatorDisplay<Rgb888>) {
+    let colour = if rgb == (0, 0, 0) {
+        LED_OFF
+    } else {
+        let (r, g, b) = rgb;
+        Rgb888::new(lift(r), lift(g), lift(b))
+    };
+    let top_left = Point::new(
+        ((WIDTH - LED_SIZE) / 2) as i32,
+        (HEIGHT + (LED_STRIP - LED_SIZE) / 2) as i32,
+    );
+    let _ = Circle::new(top_left, LED_SIZE)
+        .into_styled(PrimitiveStyle::with_fill(colour))
+        .draw(target);
+}
+
+/// Brighten a channel for the screen. A real LED driven at a low level
+/// still glows clearly, but the same value as a pixel colour is near black.
+fn lift(c: u8) -> u8 {
+    ((c as f32 / 255.0).sqrt() * 255.0).round() as u8
 }
 
 #[cfg(test)]

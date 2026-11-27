@@ -244,6 +244,20 @@ impl Game {
         &self.renderer
     }
 
+    /// The simulated LED, for the desktop binary to draw between ticks.
+    #[cfg(feature = "desktop")]
+    pub fn led(&self) -> &Led {
+        &self.context.led
+    }
+
+    /// Apply queued LED changes that are due now. The desktop binary calls
+    /// this while it waits out a frame, so cues land between ticks the way
+    /// `run()` lands them on the firmware.
+    #[cfg(feature = "desktop")]
+    pub fn apply_due_led_cues(&mut self) {
+        self.context.apply_due_led_cues(time::now_us());
+    }
+
     /// Persist the current state, e.g. before the desktop simulator quits.
     /// Skipped while the adoption scene is up, so quitting mid-adoption
     /// doesn't write a nameless pet that would skip adoption next launch.

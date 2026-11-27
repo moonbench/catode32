@@ -25,6 +25,7 @@ pub enum SceneId {
     DebugEnv,
     DebugStats,
     DebugTime,
+    #[cfg(feature = "rgb-led")]
     DebugLed,
     DebugPlants,
     DebugPower,
@@ -71,6 +72,7 @@ pub enum SceneId {
     SaveRecovery,
     Dice,
     LuckyNumbers,
+    #[cfg(feature = "rgb-led")]
     Flashlight,
     EightBall,
     Calculator,
@@ -84,7 +86,7 @@ pub enum SceneId {
 
 impl SceneId {
     /// Every variant in declaration order, so `ALL[id as usize] == id`.
-    const ALL: [SceneId; 72] = [
+    const ALL: &[SceneId] = &[
         SceneId::Inside,
         SceneId::Outside,
         SceneId::Bedroom,
@@ -102,6 +104,7 @@ impl SceneId {
         SceneId::DebugEnv,
         SceneId::DebugStats,
         SceneId::DebugTime,
+        #[cfg(feature = "rgb-led")]
         SceneId::DebugLed,
         SceneId::DebugPlants,
         SceneId::DebugPower,
@@ -148,6 +151,7 @@ impl SceneId {
         SceneId::SaveRecovery,
         SceneId::Dice,
         SceneId::LuckyNumbers,
+        #[cfg(feature = "rgb-led")]
         SceneId::Flashlight,
         SceneId::EightBall,
         SceneId::Calculator,

@@ -4,6 +4,12 @@
 //! construct equivalents (a SimulatorDisplay, a keyboard-driven `Buttons`,
 //! no-op LED, etc.) directly in the `desktop` crate.
 //!
+//! C3 Supermini pinout: SDA=GPIO20, SCL=GPIO21 (the UART0 RX/TX pins,
+//! free because the board talks over native USB); buttons UP=0, DOWN=1,
+//! LEFT=3, RIGHT=4, A=5, B=6, MENU1=7, MENU2=10; the blue LED on GPIO8.
+//! The ROM boot log still goes out on GPIO21, but with SDA idle-high on
+//! GPIO20 it can never form an I2C start condition.
+//!
 //! `DISPLAY_WIDTH` / `DISPLAY_HEIGHT` are visible on both platforms because
 //! game logic (transitions, zoomies) references them.
 
@@ -54,8 +60,8 @@ mod firmware {
         #[cfg(feature = "c3")]
         let i2c = I2c::new(peripherals.I2C0, i2c_config)
             .unwrap()
-            .with_sda(peripherals.GPIO6)
-            .with_scl(peripherals.GPIO7);
+            .with_sda(peripherals.GPIO20)
+            .with_scl(peripherals.GPIO21);
 
         let input_config = InputConfig::default().with_pull(Pull::Up);
         // Button order: UP, DOWN, LEFT, RIGHT, A, B, MENU1, MENU2
@@ -74,15 +80,20 @@ mod firmware {
         let buttons = Buttons::new([
             Input::new(peripherals.GPIO0, input_config),
             Input::new(peripherals.GPIO1, input_config),
-            Input::new(peripherals.GPIO2, input_config),
             Input::new(peripherals.GPIO3, input_config),
             Input::new(peripherals.GPIO4, input_config),
             Input::new(peripherals.GPIO5, input_config),
+            Input::new(peripherals.GPIO6, input_config),
+            Input::new(peripherals.GPIO7, input_config),
             Input::new(peripherals.GPIO10, input_config),
-            Input::new(peripherals.GPIO11, input_config),
         ]);
 
+        // Both boards have their LED on GPIO8: a WS2812 on the C6, a
+        // plain blue LED on the C3 Supermini.
+        #[cfg(feature = "c6")]
         let led = Led::new(peripherals.RMT, peripherals.GPIO8);
+        #[cfg(feature = "c3")]
+        let led = Led::new(peripherals.LEDC, peripherals.GPIO8);
 
         Board {
             i2c,

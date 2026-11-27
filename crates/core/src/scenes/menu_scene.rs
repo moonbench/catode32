@@ -58,6 +58,7 @@ const MINIGAMES: &[MenuItem<SceneId>] = &[
 const TOOLS: &[MenuItem<SceneId>] = &[
     MenuItem { label: t!("Dice"),          icon: Some(icons::DICE),       submenu: None, action: Some(SceneId::Dice),         confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Lucky Numbers"), icon: Some(icons::CLOVER),     submenu: None, action: Some(SceneId::LuckyNumbers), confirm: None, confirm_on_vacation: END_VAC },
+    #[cfg(feature = "rgb-led")]
     MenuItem { label: t!("Flashlight"),    icon: Some(icons::FLASHLIGHT), submenu: None, action: Some(SceneId::Flashlight),   confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Magic 8 Ball"),  icon: Some(icons::EIGHTBALL),  submenu: None, action: Some(SceneId::EightBall),    confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Calculator"),    icon: Some(icons::CALCULATOR), submenu: None, action: Some(SceneId::Calculator),   confirm: None, confirm_on_vacation: END_VAC },
@@ -89,6 +90,7 @@ const DEBUG: &[MenuItem<SceneId>] = &[
     MenuItem { label: t!("Plants"),      icon: Some(icons::TREES),  submenu: None,             action: Some(SceneId::DebugPlants),    confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Vacations"),   icon: Some(icons::SUN),    submenu: Some(VACATIONS),  action: None,                          confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Time Speed"),  icon: Some(icons::WRENCH), submenu: None,             action: Some(SceneId::DebugTime),      confirm: None, confirm_on_vacation: None },
+    #[cfg(feature = "rgb-led")]
     MenuItem { label: t!("RGB LED"),     icon: Some(icons::WRENCH), submenu: None,             action: Some(SceneId::DebugLed),       confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Power"),       icon: Some(icons::POWER),  submenu: None,             action: Some(SceneId::DebugPower),     confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Context"), icon: Some(icons::WRENCH), submenu: None,             action: Some(SceneId::DebugContext),   confirm: None, confirm_on_vacation: None },

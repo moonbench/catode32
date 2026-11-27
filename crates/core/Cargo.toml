@@ -7,12 +7,22 @@ license = "MIT"
 repository = "https://github.com/moonbench/catode32"
 
 [features]
+# Board capabilities. A board feature turns on what its hardware has; code
+# for hardware a board lacks is compiled out, not stubbed.
+#
+# `rgb-led`: a colour LED (the C6's WS2812, or the desktop simulator's
+# on-screen one). Without it the board has a single-colour LED, so colour
+# tools (the flashlight, the RGB LED debug scene) don't exist.
+rgb-led = []
+
 c6 = [
+    "rgb-led",
     "dep:esp-hal",
     "dep:esp-println",
     "dep:esp-bootloader-esp-idf",
     "dep:esp-storage",
     "dep:esp-hal-smartled",
+    "dep:smart-leds",
     "dep:esp-radio",
     "dep:esp-rtos",
     "dep:embassy-futures",
@@ -29,7 +39,6 @@ c3 = [
     "dep:esp-println",
     "dep:esp-bootloader-esp-idf",
     "dep:esp-storage",
-    "dep:esp-hal-smartled",
     "dep:esp-radio",
     "dep:esp-rtos",
     "dep:embassy-futures",
@@ -37,12 +46,12 @@ c3 = [
     "esp-println/esp32c3",
     "esp-bootloader-esp-idf/esp32c3",
     "esp-storage/esp32c3",
-    "esp-hal-smartled/esp32c3",
     "esp-radio/esp32c3",
     "esp-rtos/esp32c3",
 ]
 # Host-side build: skips esp-* deps, swaps platform modules for std-backed shims.
-desktop = []
+# The simulator models the C6, LED included (drawn beside the screen).
+desktop = ["rgb-led"]
 
 # Language selection — exactly one should be active. Defaults to English.
 lang-en = ["catode32-i18n-macros/lang-en"]
@@ -66,7 +75,7 @@ ssd1306 = "0.10.0"
 embedded-graphics = "0.8.2"
 heapless = { version = "0.8", features = ["serde"] }
 micromath = "2"
-smart-leds = "0.4.0"
+smart-leds = { version = "0.4.0", optional = true }
 serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
 serde-json-core = "0.6"
 catode32-i18n-macros = { path = "../i18n-macros", default-features = false }
