@@ -22,6 +22,7 @@ use crate::{
     scene::{Scene, SceneId},
     ui::menu::{Menu, MenuItem, MenuResult},
     ui::popup::Popup,
+    ui::tiny_font,
 };
 
 const N: usize = 9;
@@ -68,8 +69,6 @@ const PITCH: i32 = 7;
 const BOARD_X: i32 = 8;
 const BOARD_SIZE: i32 = N as i32 * PITCH + 1; // 64
 const CELL_IN: u32 = (PITCH - 1) as u32;
-const GLYPH_W: u16 = 4;
-const GLYPH_H: u16 = 5;
 /// Glyph y offset in its cell by row within the box, so no digit touches a
 /// box line.
 const GLYPH_DY: [i32; 3] = [1, 0, 0];
@@ -84,19 +83,6 @@ const SEL_Y: i32 = 2;
 const ARROW_GAP: i32 = 2;
 /// Right of the selector, clear of the right arrow.
 const LOCK_X: i32 = SEL_X + SEL_W + 9;
-
-/// 4x5 digits 1-9, one row per byte, high nibble.
-const GLYPHS: [[u8; 5]; 9] = [
-    [0x20, 0x60, 0x20, 0x20, 0x70], // 1
-    [0xE0, 0x10, 0x60, 0x80, 0xF0], // 2
-    [0xE0, 0x10, 0x60, 0x10, 0xE0], // 3
-    [0x90, 0x90, 0xF0, 0x10, 0x10], // 4
-    [0xF0, 0x80, 0xE0, 0x10, 0xE0], // 5
-    [0x60, 0x80, 0xE0, 0x90, 0x60], // 6
-    [0xF0, 0x10, 0x20, 0x40, 0x40], // 7
-    [0x60, 0x90, 0x60, 0x90, 0x60], // 8
-    [0x60, 0x90, 0x70, 0x10, 0x60], // 9
-];
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Difficulty {
@@ -365,7 +351,7 @@ impl SudokatScene {
             }
             if cells[i] != 0 {
                 let pos = Point::new(x + 1, y + GLYPH_DY[(row % 3) as usize]);
-                draw_glyph(r, cells[i], pos, is_cursor);
+                tiny_font::draw_digit(r, cells[i], pos, is_cursor);
             }
         }
     }
@@ -381,8 +367,8 @@ impl SudokatScene {
         ] {
             r.draw_pixel(Point::new(cx, cy), false);
         }
-        let gx = PANEL_CX - GLYPH_W as i32;
-        let gy = SEL_Y + (SEL_H - 2 * GLYPH_H as i32) / 2;
+        let gx = PANEL_CX - tiny_font::W as i32;
+        let gy = SEL_Y + (SEL_H - 2 * tiny_font::H as i32) / 2;
         if self.selected == ERASE {
             // 2px strokes to match the doubled digits.
             for k in 0..7 {
@@ -391,7 +377,7 @@ impl SudokatScene {
                 r.draw_rect(Point::new(gx + 6 - k, y), Size::new(2, 1), true);
             }
         } else {
-            draw_glyph_2x(r, self.selected, gx, gy);
+            tiny_font::draw_char_scaled(r, (b'0' + self.selected) as char, gx, gy, 2, true);
         }
 
         if self.mode == Mode::Select {
@@ -403,27 +389,6 @@ impl SudokatScene {
         if self.state == State::Playing && self.givens[self.cursor] != 0 {
             let y = SEL_Y + (SEL_H - LOCK.height as i32) / 2;
             r.draw_sprite(&LOCK, Point::new(LOCK_X, y), SpriteOpts::default());
-        }
-    }
-}
-
-fn draw_glyph(r: &mut Renderer, digit: u8, pos: Point, inverted: bool) {
-    let opts = SpriteOpts {
-        transparent: true,
-        transparent_color: inverted,
-        invert: inverted,
-        ..SpriteOpts::default()
-    };
-    r.draw_sprite_raw(&GLYPHS[digit as usize - 1], GLYPH_W, GLYPH_H, pos, opts);
-}
-
-fn draw_glyph_2x(r: &mut Renderer, digit: u8, x: i32, y: i32) {
-    let glyph = &GLYPHS[digit as usize - 1];
-    for (gy, bits) in glyph.iter().enumerate() {
-        for gx in 0..GLYPH_W as i32 {
-            if bits & (0x80 >> gx) != 0 {
-                r.draw_rect(Point::new(x + gx * 2, y + gy as i32 * 2), Size::new(2, 2), true);
-            }
         }
     }
 }

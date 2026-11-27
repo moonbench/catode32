@@ -174,6 +174,10 @@ impl Game {
 
         let dt = elapsed_ms as f32 / 1000.0;
 
+        // Catch up on LED cues that fell due while the last frame ran long
+        // (or on desktop, where `run` doesn't drive them).
+        self.context.apply_due_led_cues(time::now_us());
+
         // Reset the inactivity timer whenever the player is touching a button.
         if self.buttons.any_pressed() {
             self.sleep_manager.notify_activity();
@@ -212,6 +216,7 @@ impl Game {
         // in-only reveal then plays automatically on wake.
         if !self.transition.is_active()
             && !self.sleep_pending
+            && !self.context.keep_awake
             && self.sleep_manager.should_sleep()
         {
             self.sleep_pending = true;
@@ -254,8 +259,20 @@ impl Game {
             let frame_start = Instant::now();
             watchdog::feed();
             self.tick();
+            let frame_end = frame_start + Duration::from_millis(FRAME_TIME_MS);
+            // Queued LED changes land on time, not on the next frame: wait
+            // for each one that falls inside this frame, then apply it.
+            let end_us = frame_end.duration_since_epoch().as_micros();
+            while let Some(cue) = self.context.led_cues.first().copied() {
+                if cue.at_us > end_us {
+                    break;
+                }
+                let wait = cue.at_us.saturating_sub(time::now_us());
+                time::delay_until(Instant::now() + Duration::from_micros(wait));
+                self.context.apply_due_led_cues(cue.at_us);
+            }
             // Idle (not spin) for the rest of the frame so the CPU can halt.
-            time::delay_until(frame_start + Duration::from_millis(FRAME_TIME_MS));
+            time::delay_until(frame_end);
         }
     }
 
@@ -298,6 +315,9 @@ impl Game {
                 }
                 if self.sleep_pending {
                     self.sleep_pending = false;
+                    // The WS2812 latches its colour, so it would otherwise
+                    // stay lit through sleep.
+                    self.context.led.off();
                     self.sleep_manager.enter_sleep(
                         &mut self.renderer,
                         &mut self.buttons,
@@ -439,6 +459,7 @@ impl Game {
             [Button::A, Button::B, Button::Menu1, Button::Menu2];
 
         println!("[Power] Entering deep sleep");
+        self.context.led.off();
         self.renderer.clear();
         self.renderer.flush();
         self.renderer.power_off();

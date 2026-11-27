@@ -55,6 +55,20 @@ const MINIGAMES: &[MenuItem<SceneId>] = &[
     MenuItem { label: t!("Game of Life"), icon: Some(icons::LIFE), submenu: None, action: Some(SceneId::Life), confirm: None, confirm_on_vacation: END_VAC },
 ];
 
+const TOOLS: &[MenuItem<SceneId>] = &[
+    MenuItem { label: t!("Dice"),          icon: Some(icons::DICE),       submenu: None, action: Some(SceneId::Dice),         confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Lucky Numbers"), icon: Some(icons::CLOVER),     submenu: None, action: Some(SceneId::LuckyNumbers), confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Flashlight"),    icon: Some(icons::FLASHLIGHT), submenu: None, action: Some(SceneId::Flashlight),   confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Magic 8 Ball"),  icon: Some(icons::EIGHTBALL),  submenu: None, action: Some(SceneId::EightBall),    confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Calculator"),    icon: Some(icons::CALCULATOR), submenu: None, action: Some(SceneId::Calculator),   confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Timer"),         icon: Some(icons::TIMER),      submenu: None, action: Some(SceneId::Timer),        confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Pomodoro"),      icon: Some(icons::TOMATO),     submenu: None, action: Some(SceneId::Pomodoro),     confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Breathe"),       icon: Some(icons::BREATHE),    submenu: None, action: Some(SceneId::Breathe),      confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Metronome"),     icon: Some(icons::METRONOME),  submenu: None, action: Some(SceneId::Metronome),    confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Morse Code"),    icon: Some(icons::MORSE),      submenu: None, action: Some(SceneId::Morse),        confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("WiFi Scanner"),  icon: Some(icons::WIFI),       submenu: None, action: Some(SceneId::WifiScanner),  confirm: None, confirm_on_vacation: END_VAC },
+];
+
 const VACATIONS: &[MenuItem<SceneId>] = &[
     MenuItem { label: t!("Park"),     icon: Some(icons::TREES), submenu: None, action: Some(SceneId::VacationPark),     confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Forest"),   icon: Some(icons::TREES), submenu: None, action: Some(SceneId::VacationForest),   confirm: None, confirm_on_vacation: None },
@@ -90,6 +104,7 @@ const BIG_MENU: &[MenuItem<SceneId>] = &[
     MenuItem { label: t!("Store"),      icon: Some(icons::STORE),     submenu: None,             action: Some(SceneId::Store),          confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Pet info"),   icon: Some(icons::CAT),       submenu: None,             action: Some(SceneId::PetInfo),        confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Forecast"),   icon: Some(icons::SUN),       submenu: None,             action: Some(SceneId::Forecast),       confirm: None, confirm_on_vacation: None },
+    MenuItem { label: t!("Tools"),      icon: Some(icons::TOOLS),     submenu: Some(TOOLS),      action: None,                          confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Social"),     icon: Some(icons::CAT),       submenu: None,             action: Some(SceneId::Social),         confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Credits"),    icon: Some(icons::CREDITS),   submenu: None,             action: Some(SceneId::Credits),        confirm: None, confirm_on_vacation: None },
     MenuItem { label: t!("Debug"),      icon: Some(icons::WRENCH),    submenu: Some(DEBUG),      action: None,                          confirm: None, confirm_on_vacation: None },

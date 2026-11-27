@@ -18,10 +18,11 @@ use crate::{
     entities::character::Character,
     input::{Button, Buttons},
     rand::xorshift32,
-    render::{Renderer, SpriteOpts},
+    render::Renderer,
     scene::{Scene, SceneId},
     ui::menu::{Menu, MenuItem, MenuResult},
     ui::popup::Popup,
+    ui::tiny_font,
 };
 
 const MAX_ROWS: usize = 9;
@@ -42,26 +43,11 @@ const PITCH: i32 = 7;
 const CELL_IN: u32 = (PITCH - 1) as u32;
 const BOARD_AREA_W: i32 = 92;
 const BOARD_AREA_H: i32 = 64;
-const GLYPH_W: u16 = 4;
-const GLYPH_H: u16 = 5;
 /// Centre of the panel right of the board, over the cat's head.
 const PANEL_CX: i32 = 110;
 
 /// Half-period of the cursor blink while drawing a strand.
 const BLINK_HALF: f32 = 0.25;
-
-/// 4x5 digits 1-9, one row per byte, high nibble.
-const GLYPHS: [[u8; 5]; 9] = [
-    [0x20, 0x60, 0x20, 0x20, 0x70], // 1
-    [0xE0, 0x10, 0x60, 0x80, 0xF0], // 2
-    [0xE0, 0x10, 0x60, 0x10, 0xE0], // 3
-    [0x90, 0x90, 0xF0, 0x10, 0x10], // 4
-    [0xF0, 0x80, 0xE0, 0x10, 0xE0], // 5
-    [0x60, 0x80, 0xE0, 0x90, 0x60], // 6
-    [0xF0, 0x10, 0x20, 0x40, 0x40], // 7
-    [0x60, 0x90, 0x60, 0x90, 0x60], // 8
-    [0x60, 0x90, 0x70, 0x10, 0x60], // 9
-];
 
 const DIRS: [Button; 4] = [Button::Up, Button::Down, Button::Left, Button::Right];
 
@@ -371,7 +357,7 @@ impl YarnballScene {
             } else {
                 r.fill_rect_off(Point::new(x, y), Size::new(CELL_IN, CELL_IN));
             }
-            draw_glyph(r, n, Point::new(x + 1, y + 1), done);
+            tiny_font::draw_digit(r, n, Point::new(x + 1, y + 1), done);
         }
 
         // Cursor: an outline over the grid lines round its cell.
@@ -393,16 +379,6 @@ impl YarnballScene {
         let x = PANEL_CX - 2 * level.chars().count() as i32;
         r.draw_text_small(level.as_str(), Point::new(x.max(BOARD_AREA_W), 2));
     }
-}
-
-fn draw_glyph(r: &mut Renderer, digit: u8, pos: Point, inverted: bool) {
-    let opts = SpriteOpts {
-        transparent: true,
-        transparent_color: inverted,
-        invert: inverted,
-        ..SpriteOpts::default()
-    };
-    r.draw_sprite_raw(&GLYPHS[digit as usize - 1], GLYPH_W, GLYPH_H, pos, opts);
 }
 
 // ---------------------------------------------------------------------------

@@ -495,6 +495,68 @@ pub fn starter_plants() -> Vec<Plant, MAX_PLANTS> {
     v
 }
 
+/// A colour for the LED to switch to at a set moment. Scenes queue these
+/// when the LED needs better timing than the 12 FPS frame loop gives (a
+/// metronome, Morse playback); the main loop applies them while it waits
+/// between frames.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LedCue {
+    /// Microseconds since boot, as from `platform::time::now_us`.
+    pub at_us: u64,
+    pub rgb: (u8, u8, u8),
+}
+
+pub const LED_CUES_MAX: usize = 24;
+
+/// Settings for the timer-style tools, carried between visits within one
+/// session so each reopens as it was left. Never saved.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ToolPrefs {
+    /// Index into the timer's countdown durations.
+    pub countdown: u8,
+    /// Indexes into the interval durations, and the round count.
+    pub interval_work: u8,
+    pub interval_rest: u8,
+    pub interval_rounds: u8,
+    /// Pomodoro focus, break and long break, in minutes.
+    pub pomodoro: [u8; 3],
+    pub breathe_pattern: u8,
+    pub breathe_level: u8,
+    pub metronome_bpm: u16,
+    pub metronome_beats: u8,
+    pub morse_wpm: u8,
+}
+
+impl ToolPrefs {
+    pub const DEFAULT: Self = Self {
+        countdown: 10,
+        interval_work: 6,
+        interval_rest: 2,
+        interval_rounds: 8,
+        pomodoro: [25, 5, 15],
+        breathe_pattern: 0,
+        breathe_level: 2,
+        metronome_bpm: 100,
+        metronome_beats: 4,
+        morse_wpm: 8,
+    };
+}
+
+/// Flashlight settings carried between visits within one session.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FlashlightPrefs {
+    /// Index into the flashlight's mode list.
+    pub mode: u8,
+    /// Brightness step for the preset modes.
+    pub level: u8,
+    /// Colour for the RGB mode.
+    pub rgb: [u8; 3],
+}
+
+impl FlashlightPrefs {
+    pub const DEFAULT: Self = Self { mode: 0, level: 5, rgb: [160, 80, 255] };
+}
+
 #[allow(dead_code)]
 pub struct GameContext {
     pub health: f32,
@@ -654,6 +716,17 @@ pub struct GameContext {
     /// next frame and drives a synchronous scan. Out-of-band from the
     /// hourly midpoint scan so the debug UI can force a fresh result.
     pub wifi_scan_requested: bool,
+    /// Set by a scene that must not be interrupted by idle sleep, like the
+    /// flashlight while it's lit. The screen still dims. Never saved.
+    pub keep_awake: bool,
+    /// How the flashlight was left, so it reopens the same way. Kept for
+    /// the session only; never saved.
+    pub flashlight: FlashlightPrefs,
+    /// Settings for the timer, Pomodoro, breathing, metronome and Morse
+    /// tools. Kept for the session only; never saved.
+    pub tool_prefs: ToolPrefs,
+    /// Timed LED changes, earliest first. See [`LedCue`]. Never saved.
+    pub led_cues: heapless::Vec<LedCue, LED_CUES_MAX>,
     /// True only while writing the pre-scan save, so that save records
     /// "a scan started at this save's moment". Loaded back on boot to defer
     /// the first scan, since no clock survives a reset.
@@ -838,6 +911,10 @@ impl GameContext {
             wifi_recent: Vec::new(),
             friends: Vec::new(),
             wifi_scan_requested: false,
+            keep_awake: false,
+            flashlight: FlashlightPrefs::DEFAULT,
+            tool_prefs: ToolPrefs::DEFAULT,
+            led_cues: heapless::Vec::new(),
             scan_started: false,
             last_reset_reason: heapless::String::new(),
             last_crash: None,
@@ -995,6 +1072,24 @@ impl GameContext {
     /// Apply a batch of stat changes with asymptotic damping near 0 and 100.
     /// Stats near their ceiling resist further increases; stats near the floor
     /// resist further decreases. Stats below 25 get a catch-up boost on gains.
+    /// Queue an LED change for `at_us`, keeping the queue in time order.
+    /// Returns false, queuing nothing, when the queue is full.
+    pub fn schedule_led(&mut self, at_us: u64, rgb: (u8, u8, u8)) -> bool {
+        let pos = self.led_cues.iter().position(|c| c.at_us > at_us).unwrap_or(self.led_cues.len());
+        self.led_cues.insert(pos, LedCue { at_us, rgb }).is_ok()
+    }
+
+    /// Apply every queued LED change that is due by `now_us`.
+    pub fn apply_due_led_cues(&mut self, now_us: u64) {
+        while let Some(cue) = self.led_cues.first().copied() {
+            if cue.at_us > now_us {
+                break;
+            }
+            self.led_cues.remove(0);
+            self.led.set(cue.rgb.0, cue.rgb.1, cue.rgb.2);
+        }
+    }
+
     pub fn apply_stat_changes(&mut self, changes: &[(StatId, f32)]) {
         #[cfg(not(feature = "desktop"))]
         use micromath::F32Ext;

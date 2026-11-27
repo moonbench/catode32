@@ -1,8 +1,10 @@
 pub mod adoption_scene;
-pub mod bedroom_scene;
 pub mod balancing_scene;
+pub mod bedroom_scene;
 pub mod boxedin_scene;
 pub mod breakout_scene;
+pub mod breathe_scene;
+pub mod calculator_scene;
 pub mod cattree_scene;
 pub mod credits_scene;
 pub mod debug_behaviors_scene;
@@ -15,33 +17,40 @@ pub mod debug_power_scene;
 pub mod debug_stats_scene;
 pub mod debug_time_scene;
 pub mod debug_wifi_scene;
+pub mod dice_scene;
+pub mod eightball_scene;
+pub mod flashlight_scene;
 pub mod forecast_scene;
 pub mod garage_scene;
-pub mod save_recovery_scene;
 pub mod hanjie_scene;
 pub mod herding_scene;
 pub mod hideseek_scene;
 pub mod inside_scene;
 pub mod kitchen_scene;
-pub mod life_scene;
 pub mod laserbounce_scene;
+pub mod life_scene;
 pub mod lightsout_scene;
+pub mod lucky_scene;
 pub mod luckylanding_scene;
 pub mod maze_scene;
 pub mod memory_scene;
+pub mod menu_scene;
 pub mod meowltiply_scene;
 pub mod meowteor_scene;
-pub mod menu_scene;
+pub mod metronome_scene;
 pub mod minigolf_scene;
+pub mod morse_scene;
 pub mod outside_scene;
 pub mod pawpong_scene;
 pub mod pestcontrol_scene;
 pub mod pet_info_scene;
 pub mod pipes_scene;
 pub mod platformer_scene;
+pub mod pomodoro_scene;
 pub mod pose_scene;
 pub mod purrimeter_scene;
 pub mod reversi_scene;
+pub mod save_recovery_scene;
 pub mod scratch_scene;
 pub mod sleepingdogs_scene;
 pub mod snake_scene;
@@ -51,6 +60,7 @@ pub mod store_scene;
 pub mod sudokat_scene;
 pub mod sunnyspot_scene;
 pub mod tictactoe_scene;
+pub mod timer_scene;
 pub mod treattoss_scene;
 pub mod treehouse_scene;
 pub mod vacation_aquarium_scene;
@@ -58,6 +68,7 @@ pub mod vacation_base;
 pub mod vacation_beach_scene;
 pub mod vacation_forest_scene;
 pub mod vacation_park_scene;
+pub mod wifiscan_scene;
 pub mod yarnball_scene;
 pub mod zoomies_scene;
 
@@ -124,6 +135,17 @@ use vacation_forest_scene::VacationForestScene;
 use vacation_park_scene::VacationParkScene;
 use yarnball_scene::YarnballScene;
 use zoomies_scene::ZoomiesScene;
+use dice_scene::DiceScene;
+use lucky_scene::LuckyScene;
+use flashlight_scene::FlashlightScene;
+use eightball_scene::EightBallScene;
+use calculator_scene::CalculatorScene;
+use wifiscan_scene::WifiScanScene;
+use timer_scene::TimerScene;
+use pomodoro_scene::PomodoroScene;
+use breathe_scene::BreatheScene;
+use metronome_scene::MetronomeScene;
+use morse_scene::MorseScene;
 
 crate::dispatch_enum! {
     pub enum ActiveScene from SceneId via from_id,
@@ -190,5 +212,16 @@ crate::dispatch_enum! {
         VacationForest(VacationForestScene)       = VacationForestScene::new(),
         VacationAquarium(VacationAquariumScene)   = VacationAquariumScene::new(),
         VacationBeach(VacationBeachScene)         = VacationBeachScene::new(),
+        Dice(DiceScene)                           = DiceScene::new(),
+        LuckyNumbers(LuckyScene)                  = LuckyScene::new(),
+        Flashlight(FlashlightScene)               = FlashlightScene::new(),
+        EightBall(EightBallScene)                 = EightBallScene::new(),
+        Calculator(CalculatorScene)               = CalculatorScene::new(),
+        WifiScanner(WifiScanScene)                = WifiScanScene::new(),
+        Timer(TimerScene)                         = TimerScene::new(),
+        Pomodoro(PomodoroScene)                   = PomodoroScene::new(),
+        Breathe(BreatheScene)                     = BreatheScene::new(),
+        Metronome(MetronomeScene)                 = MetronomeScene::new(),
+        Morse(MorseScene)                         = MorseScene::new(),
     }
 }

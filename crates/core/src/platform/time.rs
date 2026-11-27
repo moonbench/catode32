@@ -124,6 +124,18 @@ pub fn delay_until(deadline: Instant) {
     }
 }
 
+/// Milliseconds since boot on the real clock. For tools that time things
+/// in the real world: unlike the per-frame `dt`, it ignores the debug
+/// time speed and keeps going while a scene is paused under the menu.
+pub fn now_ms() -> u64 {
+    Instant::now().duration_since_epoch().as_millis()
+}
+
+/// Microseconds since boot on the real clock. See [`now_ms`].
+pub fn now_us() -> u64 {
+    Instant::now().duration_since_epoch().as_micros()
+}
+
 /// Block the calling task for `duration`. See [`delay_until`].
 pub fn delay(duration: Duration) {
     delay_until(Instant::now() + duration);

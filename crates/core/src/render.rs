@@ -59,6 +59,36 @@ impl Default for SpriteOpts {
     }
 }
 
+/// Draw target that magnifies everything drawn into it about `origin`.
+struct Scaled<'a, D> {
+    inner: &'a mut D,
+    origin: Point,
+    scale: i32,
+}
+
+impl<D> OriginDimensions for Scaled<'_, D> {
+    fn size(&self) -> Size {
+        Size::new(128, 64)
+    }
+}
+
+impl<D: DrawTarget<Color = BinaryColor>> DrawTarget for Scaled<'_, D> {
+    type Color = BinaryColor;
+    type Error = D::Error;
+
+    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Pixel<Self::Color>>,
+    {
+        let size = Size::new(self.scale as u32, self.scale as u32);
+        for Pixel(p, colour) in pixels {
+            let at = self.origin + (p - self.origin) * self.scale;
+            self.inner.fill_solid(&Rectangle::new(at, size), colour)?;
+        }
+        Ok(())
+    }
+}
+
 pub struct Renderer {
     display: Display,
     invert_state: bool,
@@ -179,6 +209,15 @@ impl Renderer {
         Text::with_baseline(text, pos, style, Baseline::Top)
             .draw(&mut self.display)
             .unwrap();
+    }
+
+    /// Draw `text` in the 6x10 font with each pixel blown up to a
+    /// `scale`x`scale` block, top-left at `pos`. `on` picks the ink.
+    pub fn draw_text_scaled(&mut self, text: &str, pos: Point, scale: u32, on: bool) {
+        let colour = if on { BinaryColor::On } else { BinaryColor::Off };
+        let style = MonoTextStyle::new(&FONT_6X10_DOTS, colour);
+        let mut target = Scaled { inner: &mut self.display, origin: pos, scale: scale as i32 };
+        Text::with_baseline(text, pos, style, Baseline::Top).draw(&mut target).ok();
     }
 
     pub fn draw_text_small(&mut self, text: &str, pos: Point) {

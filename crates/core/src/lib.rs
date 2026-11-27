@@ -31,6 +31,7 @@ pub mod i18n;
 pub mod behavior;
 pub mod behaviors;
 pub mod board;
+pub mod calc;
 pub mod character;
 pub mod clock;
 pub mod context;

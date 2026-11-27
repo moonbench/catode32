@@ -68,3 +68,47 @@ mod desktop {
 
 #[cfg(feature = "desktop")]
 pub use desktop::Led;
+
+/// Remembers the colour last written, so a scene that decides the LED
+/// colour every frame only talks to the hardware when it changes (a
+/// WS2812 write blocks for a moment).
+#[derive(Clone, Copy, Default)]
+pub struct LedLatch {
+    last: Option<(u8, u8, u8)>,
+}
+
+impl LedLatch {
+    pub const fn new() -> Self {
+        Self { last: None }
+    }
+
+    pub fn show(&mut self, led: &mut Led, rgb: (u8, u8, u8)) {
+        if self.last != Some(rgb) {
+            led.set(rgb.0, rgb.1, rgb.2);
+            self.last = Some(rgb);
+        }
+    }
+
+    pub fn off(&mut self, led: &mut Led) {
+        self.show(led, (0, 0, 0));
+    }
+
+    /// Forget the last colour, so the next `show` always writes. For when
+    /// something else may have changed the LED meanwhile.
+    pub fn forget(&mut self) {
+        self.last = None;
+    }
+}
+
+impl Led {
+    /// `set` taking a tuple.
+    pub fn set_rgb(&mut self, (r, g, b): (u8, u8, u8)) {
+        self.set(r, g, b);
+    }
+}
+
+/// Scale a colour by `level` out of 255.
+pub fn scale_rgb((r, g, b): (u8, u8, u8), level: u8) -> (u8, u8, u8) {
+    let s = |c: u8| ((c as u16 * level as u16 + 127) / 255) as u8;
+    (s(r), s(g), s(b))
+}

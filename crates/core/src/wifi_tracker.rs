@@ -42,6 +42,17 @@ pub const SCAN_INTERVAL: Duration = Duration::from_secs(60 * 60);
 #[cfg(not(feature = "desktop"))]
 const SCAN_MAX_APS: usize = 20;
 
+/// Active-scan dwell per channel, in ms. The driver leaves a channel
+/// after the minimum if no probe response has arrived, and probe
+/// responses get missed often enough that short minimums (esp-radio's
+/// default is 10 ms) give empty scans with no error. A minimum above the
+/// usual ~102 ms beacon interval means every channel hears at least one
+/// beacon either way. A full 2.4 GHz sweep takes about 1.6-2 s.
+#[cfg(not(feature = "desktop"))]
+const SCAN_DWELL_MIN_MS: u64 = 120;
+#[cfg(not(feature = "desktop"))]
+const SCAN_DWELL_MAX_MS: u64 = 150;
+
 /// Count subtracted from every unseen entry each scan.
 #[cfg(not(feature = "desktop"))]
 const DECAY_PER_SCAN: f32 = 0.25;
@@ -56,6 +67,9 @@ pub struct ScanAp {
     pub bssid: [u8; 6],
     pub ssid: heapless::String<WIFI_SSID_MAX>,
     pub rssi: i8,
+    pub channel: u8,
+    /// False for open networks.
+    pub secured: bool,
 }
 
 /// Drive a single wifi scan. On firmware this brings the radio up,
@@ -64,24 +78,7 @@ pub struct ScanAp {
 /// radio; the call returns `None` and leaves the state untouched.
 #[cfg(not(feature = "desktop"))]
 pub fn scan_now(ctx: &mut GameContext) -> Option<Vec<ScanAp, 32>> {
-    use embassy_futures::block_on;
-
-    if !radio::acquire(ctx) {
-        return None;
-    }
-    let aps = {
-        let controller = ctx.wifi.as_mut().expect("acquire succeeded");
-        match block_on(perform_scan(controller)) {
-            Ok(v) => v,
-            Err(e) => {
-                println!("[WiFi] Scan failed: {:?}", e);
-                radio::release(ctx);
-                return None;
-            }
-        }
-    };
-    radio::release(ctx);
-
+    let aps = scan_aps(ctx).ok()?;
     process(ctx, &aps);
 
     println!(
@@ -98,11 +95,214 @@ pub fn scan_now(_ctx: &mut GameContext) -> Option<Vec<ScanAp, 32>> {
     None
 }
 
+/// Why [`scan_aps`] came back without a list.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ScanError {
+    /// The radio couldn't be brought up (always the case on desktop).
+    NoRadio,
+    /// The radio started but the scan itself returned an error.
+    Failed,
+}
+
+/// Run a scan and return what was seen, without touching the familiar /
+/// recent tracking. For tools that let the player scan on demand, where
+/// repeated scans would otherwise skew the location counts. Blocks for
+/// ~1-3 s on firmware.
+#[cfg(not(feature = "desktop"))]
+pub fn scan_aps(ctx: &mut GameContext) -> Result<Vec<ScanAp, 32>, ScanError> {
+    use embassy_futures::block_on;
+
+    if !radio::acquire(ctx) {
+        println!("[WiFi] scan_aps: radio unavailable");
+        return Err(ScanError::NoRadio);
+    }
+    let started = crate::platform::time::Instant::now();
+    let result = {
+        let controller = ctx.wifi.as_mut().expect("acquire succeeded");
+        block_on(perform_scan(controller, None))
+    };
+    radio::release(ctx);
+    match result {
+        Ok(v) => {
+            println!(
+                "[WiFi] scan_aps: {} APs in {} ms",
+                v.len(),
+                started.elapsed().as_millis()
+            );
+            Ok(v)
+        }
+        Err(e) => {
+            println!("[WiFi] scan_aps failed: {:?}", e);
+            Err(ScanError::Failed)
+        }
+    }
+}
+
+#[cfg(feature = "desktop")]
+pub fn scan_aps(_ctx: &mut GameContext) -> Result<Vec<ScanAp, 32>, ScanError> {
+    Err(ScanError::NoRadio)
+}
+
+/// 2.4 GHz channels covered by a [`ChannelSweep`].
+pub const SWEEP_CHANNELS: u8 = 13;
+
+/// A scan done one channel per call, so the caller's frame loop keeps
+/// running (and animating) between channels instead of blocking for the
+/// whole sweep. Each step blocks for about one channel's dwell. Like
+/// [`scan_aps`] it leaves the familiar-network tracking alone.
+///
+/// The radio is held from [`begin`](Self::begin) until the last step or
+/// [`abort`](Self::abort); call `abort` when leaving mid-sweep.
+pub struct ChannelSweep {
+    /// Next channel to scan, 1-based. 0 when no sweep is running.
+    next: u8,
+    aps: Vec<ScanAp, 32>,
+    /// APs seen per channel, index 0 = channel 1.
+    per_channel: [u8; SWEEP_CHANNELS as usize],
+    started_ms: u64,
+}
+
+impl Default for ChannelSweep {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ChannelSweep {
+    pub const fn new() -> Self {
+        Self { next: 0, aps: Vec::new(), per_channel: [0; SWEEP_CHANNELS as usize], started_ms: 0 }
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.next != 0
+    }
+
+    /// Channels finished so far in the current or last sweep.
+    pub fn channels_done(&self) -> u8 {
+        if self.next == 0 { SWEEP_CHANNELS } else { self.next - 1 }
+    }
+
+    /// APs found, strongest reading per BSSID.
+    pub fn results(&self) -> &[ScanAp] {
+        &self.aps
+    }
+
+    pub fn per_channel(&self) -> &[u8; SWEEP_CHANNELS as usize] {
+        &self.per_channel
+    }
+
+    /// Bring the radio up and start from channel 1.
+    pub fn begin(&mut self, ctx: &mut GameContext) -> Result<(), ScanError> {
+        self.abort(ctx);
+        self.aps.clear();
+        self.per_channel = [0; SWEEP_CHANNELS as usize];
+        if !radio_acquire(ctx) {
+            println!("[WiFi] sweep: radio unavailable");
+            return Err(ScanError::NoRadio);
+        }
+        self.next = 1;
+        self.started_ms = crate::platform::time::now_ms();
+        Ok(())
+    }
+
+    /// Scan the next channel. `Ok(true)` once the sweep is complete, at
+    /// which point the radio has been released.
+    pub fn step(&mut self, ctx: &mut GameContext) -> Result<bool, ScanError> {
+        if self.next == 0 {
+            return Ok(true);
+        }
+        let channel = self.next;
+        let found = match scan_channel(ctx, channel) {
+            Ok(found) => found,
+            Err(e) => {
+                self.abort(ctx);
+                return Err(e);
+            }
+        };
+        self.per_channel[channel as usize - 1] = found.len().min(u8::MAX as usize) as u8;
+        for ap in found {
+            match self.aps.iter_mut().find(|a| a.bssid == ap.bssid) {
+                // Overlapping channels can hear the same AP twice.
+                Some(seen) => {
+                    if ap.rssi > seen.rssi {
+                        *seen = ap;
+                    }
+                }
+                None => {
+                    let _ = self.aps.push(ap);
+                }
+            }
+        }
+        if channel >= SWEEP_CHANNELS {
+            self.next = 0;
+            radio_release(ctx);
+            println!(
+                "[WiFi] sweep: {} APs in {} ms",
+                self.aps.len(),
+                crate::platform::time::now_ms() - self.started_ms
+            );
+            Ok(true)
+        } else {
+            self.next += 1;
+            Ok(false)
+        }
+    }
+
+    /// Stop a sweep part way and release the radio. Safe to call when
+    /// nothing is running.
+    pub fn abort(&mut self, ctx: &mut GameContext) {
+        if self.next != 0 {
+            self.next = 0;
+            radio_release(ctx);
+        }
+    }
+}
+
+#[cfg(not(feature = "desktop"))]
+fn radio_acquire(ctx: &mut GameContext) -> bool {
+    radio::acquire(ctx)
+}
+
+#[cfg(not(feature = "desktop"))]
+fn radio_release(ctx: &mut GameContext) {
+    radio::release(ctx);
+}
+
+#[cfg(not(feature = "desktop"))]
+fn scan_channel(ctx: &mut GameContext, channel: u8) -> Result<Vec<ScanAp, 32>, ScanError> {
+    use embassy_futures::block_on;
+    let Some(controller) = ctx.wifi.as_mut() else {
+        return Err(ScanError::NoRadio);
+    };
+    block_on(perform_scan(controller, Some(channel))).map_err(|e| {
+        println!("[WiFi] sweep: channel {} failed: {:?}", channel, e);
+        ScanError::Failed
+    })
+}
+
+#[cfg(feature = "desktop")]
+fn radio_acquire(_ctx: &mut GameContext) -> bool {
+    false
+}
+
+#[cfg(feature = "desktop")]
+fn radio_release(_ctx: &mut GameContext) {}
+
+#[cfg(feature = "desktop")]
+fn scan_channel(_ctx: &mut GameContext, _channel: u8) -> Result<Vec<ScanAp, 32>, ScanError> {
+    Err(ScanError::NoRadio)
+}
+
 #[cfg(not(feature = "desktop"))]
 async fn perform_scan(
     controller: &mut esp_radio::wifi::WifiController<'static>,
+    channel: Option<u8>,
 ) -> Result<Vec<ScanAp, 32>, esp_radio::wifi::WifiError> {
-    use esp_radio::wifi::{scan::ScanConfig, sta::StationConfig, Config as WifiConfig};
+    use esp_radio::wifi::{
+        scan::{ScanConfig, ScanTypeConfig},
+        sta::StationConfig,
+        Config as WifiConfig,
+    };
 
     // Apply a station config. This selects STA mode for a freshly
     // initialized controller. Cheap on subsequent calls within the
@@ -110,7 +310,15 @@ async fn perform_scan(
     let sta_config = WifiConfig::Station(StationConfig::default());
     controller.set_config(&sta_config)?;
 
-    let scan_config = ScanConfig::default().with_max(SCAN_MAX_APS);
+    let mut scan_config = ScanConfig::default()
+        .with_max(SCAN_MAX_APS)
+        .with_scan_type(ScanTypeConfig::Active {
+            min: Duration::from_millis(SCAN_DWELL_MIN_MS),
+            max: Duration::from_millis(SCAN_DWELL_MAX_MS),
+        });
+    if let Some(channel) = channel {
+        scan_config = scan_config.with_channel(channel);
+    }
     let result = controller.scan_async(&scan_config).await?;
 
     let mut out: Vec<ScanAp, 32> = Vec::new();
@@ -125,6 +333,11 @@ async fn perform_scan(
             bssid: ap.bssid,
             ssid,
             rssi: ap.signal_strength,
+            channel: ap.channel,
+            secured: !matches!(
+                ap.auth_method,
+                None | Some(esp_radio::wifi::AuthenticationMethod::None)
+            ),
         };
         if out.push(entry).is_err() {
             break;
