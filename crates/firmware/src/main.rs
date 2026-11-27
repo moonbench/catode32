@@ -33,7 +33,7 @@ fn main() -> ! {
     storage::init(board.flash);
     let renderer = Renderer::new(board.i2c);
 
-    println!("catode32 v0.15.0 behavior framework");
+    println!("catode32 v0.16.0 behavior framework");
 
     // Start the preemptive scheduler. The radio stack drives its event loop
     // on a task scheduled by esp-rtos, so the scheduler must be running
