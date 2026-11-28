@@ -258,6 +258,62 @@ impl ChannelSweep {
     }
 }
 
+/// Repeated scans of a single channel, for following one network's
+/// signal. Holds the radio from [`begin`](Self::begin) to
+/// [`end`](Self::end), so each [`scan`](Self::scan) costs only one
+/// channel's dwell (~150 ms) rather than a radio start-up. Like
+/// [`scan_aps`] it leaves the familiar-network tracking alone.
+pub struct ChannelWatch {
+    /// The channel being watched; 0 when not running.
+    channel: u8,
+}
+
+impl Default for ChannelWatch {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ChannelWatch {
+    pub const fn new() -> Self {
+        Self { channel: 0 }
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.channel != 0
+    }
+
+    /// Bring the radio up to watch `channel`.
+    pub fn begin(&mut self, ctx: &mut GameContext, channel: u8) -> Result<(), ScanError> {
+        self.end(ctx);
+        if channel == 0 {
+            return Err(ScanError::Failed);
+        }
+        if !radio_acquire(ctx) {
+            println!("[WiFi] watch: radio unavailable");
+            return Err(ScanError::NoRadio);
+        }
+        self.channel = channel;
+        Ok(())
+    }
+
+    /// Scan the watched channel once. Blocks for one channel's dwell.
+    pub fn scan(&mut self, ctx: &mut GameContext) -> Result<Vec<ScanAp, 32>, ScanError> {
+        if self.channel == 0 {
+            return Err(ScanError::NoRadio);
+        }
+        scan_channel(ctx, self.channel)
+    }
+
+    /// Release the radio. Safe to call when nothing is running.
+    pub fn end(&mut self, ctx: &mut GameContext) {
+        if self.channel != 0 {
+            self.channel = 0;
+            radio_release(ctx);
+        }
+    }
+}
+
 #[cfg(not(feature = "desktop"))]
 fn radio_acquire(ctx: &mut GameContext) -> bool {
     radio::acquire(ctx)

@@ -682,10 +682,7 @@
   "Cat-egorically not": "Kat-egorisch niet",
   "networks": "netwerken",
   "B: rescan": "B: opnieuw",
-  "Signal": "Signaal",
   "Channel": "Kanaal",
-  "Secured": "Beveiligd",
-  "Open": "Open",
   "(hidden)": "(verborgen)",
   "Scanning...": "Zoeken...",
   "Ask, then press A": "Vraag, druk A",
@@ -763,5 +760,7 @@
   "Play/Pause": "Afspelen",
   "Mute": "Dempen",
   "Prev": "Vorige",
-  "M2: change mode": "M2: modus wijzigen"
+  "M2: change mode": "M2: modus wijzigen",
+  "Secured": "Beveiligd",
+  "Open": "Open"
 }

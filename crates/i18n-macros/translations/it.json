@@ -682,10 +682,7 @@
   "Cat-egorically not": "Gattegoricamente no",
   "networks": "reti",
   "B: rescan": "B: ricerca",
-  "Signal": "Segnale",
   "Channel": "Canale",
-  "Secured": "Protetta",
-  "Open": "Aperta",
   "(hidden)": "(nascosta)",
   "Scanning...": "Ricerca...",
   "Ask, then press A": "Chiedi e premi A",
@@ -763,5 +760,7 @@
   "Play/Pause": "Play",
   "Mute": "Muto",
   "Prev": "Prec.",
-  "M2: change mode": "M2: cambia modo"
+  "M2: change mode": "M2: cambia modo",
+  "Secured": "Protetta",
+  "Open": "Aperta"
 }

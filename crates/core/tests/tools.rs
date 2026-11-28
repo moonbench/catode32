@@ -21,7 +21,7 @@ use catode32_core::{
         morse_scene::{classify, decode, encode, unit_ms, MorseScene, CODES},
         pomodoro_scene::{next_phase, Phase, PomodoroScene},
         timer_scene::{interval_at, TimerScene},
-        wifiscan_scene::WifiScanScene,
+        wifiscan_scene::{SignalTrack, WifiScanScene, TRACK_HISTORY},
     },
 };
 
@@ -452,4 +452,28 @@ fn morse_keying_splits_dots_from_dashes() {
     assert_eq!(classify(239, unit), '.');
     assert_eq!(classify(240, unit), '-');
     assert_eq!(classify(400, unit), '-');
+}
+
+// --- WiFi detail graph -----------------------------------------------------
+
+#[test]
+fn signal_track_records_misses() {
+    let mut t = SignalTrack::new();
+    t.push(Some(-70));
+    t.push(None);
+    assert_eq!(t.latest(), None, "the last scan missed it");
+    t.push(Some(-60));
+    assert_eq!(t.latest(), Some(-60));
+    assert_eq!(t.history().collect::<std::vec::Vec<_>>(), [Some(-70), None, Some(-60)]);
+}
+
+#[test]
+fn signal_track_history_is_bounded() {
+    let mut t = SignalTrack::new();
+    for i in 0..(TRACK_HISTORY as i32 + 10) {
+        t.push(Some((-90 + (i % 30)) as i8));
+    }
+    assert_eq!(t.history().count(), TRACK_HISTORY);
+    t.reset();
+    assert_eq!(t.history().count(), 0);
 }

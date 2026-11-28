@@ -1,5 +1,7 @@
 //! WiFi Scanner tool. Lists nearby networks by signal strength. Up/Down
-//! scroll, A shows a network's details, B rescans.
+//! scroll, B rescans. A shows a network's details, kept live: its channel
+//! is re-scanned every couple of seconds and the signal graphed, which
+//! also makes it handy for finding where an access point is.
 //!
 //! Scans with a [`ChannelSweep`], one channel per frame, drawing a bar per
 //! channel as it goes. The sweep leaves the familiar-network tracking
@@ -7,16 +9,17 @@
 
 use core::fmt::Write;
 use embedded_graphics::prelude::{Point, Size};
-use heapless::{String, Vec};
+use heapless::{Deque, String, Vec};
 
 use crate::t;
 use crate::{
     context::GameContext,
     input::{Button, Buttons},
+    platform::time::now_ms,
     render::Renderer,
     scene::{Scene, SceneId},
     ui::{list_nav::ListNav, scrollbar::Scrollbar, wrap},
-    wifi_tracker::{ChannelSweep, ScanAp, ScanError, SWEEP_CHANNELS},
+    wifi_tracker::{format_bssid, ChannelSweep, ChannelWatch, ScanAp, ScanError, SWEEP_CHANNELS},
 };
 
 const MAX_APS: usize = 32;
@@ -31,10 +34,61 @@ const COL_BASE: i32 = 52;
 const BAR_STEP: i32 = 6;
 const BAR_MAX: i32 = 36;
 
+// Detail view.
+/// Time between scans of the selected network's channel.
+const TRACK_INTERVAL_MS: u64 = 2000;
+/// Readings kept for the graph: 2 px each across the screen, so about two
+/// minutes at one per scan.
+pub const TRACK_HISTORY: usize = 64;
+const GRAPH_TOP: i32 = 41;
+const GRAPH_BASE: i32 = 61;
+/// dBm at the bottom and top of the graph.
+const GRAPH_MIN_DBM: i32 = -90;
+const GRAPH_MAX_DBM: i32 = -40;
+
+/// One network's recent readings, `None` where a scan missed it.
+pub struct SignalTrack {
+    history: Deque<Option<i8>, TRACK_HISTORY>,
+}
+
+impl Default for SignalTrack {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl SignalTrack {
+    pub const fn new() -> Self {
+        Self { history: Deque::new() }
+    }
+
+    pub fn reset(&mut self) {
+        self.history.clear();
+    }
+
+    /// Add a scan's reading, `None` if the network wasn't heard.
+    pub fn push(&mut self, reading: Option<i8>) {
+        if self.history.is_full() {
+            self.history.pop_front();
+        }
+        let _ = self.history.push_back(reading);
+    }
+
+    pub fn latest(&self) -> Option<i8> {
+        self.history.back().copied().flatten()
+    }
+
+    /// Oldest first.
+    pub fn history(&self) -> impl Iterator<Item = Option<i8>> + '_ {
+        self.history.iter().copied()
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 enum State {
     Scanning,
     List,
+    /// The selected network's details, re-scanned live.
     Detail,
     Error(ScanError),
 }
@@ -44,6 +98,10 @@ pub struct WifiScanScene {
     aps: Vec<ScanAp, MAX_APS>,
     nav: ListNav,
     sweep: ChannelSweep,
+    watch: ChannelWatch,
+    track: SignalTrack,
+    next_scan_ms: u64,
+    now: u64,
 }
 
 impl WifiScanScene {
@@ -53,7 +111,54 @@ impl WifiScanScene {
             aps: Vec::new(),
             nav: ListNav::new(),
             sweep: ChannelSweep::new(),
+            watch: ChannelWatch::new(),
+            track: SignalTrack::new(),
+            next_scan_ms: 0,
+            now: 0,
         }
+    }
+
+    /// Start tracking the selected network: hold the radio on its channel.
+    fn start_tracking(&mut self, ctx: &mut GameContext) {
+        let Some(ap) = self.aps.get(self.nav.selected) else { return };
+        let (channel, rssi) = (ap.channel, ap.rssi);
+        match self.watch.begin(ctx, channel) {
+            Ok(()) => {
+                self.track.reset();
+                // The list's reading is the first point.
+                self.track.push(Some(rssi));
+                self.next_scan_ms = now_ms() + TRACK_INTERVAL_MS;
+                ctx.keep_awake = true;
+                self.state = State::Detail;
+            }
+            Err(e) => self.state = State::Error(e),
+        }
+    }
+
+    fn stop_tracking(&mut self, ctx: &mut GameContext) {
+        self.watch.end(ctx);
+        ctx.keep_awake = false;
+    }
+
+    /// Re-scan the tracked network's channel when it's due.
+    fn track_step(&mut self, ctx: &mut GameContext) {
+        if self.now < self.next_scan_ms {
+            return;
+        }
+        let Some(ap) = self.aps.get_mut(self.nav.selected) else { return };
+        // A failed scan counts as not hearing it; the next one may work.
+        let reading = self
+            .watch
+            .scan(ctx)
+            .ok()
+            .and_then(|found| found.iter().find(|f| f.bssid == ap.bssid).map(|f| f.rssi));
+        if let Some(rssi) = reading {
+            ap.rssi = rssi;
+        }
+        self.track.push(reading);
+        // Timed from the end of the scan, which blocks for its dwell.
+        self.now = now_ms();
+        self.next_scan_ms = self.now + TRACK_INTERVAL_MS;
     }
 
     /// One step of the sweep: start it, or scan the next channel.
@@ -151,29 +256,48 @@ impl WifiScanScene {
 
     fn draw_detail(&self, r: &mut Renderer) {
         let Some(ap) = self.aps.get(self.nav.selected) else { return };
-        let lines: Vec<&str, 2> = wrap::wrap(ssid_or_hidden(ap), 21);
-        for (i, line) in lines.iter().enumerate() {
-            r.draw_text(line, Point::new(0, i as i32 * 10));
-        }
-        let y0 = 22;
+        let name = ssid_or_hidden(ap);
+        let end = name.char_indices().nth(21).map_or(name.len(), |(i, _)| i);
+        r.draw_text(&name[..end], Point::new(0, 0));
 
-        let mut mac: String<20> = String::new();
-        for (i, b) in ap.bssid.iter().enumerate() {
-            let _ = write!(mac, "{}{:02X}", if i == 0 { "" } else { ":" }, b);
-        }
-        r.draw_text_small(&mac, Point::new(0, y0));
-
-        let mut sig: String<32> = String::new();
-        let _ = write!(sig, "{} {} dBm", t!("Signal"), ap.rssi);
-        r.draw_text_small(&sig, Point::new(0, y0 + 8));
-        draw_bars(r, 100, y0 + 14, bars_for(ap.rssi), true);
-
-        let mut ch: String<32> = String::new();
+        // BSSID (several access points can share a name) and channel.
+        r.draw_text_small(&format_bssid(&ap.bssid), Point::new(0, 11));
+        let mut ch: String<24> = String::new();
         let _ = write!(ch, "{} {}", t!("Channel"), ap.channel);
-        r.draw_text_small(&ch, Point::new(0, y0 + 16));
+        r.draw_text_small(&ch, Point::new(128 - ch.chars().count() as i32 * wrap::SMALL_CHAR_W, 11));
+
+        // The latest reading, big, or dashes if the last scan missed it.
+        let mut big: String<8> = String::new();
+        match self.track.latest() {
+            Some(rssi) => {
+                let _ = write!(big, "{}", rssi);
+            }
+            None => {
+                let _ = big.push_str("--");
+            }
+        }
+        r.draw_text_scaled(&big, Point::new(0, 19), 2, true);
+        let big_w = big.len() as i32 * 12;
+        r.draw_text_small("dBm", Point::new(big_w + 2, 32));
 
         let sec = if ap.secured { t!("Secured") } else { t!("Open") };
-        r.draw_text_small(sec, Point::new(0, y0 + 24));
+        r.draw_text(sec, Point::new(128 - sec.chars().count() as i32 * 6, 24));
+
+        self.draw_graph(r);
+    }
+
+    /// Readings as bars, newest at the right; a miss leaves a gap.
+    fn draw_graph(&self, r: &mut Renderer) {
+        let n = self.track.history().count() as i32;
+        let x0 = 128 - n * 2;
+        let span = GRAPH_BASE - GRAPH_TOP;
+        for (i, reading) in self.track.history().enumerate() {
+            let Some(rssi) = reading else { continue };
+            let level = (rssi as i32).clamp(GRAPH_MIN_DBM, GRAPH_MAX_DBM) - GRAPH_MIN_DBM;
+            let h = (level * span / (GRAPH_MAX_DBM - GRAPH_MIN_DBM)).max(1);
+            let x = x0 + i as i32 * 2;
+            r.draw_line(Point::new(x, GRAPH_BASE - h + 1), Point::new(x, GRAPH_BASE));
+        }
     }
 }
 
@@ -210,14 +334,17 @@ impl Scene for WifiScanScene {
     }
 
     fn exit(&mut self, ctx: &mut GameContext) {
-        // Don't leave the radio held if we're leaving mid-sweep.
+        // Don't leave the radio held if we're leaving mid-sweep or
+        // mid-track.
         self.sweep.abort(ctx);
+        self.stop_tracking(ctx);
     }
 
     fn update(&mut self, ctx: &mut GameContext, buttons: &mut Buttons, _dt: f32) -> Option<SceneId> {
         if buttons.was_just_pressed(Button::Menu1) {
             return Some(SceneId::Menu);
         }
+        self.now = now_ms();
         match self.state {
             State::Scanning => self.scan_step(ctx),
             State::List => {
@@ -228,7 +355,7 @@ impl Scene for WifiScanScene {
                     self.nav.down(self.aps.len(), VISIBLE);
                 }
                 if buttons.was_just_pressed(Button::A) && !self.aps.is_empty() {
-                    self.state = State::Detail;
+                    self.start_tracking(ctx);
                 }
                 if buttons.was_just_pressed(Button::B) {
                     self.state = State::Scanning;
@@ -236,7 +363,10 @@ impl Scene for WifiScanScene {
             }
             State::Detail => {
                 if buttons.was_just_pressed(Button::B) || buttons.was_just_pressed(Button::A) {
+                    self.stop_tracking(ctx);
                     self.state = State::List;
+                } else {
+                    self.track_step(ctx);
                 }
             }
             State::Error(_) => {

@@ -682,10 +682,7 @@
   "Cat-egorically not": "Chat-tégoriquement non",
   "networks": "réseaux",
   "B: rescan": "B: relancer",
-  "Signal": "Signal",
   "Channel": "Canal",
-  "Secured": "Sécurisé",
-  "Open": "Ouvert",
   "(hidden)": "(masqué)",
   "Scanning...": "Recherche...",
   "Ask, then press A": "Demande, puis A",
@@ -763,5 +760,7 @@
   "Play/Pause": "Lecture",
   "Mute": "Muet",
   "Prev": "Préc.",
-  "M2: change mode": "M2: changer mode"
+  "M2: change mode": "M2: changer mode",
+  "Secured": "Sécurisé",
+  "Open": "Ouvert"
 }
