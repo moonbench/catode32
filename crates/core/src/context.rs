@@ -315,9 +315,11 @@ pub enum ToyVariant {
     Ball,
     Bubbles,
     Laser,
+    /// Feathery-tailed ball. Shown as "Ball"; `Ball` is the yarn ball.
+    FeatherBall,
 }
 
-pub const TOY_VARIANT_COUNT: usize = 6;
+pub const TOY_VARIANT_COUNT: usize = 7;
 
 impl ToyVariant {
     pub const fn max_durability(self) -> u8 {
@@ -328,6 +330,7 @@ impl ToyVariant {
             ToyVariant::Ball => 42,
             ToyVariant::Bubbles => 35,
             ToyVariant::Laser => 100,
+            ToyVariant::FeatherBall => 35,
         }
     }
 
@@ -339,6 +342,7 @@ impl ToyVariant {
             ToyVariant::Ball => t!("Yarn Ball"),
             ToyVariant::Bubbles => t!("Bubbles"),
             ToyVariant::Laser => t!("Laser"),
+            ToyVariant::FeatherBall => t!("Ball"),
         }
     }
 
@@ -351,6 +355,7 @@ impl ToyVariant {
             ToyVariant::Ball => icons::TOYS,
             ToyVariant::Bubbles => icons::BUBBLES,
             ToyVariant::Laser => icons::LASER,
+            ToyVariant::FeatherBall => icons::FEATHER_BALL,
         }
     }
 
@@ -363,6 +368,7 @@ impl ToyVariant {
             ToyVariant::Ball => PlayVariant::Ball,
             ToyVariant::Bubbles => PlayVariant::Bubbles,
             ToyVariant::Laser => PlayVariant::Laser,
+            ToyVariant::FeatherBall => PlayVariant::FeatherBall,
         }
     }
 }

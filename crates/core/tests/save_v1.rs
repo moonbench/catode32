@@ -8,7 +8,7 @@ mod common;
 use std::fs;
 
 use catode32_core::{
-    context::GameContext,
+    context::{GameContext, ToyVariant},
     led::Led,
     ring::{self, crc16_update, MAX_PAYLOAD},
     save::{self, LoadOutcome},
@@ -276,7 +276,25 @@ fn migrates_largest_possible_v0_save() {
     let cat = migrate_fixture("v0_maxed.json");
     let mut want = maxed_context();
     want.plants.truncate(74);
+    // v0 predates the feather ball.
+    want.toys.retain(|t| t.variant != ToyVariant::FeatherBall);
     assert_same_cat(&want, &cat, PLANT_TOL);
+}
+
+#[test]
+fn feather_ball_round_trips_as_its_own_toy() {
+    let mut ctx = fresh();
+    ctx.toys.clear();
+    assert!(ctx.add_toy(ToyVariant::Ball));
+    assert!(ctx.add_toy(ToyVariant::FeatherBall));
+    ctx.fav_toy = Some(ToyVariant::FeatherBall);
+    ctx.least_fav_toy = Some(ToyVariant::Ball);
+    let mut back = fresh();
+    decode(&encode(&ctx), &mut back);
+    let toys: Vec<_> = back.toys.iter().map(|t| t.variant).collect();
+    assert_eq!(toys, [ToyVariant::Ball, ToyVariant::FeatherBall]);
+    assert_eq!(back.fav_toy, Some(ToyVariant::FeatherBall));
+    assert_eq!(back.least_fav_toy, Some(ToyVariant::Ball));
 }
 
 #[test]

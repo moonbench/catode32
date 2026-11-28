@@ -31,3 +31,21 @@ fn hand_is_never_broken() {
     let ctx = GameContext::new(Led::new());
     assert!(!ctx.toy_is_broken(PlayVariant::Hand));
 }
+
+#[test]
+fn feather_ball_wears_out_separately_from_yarn_ball() {
+    let mut ctx = GameContext::new(Led::new());
+    ctx.toys.clear();
+    assert!(ctx.add_toy(ToyVariant::Ball));
+    assert!(ctx.add_toy(ToyVariant::FeatherBall));
+    assert_eq!(PlayVariant::FeatherBall.to_toy_variant(), Some(ToyVariant::FeatherBall));
+    assert_eq!(ToyVariant::FeatherBall.to_play_variant(), PlayVariant::FeatherBall);
+
+    let idx = ctx.find_toy(ToyVariant::FeatherBall).unwrap();
+    ctx.toys[idx].durability = 0;
+    assert!(ctx.toy_is_broken(PlayVariant::FeatherBall));
+    assert!(!ctx.toy_is_broken(PlayVariant::Ball));
+
+    assert!(ctx.refresh_toy(ToyVariant::FeatherBall));
+    assert!(!ctx.toy_is_broken(PlayVariant::FeatherBall));
+}

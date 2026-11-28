@@ -185,12 +185,14 @@ const SNACKS: [FoodItem; 9] = [
     FoodItem::Puree,
 ];
 
-const TOY_VARIANTS: [ToyVariant; 5] = [
+const TOY_VARIANTS: [ToyVariant; 7] = [
     ToyVariant::String_,
     ToyVariant::Feather,
     ToyVariant::Ball,
     ToyVariant::Laser,
     ToyVariant::Mouse,
+    ToyVariant::Bubbles,
+    ToyVariant::FeatherBall,
 ];
 
 const LOCATIONS: [SceneId; 4] = [

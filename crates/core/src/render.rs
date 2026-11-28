@@ -265,13 +265,20 @@ impl Renderer {
     /// Tiny filled disc, used by the laser dot and the string tip. Sized for
     /// the small radii (1 or 2) the playing behavior actually requests.
     pub fn draw_circle_filled(&mut self, center: Point, radius: i32) {
+        self.draw_circle_filled_color(center, radius, true);
+    }
+
+    /// Filled disc in either colour. `on = false` punches a black mask,
+    /// e.g. behind the feather ball's outline.
+    pub fn draw_circle_filled_color(&mut self, center: Point, radius: i32, on: bool) {
+        let color = if on { BinaryColor::On } else { BinaryColor::Off };
         let r2 = radius * radius;
         for dy in -radius..=radius {
             for dx in -radius..=radius {
                 if dx * dx + dy * dy <= r2 {
                     Pixel(
                         Point::new(center.x + dx, center.y + dy),
-                        BinaryColor::On,
+                        color,
                     )
                     .draw(&mut self.display)
                     .ok();

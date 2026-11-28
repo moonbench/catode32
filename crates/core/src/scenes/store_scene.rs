@@ -82,6 +82,7 @@ const TOYS: &[MenuItem<StoreAction>] = &[
     toy_item(t!("Yarn"),    ToyVariant::Ball,    50, "Yarn Ball: 50c"),
     toy_item(t!("Bubbles"), ToyVariant::Bubbles, 45, "Bubbles: 45c"),
     toy_item(t!("Laser"),   ToyVariant::Laser,   75, "Laser Pointer: 75c"),
+    toy_item(t!("Ball"),    ToyVariant::FeatherBall, 45, "Ball: 45c"),
 ];
 
 const POTS: &[MenuItem<StoreAction>] = &[

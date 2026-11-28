@@ -125,6 +125,7 @@ save_ids! { food_id, food_from_id, FoodItem;
 
 save_ids! { toy_id, toy_from_id, ToyVariant;
     String_ => 0, Feather => 1, Mouse => 2, Ball => 3, Bubbles => 4, Laser => 5,
+    FeatherBall => 6,
 }
 
 save_ids! { pot_id, pot_from_id, PotKind;

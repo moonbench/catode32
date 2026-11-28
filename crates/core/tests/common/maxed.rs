@@ -123,6 +123,7 @@ pub fn maxed_context() -> GameContext {
         ToyVariant::Ball,
         ToyVariant::Bubbles,
         ToyVariant::Laser,
+        ToyVariant::FeatherBall,
     ]
     .into_iter()
     .enumerate()

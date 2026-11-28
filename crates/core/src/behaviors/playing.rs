@@ -1,8 +1,10 @@
 //! Player-steered play sessions. Mirrors `entities/behaviors/playing.py`.
 //!
-//! Seven variants:
+//! Eight variants:
 //! - `Ball`, `Mouse`, `Hand`: shared sliding-toy physics (push / friction /
 //!   wall-bounce), pounce / recover / catch state machine.
+//! - `FeatherBall`: a rolling ball like `Ball`, trailing a short verlet tail
+//!   pinned to its rim, so rolling flaps the tail around.
 //! - `Laser`: user-steered base with sine wobble around it.
 //! - `String`, `Feather`: 8-segment verlet rope dangling from a user-steered
 //!   anchor; cat pounces toward the tip.
@@ -13,7 +15,10 @@
 //! behavior reads `ctx.input` (held + just-pressed bits) and writes the
 //! character's eye-frame override via `Behavior::eye_frame_override`.
 
-use embedded_graphics::prelude::Point;
+use embedded_graphics::{
+    prelude::{Point, PointsIter},
+    primitives::Line,
+};
 use heapless::Vec;
 #[cfg(not(feature = "desktop"))]
 use micromath::F32Ext;
@@ -40,6 +45,7 @@ const SOLO_PLAY_VARIANTS: &[ToyVariant] = &[
     ToyVariant::String_,
     ToyVariant::Feather,
     ToyVariant::Mouse,
+    ToyVariant::FeatherBall,
 ];
 
 fn is_solo(v: ToyVariant) -> bool {
@@ -110,6 +116,37 @@ const STRING_POUNCE_DELAY_MIN: f32 = 2.0;
 const STRING_POUNCE_DELAY_MAX: f32 = 8.0;
 const FEATHER_SEGMENTS: usize = 8;
 const FEATHER_WIDTH: f32 = 2.0;
+
+// Feather ball: a plain masked circle with a short feathery tail.
+const FBALL_RADIUS: i32 = 5;
+/// Ball centre height above the floor line; its bottom sits where the yarn
+/// ball's does.
+const FBALL_Y_OFFSET: i32 = 7;
+/// Tail rope: a long plain stem off the rim, then shorter feathered
+/// segments. The long stem holds the feathers clear of the ball so rolling
+/// can flip them up over the top.
+const TAIL_NODES: usize = 4;
+const TAIL_SEG_LENS: [f32; TAIL_NODES - 1] = [10.0, 6.0, 6.0];
+/// Light gravity and little drag let the tail whip over the ball as it rolls
+/// (string uses 120 / 0.45); it still settles ~0.2s after the ball stops.
+const TAIL_GRAVITY: f32 = 30.0;
+const TAIL_DAMPING: f32 = 0.5;
+/// Where the tail attaches at the start, in degrees (180 = left side).
+const TAIL_ATTACH_START: f32 = 180.0;
+/// A feather is stamped on every Nth pixel of the rasterised tail.
+const FEATHER_SPACING: usize = 2;
+/// Each feather is a hollow 5x5 diamond: every pixel with |dx|+|dy| == 2.
+const FEATHER_RADIUS: i32 = 2;
+const FEATHER_DIAMOND: [(i32, i32); 8] = [
+    (0, -2),
+    (-1, -1),
+    (1, -1),
+    (-2, 0),
+    (2, 0),
+    (-1, 1),
+    (1, 1),
+    (0, 2),
+];
 
 const WAND_PUSH_FORCE: f32 = 200.0;
 const WAND_MAX_SPEED: f32 = 80.0;
@@ -611,6 +648,7 @@ impl PlayingBehavior {
     fn toy_height(&self) -> f32 {
         match self.variant {
             PlayVariant::Ball => BALL_Y_OFFSET as f32,
+            PlayVariant::FeatherBall => FBALL_Y_OFFSET as f32,
             PlayVariant::Mouse => MOUSE_Y_OFFSET as f32,
             PlayVariant::Hand => HAND_Y_OFFSET as f32,
             _ => LASER_Y_OFFSET as f32,
@@ -657,12 +695,82 @@ impl PlayingBehavior {
             BALL_FRICTION,
             BALL_BOUNCE_DAMPING,
         );
-        let angle = self.toy_vel_x * dt / (YARN_BALL.width as f32 / 2.0)
-            * (180.0 / core::f32::consts::PI);
+        self.roll(dt, YARN_BALL.width as f32 / 2.0);
+        self.eye_frame =
+            Some(compute_eye_frame(self.toy_x - self.play_char_x, character.mirror_h));
+        self.dispatch_sliding_phase(ctx, character, dt);
+    }
+
+    /// Advance `ball_rotation` (degrees, clockwise on screen) as if a ball of
+    /// `radius` rolled without slipping at `toy_vel_x`.
+    fn roll(&mut self, dt: f32, radius: f32) {
+        let angle = self.toy_vel_x * dt / radius * (180.0 / core::f32::consts::PI);
         self.ball_rotation = (self.ball_rotation + angle) % 360.0;
         if self.ball_rotation < 0.0 {
             self.ball_rotation += 360.0;
         }
+    }
+
+    // -- Feather ball --------------------------------------------------------
+
+    /// Ball centre in screen coordinates. Physics and drawing both use this
+    /// so the tail can't drift off the ball.
+    fn fball_center(&self) -> (f32, f32) {
+        (self.toy_x, self.play_char_y - FBALL_Y_OFFSET as f32)
+    }
+
+    /// The tail's pinned end: a point on the rim that turns with the ball.
+    fn fball_attach(&self) -> (f32, f32) {
+        let (cx, cy) = self.fball_center();
+        let theta = self.ball_rotation * (core::f32::consts::PI / 180.0);
+        let r = FBALL_RADIUS as f32;
+        (cx + r * theta.cos(), cy + r * theta.sin())
+    }
+
+    /// Lowest the tail's centre line may go: feathers rest on the floor the
+    /// ball sits on, rather than poking through it.
+    fn fball_tail_floor(&self) -> f32 {
+        self.play_char_y - FBALL_Y_OFFSET as f32 + FBALL_RADIUS as f32 - FEATHER_RADIUS as f32
+    }
+
+    /// Lay the tail flat on the floor, trailing away from the attach point,
+    /// at rest.
+    fn fball_tail_init(&mut self) {
+        let (ax, ay) = self.fball_attach();
+        let floor = self.fball_tail_floor();
+        let dir = if ax < self.toy_x { -1.0 } else { 1.0 };
+        let mut x = ax;
+        for i in 0..self.str_node_count {
+            let y = if i == 0 { ay } else { floor };
+            self.str_px[i] = x;
+            self.str_py[i] = y;
+            self.str_ox[i] = x;
+            self.str_oy[i] = y;
+            if i < self.str_node_count - 1 {
+                x += dir * self.str_seg_lens[i];
+            }
+        }
+        self.str_needs_init = false;
+    }
+
+    fn update_feather_ball(&mut self, ctx: &mut GameContext, character: &mut Character, dt: f32) {
+        self.update_toy_physics(
+            ctx,
+            dt,
+            BALL_PUSH_FORCE,
+            BALL_MAX_SPEED,
+            BALL_FRICTION,
+            BALL_BOUNCE_DAMPING,
+        );
+        self.roll(dt, FBALL_RADIUS as f32);
+        if self.str_needs_init {
+            self.fball_tail_init();
+        }
+        // The tail runs in every phase so it keeps settling and flapping
+        // while the cat pounces or paws.
+        let (ax, ay) = self.fball_attach();
+        let floor = self.fball_tail_floor();
+        self.str_step_physics(ax, ay, floor, TAIL_GRAVITY, TAIL_DAMPING, dt);
         self.eye_frame =
             Some(compute_eye_frame(self.toy_x - self.play_char_x, character.mirror_h));
         self.dispatch_sliding_phase(ctx, character, dt);
@@ -763,22 +871,37 @@ impl PlayingBehavior {
         // Settle for 30 frames at dt = 1/12.
         let settle_dt = 1.0 / 12.0;
         for _ in 0..30 {
-            self.str_step_physics(anchor_sx, anchor_sy, floor_y, settle_dt);
+            self.str_step_physics(
+                anchor_sx,
+                anchor_sy,
+                floor_y,
+                STRING_GRAVITY,
+                STRING_DAMPING,
+                settle_dt,
+            );
         }
 
         self.str_needs_init = false;
     }
 
-    fn str_step_physics(&mut self, anchor_sx: f32, anchor_sy: f32, floor_y: f32, dt: f32) {
+    fn str_step_physics(
+        &mut self,
+        anchor_sx: f32,
+        anchor_sy: f32,
+        floor_y: f32,
+        gravity: f32,
+        damping: f32,
+        dt: f32,
+    ) {
         let n = self.str_node_count;
-        let damp = STRING_DAMPING.powf(dt);
+        let damp = damping.powf(dt);
         for i in 1..n {
             let px = self.str_px[i];
             let py = self.str_py[i];
             let ox = self.str_ox[i];
             let oy = self.str_oy[i];
             let vx = (px - ox) * damp;
-            let vy = (py - oy) * damp + STRING_GRAVITY * dt * dt;
+            let vy = (py - oy) * damp + gravity * dt * dt;
             self.str_ox[i] = px;
             self.str_oy[i] = py;
             self.str_px[i] = px + vx;
@@ -853,7 +976,14 @@ impl PlayingBehavior {
             self.str_anchor_x = 128.0 - TOY_SCREEN_MARGIN;
         }
 
-        self.str_step_physics(self.str_anchor_x, anchor_sy, floor_y, dt);
+        self.str_step_physics(
+            self.str_anchor_x,
+            anchor_sy,
+            floor_y,
+            STRING_GRAVITY,
+            STRING_DAMPING,
+            dt,
+        );
 
         let tip_sx = self.str_px[self.str_node_count - 1];
         self.eye_frame = Some(compute_eye_frame(tip_sx - char_x, character.mirror_h));
@@ -1186,6 +1316,7 @@ impl PlayingBehavior {
             PlayVariant::String => (-8.0, -3.0, -1.0, 1.5, 1.5, 0.4),
             PlayVariant::Feather => (-6.0, -5.0, -1.0, 1.5, 1.5, 0.4),
             PlayVariant::Ball => (-8.0, -4.0, -1.0, 1.5, 1.5, 0.4),
+            PlayVariant::FeatherBall => (-8.0, -4.0, -1.0, 1.5, 1.5, 0.4),
             PlayVariant::Mouse => (-8.0, -4.0, -1.0, 1.5, 1.5, 0.4),
             PlayVariant::Hand => (-6.0, -3.0, -1.0, 1.0, 1.0, 0.3),
             PlayVariant::Laser => (-6.0, -3.0, -1.0, 1.5, 1.5, 0.4),
@@ -1233,6 +1364,13 @@ impl Behavior for PlayingBehavior {
         match self.variant {
             PlayVariant::Ball => {
                 self.ball_rotation = 0.0;
+                self.start_sliding_toy(ctx, PoseId::PlayfulForwardWowed);
+            }
+            PlayVariant::FeatherBall => {
+                self.ball_rotation = TAIL_ATTACH_START;
+                self.str_node_count = TAIL_NODES;
+                self.str_seg_lens[..TAIL_NODES - 1].copy_from_slice(&TAIL_SEG_LENS);
+                self.str_needs_init = true;
                 self.start_sliding_toy(ctx, PoseId::PlayfulForwardWowed);
             }
             PlayVariant::Mouse => {
@@ -1300,6 +1438,7 @@ impl Behavior for PlayingBehavior {
 
         match self.variant {
             PlayVariant::Ball => self.update_ball(ctx, character, dt),
+            PlayVariant::FeatherBall => self.update_feather_ball(ctx, character, dt),
             PlayVariant::Mouse => self.update_mouse(ctx, character, dt),
             PlayVariant::Hand => self.update_hand(ctx, character, dt),
             PlayVariant::Laser => self.update_laser(ctx, character, dt),
@@ -1393,6 +1532,7 @@ impl Behavior for PlayingBehavior {
 
         match self.variant {
             PlayVariant::Ball => self.draw_ball(renderer, char_y),
+            PlayVariant::FeatherBall => self.draw_feather_ball(renderer),
             PlayVariant::Mouse => self.draw_mouse(renderer, char_y),
             PlayVariant::Hand => self.draw_hand(renderer, char_y),
             PlayVariant::Laser => self.draw_laser(renderer, char_y),
@@ -1440,6 +1580,53 @@ impl PlayingBehavior {
     fn draw_ball(&self, renderer: &mut Renderer, char_y: i32) {
         let frame = ((self.ball_rotation / 90.0) as usize) % 4;
         self.draw_simple_toy(renderer, char_y, &YARN_BALL, BALL_Y_OFFSET, frame, false);
+    }
+
+    fn draw_feather_ball(&self, renderer: &mut Renderer) {
+        if !self.in_visible_phase() || self.str_needs_init {
+            return;
+        }
+        let n = self.str_node_count;
+        let node = |i: usize| (self.str_px[i], self.str_py[i]);
+        let pt = |x: f32, y: f32| Point::new((x + 0.5).floor() as i32, (y + 0.5).floor() as i32);
+
+        // Plain stem from the rim to the first feather.
+        let (sx, sy) = node(0);
+        let (fx, fy) = node(1);
+        renderer.draw_line(pt(sx, sy), pt(fx, fy));
+
+        // Feathers on every other pixel of the rasterised tail. Each stamp is
+        // snapped onto the x+y-even lattice; a diamond only lights pixels of
+        // its centre's parity, so the overlapping feathers always form a clean
+        // checkerboard band at any angle, and the dither stays put as the
+        // tail moves instead of shimmering.
+        let mut count = 0usize;
+        let mut last: Option<Point> = None;
+        for i in 1..(n - 1) {
+            let (ax, ay) = node(i);
+            let (bx, by) = node(i + 1);
+            for p in Line::new(pt(ax, ay), pt(bx, by)).points() {
+                // Joints are shared by both segments; count them once.
+                if last == Some(p) {
+                    continue;
+                }
+                last = Some(p);
+                count += 1;
+                if count % FEATHER_SPACING != 1 {
+                    continue;
+                }
+                let cx = p.x + (p.x + p.y).rem_euclid(2);
+                for (ox, oy) in FEATHER_DIAMOND {
+                    renderer.draw_pixel(Point::new(cx + ox, p.y + oy), true);
+                }
+            }
+        }
+
+        // Ball on top: black disc masks any tail behind it, then the outline.
+        let (cx, cy) = self.fball_center();
+        let c = pt(cx, cy);
+        renderer.draw_circle_filled_color(c, FBALL_RADIUS, false);
+        renderer.draw_circle_outline(c, FBALL_RADIUS);
     }
 
     fn draw_mouse(&self, renderer: &mut Renderer, char_y: i32) {

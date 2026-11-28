@@ -131,6 +131,7 @@ pub enum PlayVariant {
     Hand,
     Laser,
     Bubbles,
+    FeatherBall,
 }
 
 impl PlayVariant {
@@ -144,6 +145,7 @@ impl PlayVariant {
             PlayVariant::Ball => Some(ToyVariant::Ball),
             PlayVariant::Bubbles => Some(ToyVariant::Bubbles),
             PlayVariant::Laser => Some(ToyVariant::Laser),
+            PlayVariant::FeatherBall => Some(ToyVariant::FeatherBall),
             PlayVariant::Hand => None,
         }
     }

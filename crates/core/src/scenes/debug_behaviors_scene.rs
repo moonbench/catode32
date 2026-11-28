@@ -66,6 +66,7 @@ const ENTRIES: &[Entry] = &[
     Entry { label: "Play (hand)",           next: NextBehavior::Playing(PlayVariant::Hand, false),                    target: BehaviorId::Playing },
     Entry { label: "Play (laser)",          next: NextBehavior::Playing(PlayVariant::Laser, false),                   target: BehaviorId::Playing },
     Entry { label: "Play (bubbles)",        next: NextBehavior::Playing(PlayVariant::Bubbles, false),                 target: BehaviorId::Playing },
+    Entry { label: "Play (feather ball)",   next: NextBehavior::Playing(PlayVariant::FeatherBall, false),             target: BehaviorId::Playing },
     Entry { label: "Affection (kiss)",      next: NextBehavior::Affection(AffectionVariant::Kiss),             target: BehaviorId::Affection },
     Entry { label: "Affection (pets)",      next: NextBehavior::Affection(AffectionVariant::Pets),             target: BehaviorId::Affection },
     Entry { label: "Affection (scratch)",   next: NextBehavior::Affection(AffectionVariant::Scratching),       target: BehaviorId::Affection },

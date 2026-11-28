@@ -293,6 +293,7 @@ crate::enum_key_pair_option! {
     Ball    => "ball",
     Bubbles => "bubbles",
     Laser   => "laser",
+    FeatherBall => "feather_ball",
 }
 
 crate::enum_key_pair_option! {
