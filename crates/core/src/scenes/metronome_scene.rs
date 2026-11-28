@@ -25,8 +25,8 @@ pub const BPM_MIN: u16 = 30;
 pub const BPM_MAX: u16 = 240;
 pub const BEATS_MAX: u8 = 8;
 
-const ACCENT: (u8, u8, u8) = (255, 60, 0);
-const BEAT: (u8, u8, u8) = (0, 90, 255);
+const ACCENT: (u8, u8, u8) = (0, 90, 255);
+const BEAT: (u8, u8, u8) = (255, 60, 0);
 const LED_LEVEL: u8 = 160;
 const FLASH_US: u64 = 90_000;
 /// How far ahead beats are queued. A bit over two frames.

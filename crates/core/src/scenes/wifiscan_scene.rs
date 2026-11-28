@@ -44,8 +44,6 @@ pub struct WifiScanScene {
     aps: Vec<ScanAp, MAX_APS>,
     nav: ListNav,
     sweep: ChannelSweep,
-    /// Frames drawn while scanning, for the blinking channel marker.
-    blink: u8,
 }
 
 impl WifiScanScene {
@@ -55,7 +53,6 @@ impl WifiScanScene {
             aps: Vec::new(),
             nav: ListNav::new(),
             sweep: ChannelSweep::new(),
-            blink: 0,
         }
     }
 
@@ -93,7 +90,7 @@ impl WifiScanScene {
             if i < done {
                 let h = (count as i32 * BAR_STEP).min(BAR_MAX).max(1);
                 r.draw_rect(Point::new(x + 1, COL_BASE - h), Size::new(COL_W as u32 - 2, h as u32), true);
-            } else if i == done && self.blink % 4 < 2 {
+            } else if i == done {
                 // The channel being listened to now.
                 r.draw_rect(Point::new(x + 1, COL_BASE - BAR_MAX), Size::new(COL_W as u32 - 2, BAR_MAX as u32), false);
             }
@@ -222,10 +219,7 @@ impl Scene for WifiScanScene {
             return Some(SceneId::Menu);
         }
         match self.state {
-            State::Scanning => {
-                self.blink = self.blink.wrapping_add(1);
-                self.scan_step(ctx);
-            }
+            State::Scanning => self.scan_step(ctx),
             State::List => {
                 if buttons.was_just_pressed(Button::Up) {
                     self.nav.up(VISIBLE);

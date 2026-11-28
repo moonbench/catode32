@@ -56,16 +56,16 @@ const MINIGAMES: &[MenuItem<SceneId>] = &[
 ];
 
 const TOOLS: &[MenuItem<SceneId>] = &[
-    MenuItem { label: t!("Dice"),          icon: Some(icons::DICE),       submenu: None, action: Some(SceneId::Dice),         confirm: None, confirm_on_vacation: END_VAC },
-    MenuItem { label: t!("Lucky Numbers"), icon: Some(icons::CLOVER),     submenu: None, action: Some(SceneId::LuckyNumbers), confirm: None, confirm_on_vacation: END_VAC },
-    #[cfg(feature = "rgb-led")]
-    MenuItem { label: t!("Flashlight"),    icon: Some(icons::FLASHLIGHT), submenu: None, action: Some(SceneId::Flashlight),   confirm: None, confirm_on_vacation: END_VAC },
-    MenuItem { label: t!("Magic 8 Ball"),  icon: Some(icons::EIGHTBALL),  submenu: None, action: Some(SceneId::EightBall),    confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Calculator"),    icon: Some(icons::CALCULATOR), submenu: None, action: Some(SceneId::Calculator),   confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Timer"),         icon: Some(icons::TIMER),      submenu: None, action: Some(SceneId::Timer),        confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Pomodoro"),      icon: Some(icons::TOMATO),     submenu: None, action: Some(SceneId::Pomodoro),     confirm: None, confirm_on_vacation: END_VAC },
-    MenuItem { label: t!("Breathe"),       icon: Some(icons::BREATHE),    submenu: None, action: Some(SceneId::Breathe),      confirm: None, confirm_on_vacation: END_VAC },
+   #[cfg(feature = "rgb-led")]
+    MenuItem { label: t!("Flashlight"),    icon: Some(icons::FLASHLIGHT), submenu: None, action: Some(SceneId::Flashlight),   confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Dice"),          icon: Some(icons::DICE),       submenu: None, action: Some(SceneId::Dice),         confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Metronome"),     icon: Some(icons::METRONOME),  submenu: None, action: Some(SceneId::Metronome),    confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Breathe"),       icon: Some(icons::BREATHE),    submenu: None, action: Some(SceneId::Breathe),      confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Lucky Numbers"), icon: Some(icons::CLOVER),     submenu: None, action: Some(SceneId::LuckyNumbers), confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Magic 8 Ball"),  icon: Some(icons::EIGHTBALL),  submenu: None, action: Some(SceneId::EightBall),    confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Morse Code"),    icon: Some(icons::MORSE),      submenu: None, action: Some(SceneId::Morse),        confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("WiFi Scanner"),  icon: Some(icons::WIFI),       submenu: None, action: Some(SceneId::WifiScanner),  confirm: None, confirm_on_vacation: END_VAC },
 ];
