@@ -115,12 +115,21 @@ mod firmware {
     }
 
     pub fn open() -> Option<Partition> {
+        open_data(DataPartitionSubType::Nvs)
+    }
+
+    /// The Bluetooth bond store: the default table's `phy_init` partition,
+    /// which nothing else uses (PHY calibration stays in RAM). Kept apart
+    /// from the save so pairing can never touch the cat.
+    pub fn open_bonds() -> Option<Partition> {
+        open_data(DataPartitionSubType::Phy)
+    }
+
+    fn open_data(kind: DataPartitionSubType) -> Option<Partition> {
         let storage = storage()?;
         let mut table_buf = [0u8; PARTITION_TABLE_MAX_LEN];
         let pt = read_partition_table(storage, &mut table_buf).ok()?;
-        let entry = pt
-            .find_partition(PartitionType::Data(DataPartitionSubType::Nvs))
-            .ok()??;
+        let entry = pt.find_partition(PartitionType::Data(kind)).ok()??;
         let (offset, sectors) = (entry.offset(), (entry.len() as usize) / SECTOR_SIZE);
         Some(Partition {
             storage,
@@ -149,6 +158,10 @@ mod firmware {
         if ok {
             println!("[Storage] Factory reset, wiped {} sectors", p.sectors);
         }
+        // Forget Bluetooth pairings too.
+        if let Some(mut bonds) = open_bonds() {
+            bonds.erase(0);
+        }
         ok
     }
 }
@@ -156,7 +169,7 @@ mod firmware {
 #[cfg(not(feature = "desktop"))]
 pub use firmware::{init, Partition};
 #[cfg(not(feature = "desktop"))]
-use firmware::{erase_all as platform_erase_all, legacy, open, read_legacy as platform_read_legacy};
+use firmware::{erase_all as platform_erase_all, legacy, open, open_bonds, read_legacy as platform_read_legacy};
 
 #[cfg(feature = "desktop")]
 mod desktop {
@@ -267,6 +280,15 @@ mod desktop {
 pub use desktop::{init, Partition};
 #[cfg(feature = "desktop")]
 use desktop::{erase_all as platform_erase_all, legacy, open, read_legacy as platform_read_legacy};
+
+/// Open the Bluetooth bond store (see `ble::bonds`), or `None` where there
+/// isn't one (the desktop build, which has no Bluetooth).
+pub fn open_bond_partition() -> Option<Partition> {
+    #[cfg(not(feature = "desktop"))]
+    return open_bonds();
+    #[cfg(feature = "desktop")]
+    None
+}
 
 /// Open the save partition, or `None` if there isn't one.
 pub fn open_partition() -> Option<Partition> {

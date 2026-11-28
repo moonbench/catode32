@@ -26,6 +26,12 @@ c6 = [
     "dep:esp-radio",
     "dep:esp-rtos",
     "dep:embassy-futures",
+    "dep:embassy-executor",
+    "dep:embassy-time",
+    "dep:embassy-sync",
+    "dep:trouble-host",
+    "dep:static_cell",
+    "dep:esp-radio-rtos-driver",
     "esp-hal/esp32c6",
     "esp-println/esp32c6",
     "esp-bootloader-esp-idf/esp32c6",
@@ -42,6 +48,12 @@ c3 = [
     "dep:esp-radio",
     "dep:esp-rtos",
     "dep:embassy-futures",
+    "dep:embassy-executor",
+    "dep:embassy-time",
+    "dep:embassy-sync",
+    "dep:trouble-host",
+    "dep:static_cell",
+    "dep:esp-radio-rtos-driver",
     "esp-hal/esp32c3",
     "esp-println/esp32c3",
     "esp-bootloader-esp-idf/esp32c3",
@@ -67,9 +79,22 @@ esp-println = { version = "0.18.0", default-features = false, features = ["auto"
 esp-bootloader-esp-idf = { version = "0.6.0", default-features = false, optional = true }
 esp-storage = { version = "0.10.0", default-features = false, optional = true }
 esp-hal-smartled = { version = "0.18.0", default-features = false, optional = true }
-esp-radio = { version = "=1.0.0-beta.1", default-features = false, features = ["wifi", "esp-now", "esp-alloc", "unstable"], optional = true }
-esp-rtos = { version = "0.4.0", default-features = false, features = ["esp-radio", "esp-alloc"], optional = true }
+esp-radio = { version = "=1.0.0-beta.1", default-features = false, features = ["wifi", "esp-now", "ble", "esp-alloc", "unstable"], optional = true }
+esp-rtos = { version = "0.4.0", default-features = false, features = ["esp-radio", "esp-alloc", "embassy"], optional = true }
 embassy-futures = { version = "0.1", optional = true }
+# Bluetooth remote: an async BLE host on top of esp-radio's controller, run
+# on an embassy executor that esp-rtos provides. trouble-host 0.7 is the
+# release built on bt-hci 0.9, which is what esp-radio 1.0.0-beta.1 speaks.
+embassy-executor = { version = "0.10", default-features = false, optional = true }
+embassy-time = { version = "0.5.1", default-features = false, optional = true }
+embassy-sync = { version = "0.8", default-features = false, optional = true }
+# `central` is unused but needed: with `security` on, 0.7 only defines the
+# GAP attribute count when `central` is enabled too.
+trouble-host = { version = "=0.7.0", default-features = false, features = ["peripheral", "central", "gatt", "derive", "security", "default-packet-pool"], optional = true }
+static_cell = { version = "2.1", optional = true }
+# The scheduler interface esp-radio uses; we use it to give the BLE host
+# its own thread.
+esp-radio-rtos-driver = { version = "0.4.2", default-features = false, optional = true }
 
 ssd1306 = "0.10.0"
 embedded-graphics = "0.8.2"

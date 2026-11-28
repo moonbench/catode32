@@ -21,6 +21,10 @@ fn main() -> ! {
     // comfortable headroom. The only other allocation is a one-off at boot,
     // before wifi starts: reading a legacy (v0) save to migrate it.
     esp_alloc::heap_allocator!(size: 64 * 1024);
+    // A second region for Bluetooth, in RAM the bootloader hands back once
+    // it's done (otherwise unused). The BLE controller and host allocate
+    // from here only while the Remote tool is open.
+    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 64 * 1024);
 
     // 80 MHz rather than the 160 MHz max: lower active current, and the
     // 12 FPS game loop has headroom to spare.
@@ -41,6 +45,11 @@ fn main() -> ! {
     // as the "main" task.
     let timg0 = TimerGroup::new(board.timg0);
     esp_rtos::start(timg0.timer0, board.sw_int0);
+
+    // The async Bluetooth host gets its own scheduler thread. It idles
+    // until the Remote tool starts a session; the blocking game loop below
+    // never waits on it.
+    catode32_core::ble::spawn(board.bt);
 
     // No wifi init at boot. The radio is brought up on demand by
     // `radio::acquire` and dropped again on the last release. The

@@ -204,7 +204,9 @@ impl SleepManager {
                 break;
             }
 
-            if ctx.radio_users == 0 {
+            // Light sleep stalls the radio, so only when neither WiFi nor
+            // Bluetooth is up.
+            if ctx.radio_users == 0 && !crate::ble::status().is_active() {
                 if sim_time.elapsed() >= SLEEP_SIM_INTERVAL {
                     catch_up(ctx, buttons, scene_manager, time_system, &mut sim_time);
                 }

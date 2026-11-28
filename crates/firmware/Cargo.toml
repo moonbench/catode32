@@ -42,4 +42,4 @@ esp-backtrace = { version = "0.20.0", default-features = false, features = ["pri
 esp-println = { version = "0.18.0", default-features = false }
 esp-bootloader-esp-idf = { version = "0.6.0", default-features = false }
 esp-alloc = "0.11.0"
-esp-rtos = { version = "0.4.0", default-features = false, features = ["esp-radio", "esp-alloc"] }
+esp-rtos = { version = "0.4.0", default-features = false, features = ["esp-radio", "esp-alloc", "embassy"] }

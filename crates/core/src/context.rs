@@ -525,6 +525,8 @@ pub struct ToolPrefs {
     pub metronome_bpm: u16,
     pub metronome_beats: u8,
     pub morse_wpm: u8,
+    /// Remote mode, an index into `ble::keys::MODES`.
+    pub remote_mode: u8,
 }
 
 impl ToolPrefs {
@@ -539,6 +541,7 @@ impl ToolPrefs {
         metronome_bpm: 100,
         metronome_beats: 4,
         morse_wpm: 8,
+        remote_mode: 0,
     };
 }
 

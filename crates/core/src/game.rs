@@ -367,7 +367,9 @@ impl Game {
             None => true,
             Some(t) => now >= t,
         };
-        if !due {
+        // Bluetooth holds the radio while the Remote is open. Leave the
+        // schedule alone so the scan runs at the first swap after it closes.
+        if !due || crate::ble::status().is_active() {
             return;
         }
         // Push the next scan out before scanning, success or not, so a

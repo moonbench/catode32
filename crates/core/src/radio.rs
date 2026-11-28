@@ -32,6 +32,11 @@ mod firmware {
     /// Bring the radio up (or just bump the refcount). Returns `true` if
     /// the radio is usable on exit, `false` if init failed.
     pub fn acquire(ctx: &mut GameContext) -> bool {
+        // Bluetooth has the radio to itself while the Remote is open; WiFi
+        // scans and ESP-NOW wait (there's no coexistence arbitration).
+        if crate::ble::status().is_active() {
+            return false;
+        }
         if ctx.radio_users == 0 {
             if !init_radio(ctx) {
                 return false;

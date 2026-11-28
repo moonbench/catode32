@@ -51,6 +51,7 @@ pub mod platformer_scene;
 pub mod pomodoro_scene;
 pub mod pose_scene;
 pub mod purrimeter_scene;
+pub mod remote_scene;
 pub mod reversi_scene;
 pub mod save_recovery_scene;
 pub mod scratch_scene;
@@ -150,6 +151,7 @@ use pomodoro_scene::PomodoroScene;
 use breathe_scene::BreatheScene;
 use metronome_scene::MetronomeScene;
 use morse_scene::MorseScene;
+use remote_scene::RemoteScene;
 
 crate::dispatch_enum! {
     pub enum ActiveScene from SceneId via from_id,
@@ -229,5 +231,6 @@ crate::dispatch_enum! {
         Breathe(BreatheScene)                     = BreatheScene::new(),
         Metronome(MetronomeScene)                 = MetronomeScene::new(),
         Morse(MorseScene)                         = MorseScene::new(),
+        Remote(RemoteScene)                       = RemoteScene::new(),
     }
 }

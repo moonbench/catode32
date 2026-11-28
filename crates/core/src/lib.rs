@@ -30,6 +30,7 @@ pub mod assets;
 pub mod i18n;
 pub mod behavior;
 pub mod behaviors;
+pub mod ble;
 pub mod board;
 pub mod calc;
 pub mod character;

@@ -67,6 +67,7 @@ const TOOLS: &[MenuItem<SceneId>] = &[
     MenuItem { label: t!("Lucky Numbers"), icon: Some(icons::CLOVER),     submenu: None, action: Some(SceneId::LuckyNumbers), confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Magic 8 Ball"),  icon: Some(icons::EIGHTBALL),  submenu: None, action: Some(SceneId::EightBall),    confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("Morse Code"),    icon: Some(icons::MORSE),      submenu: None, action: Some(SceneId::Morse),        confirm: None, confirm_on_vacation: END_VAC },
+    MenuItem { label: t!("Remote"),        icon: Some(icons::BLUETOOTH),  submenu: None, action: Some(SceneId::Remote),       confirm: None, confirm_on_vacation: END_VAC },
     MenuItem { label: t!("WiFi Scanner"),  icon: Some(icons::WIFI),       submenu: None, action: Some(SceneId::WifiScanner),  confirm: None, confirm_on_vacation: END_VAC },
 ];
 

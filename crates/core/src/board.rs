@@ -22,7 +22,7 @@ mod firmware {
     use esp_hal::{
         gpio::{Input, InputConfig, Pull},
         i2c::master::{Config, I2c},
-        peripherals::{Peripherals, FLASH, FROM_CPU_INTR0, TIMG0, WIFI},
+        peripherals::{Peripherals, BT, FLASH, FROM_CPU_INTR0, TIMG0, WIFI},
         rng::Rng,
         time::Rate,
         Blocking,
@@ -47,6 +47,7 @@ mod firmware {
         pub timg0: TIMG0<'static>,
         pub sw_int0: FROM_CPU_INTR0<'static>,
         pub wifi: WIFI<'static>,
+        pub bt: BT<'static>,
     }
 
     pub fn init(peripherals: Peripherals) -> Board {
@@ -105,6 +106,7 @@ mod firmware {
             timg0: peripherals.TIMG0,
             sw_int0: peripherals.FROM_CPU_INTR0,
             wifi: peripherals.WIFI,
+            bt: peripherals.BT,
         }
     }
 }

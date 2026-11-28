@@ -82,6 +82,7 @@ pub enum SceneId {
     Breathe,
     Metronome,
     Morse,
+    Remote,
 }
 
 impl SceneId {
@@ -161,6 +162,7 @@ impl SceneId {
         SceneId::Breathe,
         SceneId::Metronome,
         SceneId::Morse,
+        SceneId::Remote,
     ];
 
     pub fn to_u8(self) -> u8 {
@@ -174,11 +176,17 @@ impl SceneId {
     /// Whether a crash-resume intent may boot straight into this scene.
     /// Adoption only runs without a save, Social needs a live ESP-NOW
     /// session, Menu is an overlay that is never swapped to, and
-    /// SaveRecovery is chosen by the boot path itself.
+    /// SaveRecovery is chosen by the boot path itself. Remote would start
+    /// Bluetooth advertising unasked after a reset (and loop if BLE was
+    /// what crashed).
     pub fn resumable(self) -> bool {
         !matches!(
             self,
-            SceneId::Adoption | SceneId::Social | SceneId::Menu | SceneId::SaveRecovery
+            SceneId::Adoption
+                | SceneId::Social
+                | SceneId::Menu
+                | SceneId::SaveRecovery
+                | SceneId::Remote
         )
     }
 }

@@ -87,6 +87,15 @@ impl<A: Copy + 'static> Menu<A> {
         self.pending_action = None;
     }
 
+    /// Highlight item `index` of the current list (clamped), scrolled into view.
+    pub fn select(&mut self, index: usize) {
+        let len = self.current.items.len();
+        self.current.nav.reset();
+        for _ in 0..index.min(len.saturating_sub(1)) {
+            self.current.nav.down(len, VISIBLE_ITEMS);
+        }
+    }
+
     pub fn handle_input(&mut self, buttons: &mut Buttons, vacation_active: bool) -> MenuResult<A> {
         if self.confirm.is_open() {
             return match self.confirm.handle_input(buttons) {
